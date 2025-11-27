@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\AnkiSync.Domain.Core\AnkiSync.Domain.Core.csproj" />
+    <ProjectReference Include="..\AnkiSync.Application\AnkiSync.Application.csproj" />
+    <ProjectReference Include="..\AnkiSync.Domain\AnkiSync.Domain.csproj" />
     <ProjectReference Include="..\AnkiSync.Adapter.AnkiConnect\AnkiSync.Adapter.AnkiConnect.csproj" />
   </ItemGroup>
 

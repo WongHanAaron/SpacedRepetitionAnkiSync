@@ -1,9 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <ProjectReference Include="..\AnkiSync.Domain\AnkiSync.Domain.csproj" />
-  </ItemGroup>
-
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -12,9 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-      <_Parameter1>AnkiSync.Adapter.AnkiConnect.Tests</_Parameter1>
-    </AssemblyAttribute>
+    <ProjectReference Include="..\AnkiSync.Domain\AnkiSync.Domain.csproj" />
   </ItemGroup>
 
 </Project>

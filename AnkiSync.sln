@@ -5,11 +5,11 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnkiSync.Domain.Core", "src\AnkiSync.Domain.Core\AnkiSync.Domain.Core.csproj", "{96DAD01B-9E17-4419-B255-B294B02FE8FD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnkiSync.Domain", "src\AnkiSync.Domain\AnkiSync.Domain.csproj", "{96DAD01B-9E17-4419-B255-B294B02FE8FD}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnkiSync.Domain.Core.Tests", "tests\AnkiSync.Domain.Core.Tests\AnkiSync.Domain.Core.Tests.csproj", "{5872D1B4-3876-4D39-B289-73CC9A52E1E5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnkiSync.Domain.Tests", "tests\AnkiSync.Domain.Tests\AnkiSync.Domain.Tests.csproj", "{5872D1B4-3876-4D39-B289-73CC9A52E1E5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnkiSync.Adapter.AnkiConnect", "src\AnkiSync.Adapter.AnkiConnect\AnkiSync.Adapter.AnkiConnect.csproj", "{FB633810-FBDD-48DB-9980-B7ED612DDFFA}"
 EndProject
@@ -18,6 +18,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnkiSync.Presentation.Console", "src\AnkiSync.Presentation.Console\AnkiSync.Presentation.Console.csproj", "{A0A0087B-B075-41BF-A7DC-496A432D2A26}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnkiSync.IntegrationTests", "tests\AnkiSync.IntegrationTests\AnkiSync.IntegrationTests.csproj", "{366F0813-0221-47AD-ADB3-F7EDF71C915B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnkiSync.Application", "src\AnkiSync.Application\AnkiSync.Application.csproj", "{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -101,6 +103,18 @@ Global
 		{366F0813-0221-47AD-ADB3-F7EDF71C915B}.Release|x64.Build.0 = Release|Any CPU
 		{366F0813-0221-47AD-ADB3-F7EDF71C915B}.Release|x86.ActiveCfg = Release|Any CPU
 		{366F0813-0221-47AD-ADB3-F7EDF71C915B}.Release|x86.Build.0 = Release|Any CPU
+		{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230}.Debug|x64.Build.0 = Debug|Any CPU
+		{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230}.Debug|x86.Build.0 = Debug|Any CPU
+		{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230}.Release|x64.ActiveCfg = Release|Any CPU
+		{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230}.Release|x64.Build.0 = Release|Any CPU
+		{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230}.Release|x86.ActiveCfg = Release|Any CPU
+		{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -112,5 +126,6 @@ Global
 		{92DDF58B-1383-4ADE-BB99-5E71D295BBD9} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{A0A0087B-B075-41BF-A7DC-496A432D2A26} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{366F0813-0221-47AD-ADB3-F7EDF71C915B} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

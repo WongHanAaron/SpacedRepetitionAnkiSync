@@ -1,26 +1,40 @@
 # AnkiSync
 
-A comprehensive Python library for synchronizing with Anki instances using AnkiConnect.
+A comprehensive .NET library for synchronizing flashcards with Anki instances using Clean Architecture principles.
 
 ## Project Overview
 
-AnkiSync provides a robust, type-safe interface for programmatically interacting with Anki Desktop through the AnkiConnect add-on. The project is structured into phases, starting with a working prototype and evolving toward a production-ready synchronization engine.
+AnkiSync provides a robust, type-safe interface for programmatically interacting with Anki Desktop through the AnkiConnect add-on. The project follows Clean Architecture patterns with clear separation of concerns across domain, application, and infrastructure layers.
 
-## Project Structure
+## Architecture
+
+This project follows Clean Architecture (Hexagonal Architecture) principles:
 
 ```
 AnkiSync/
-├── prototyping/          # Experimental code and prototypes
-│   ├── anki_sync.py     # Main AnkiConnect interface
-│   └── requirements.txt # Python dependencies
+├── src/
+│   ├── AnkiSync.Domain.Core/     # Domain Layer - Core business logic and entities
+│   ├── AnkiSync.Application/     # Application Layer - Use cases and port interfaces
+│   ├── AnkiSync.Adapter.AnkiConnect/ # Infrastructure Layer - AnkiConnect adapter
+│   └── AnkiSync.Presentation.Console/ # Presentation Layer - Console application
+├── tests/
+│   ├── AnkiSync.Domain.Core.Tests/     # Domain unit tests
+│   ├── AnkiSync.Adapter.AnkiConnect.Tests/ # Adapter unit tests
+│   └── AnkiSync.IntegrationTests/      # Integration tests
+├── prototyping/          # Experimental Python prototypes
 ├── docs/                # Documentation and planning
-│   ├── architecture.md  # System architecture overview
-│   ├── development_plan.md # Development roadmap
-│   └── api_reference.md # API documentation
-├── src/                 # Production source code (future)
-├── tests/               # Test suites (future)
 └── README.md           # This file
 ```
+
+### Layers
+
+- **Domain Layer** (`AnkiSync.Domain.Core`): Contains business entities, domain services, and port interfaces that define what the application needs from external systems.
+
+- **Application Layer** (`AnkiSync.Application`): Contains application services (use cases) and port interfaces that adapters must implement. This layer orchestrates domain objects and defines the application's interface.
+
+- **Infrastructure Layer** (`AnkiSync.Adapter.AnkiConnect`): Contains adapters that implement the port interfaces defined in the application layer. Currently empty, ready for your custom AnkiConnect implementation.
+
+- **Presentation Layer** (`AnkiSync.Presentation.Console`): Contains the console application that uses the application services.
 
 ## Quick Start
 
@@ -31,21 +45,21 @@ AnkiSync/
    - Install from: https://ankiweb.net/shared/info/2055492159
    - Or in Anki: Tools → Add-ons → Get Add-ons → Code: `2055492159`
 
-### Running the Prototype
+### Building and Running
 
-1. Navigate to the prototyping directory:
+1. Build the solution:
    ```bash
-   cd prototyping
+   dotnet build
    ```
 
-2. Install dependencies (if any):
+2. Run the console application:
    ```bash
-   pip install -r requirements.txt
+   dotnet run --project src/AnkiSync.Presentation.Console
    ```
 
-3. Run the demo:
+3. Run tests:
    ```bash
-   python anki_sync.py
+   dotnet test
    ```
 
 ## Current Features (Prototype)

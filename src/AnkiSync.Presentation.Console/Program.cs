@@ -1,7 +1,7 @@
-﻿using AnkiSync.Adapter.AnkiConnect;
-using AnkiSync.Adapter.AnkiConnect.Configuration;
-using AnkiSync.Domain.Core;
-using AnkiSync.Domain.Core.Interfaces;
+// using AnkiSync.Adapter.AnkiConnect;
+// using AnkiSync.Adapter.AnkiConnect.Configuration;
+using AnkiSync.Domain;
+using AnkiSync.Domain.Interfaces;
 using System;
 
 namespace AnkiSync.Presentation.Cli;
@@ -26,26 +26,31 @@ public class Program
 
         try
         {
-            // Create AnkiConnect client with default configuration
-            var options = new AnkiConnectOptions();
-            using var client = new AnkiConnectClient(options);
+            // TODO: Create client with new interface design
+            // var options = new AnkiConnectOptions();
+            // using var client = new AnkiConnectClient(options);
 
-            switch (command)
-            {
-                case "status":
-                    await HandleStatusCommand(client);
-                    break;
-                case "decks":
-                    await HandleDecksCommand(client);
-                    break;
-                case "test":
-                    await HandleTestCommand(client);
-                    break;
-                default:
-                    Console.WriteLine($"Unknown command: {command}");
-                    ShowHelp();
-                    break;
-            }
+            Console.WriteLine("AnkiConnect interface not yet implemented.");
+            Console.WriteLine("Please implement the new AnkiConnect interface first.");
+
+            // switch (command)
+            // {
+            //     case "status":
+            //         await HandleStatusCommand(client);
+            //         break;
+            //     case "decks":
+            //         await HandleDecksCommand(client);
+            //         break;
+            //     case "test":
+            //         await HandleTestCommand(client);
+            //         break;
+            //     default:
+            //         Console.WriteLine($"Unknown command: {command}");
+            //         ShowHelp();
+            //         break;
+            // }
+
+            await Task.CompletedTask; // Keep method async for future use
         }
         catch (Exception ex)
         {
@@ -70,68 +75,69 @@ public class Program
         Console.WriteLine("  AnkiSync test");
     }
 
-    private static async Task HandleStatusCommand(AnkiConnectClient client)
-    {
-        Console.WriteLine("Checking Anki connection status...");
+    // TODO: Implement command handlers with new interface
+    // private static async Task HandleStatusCommand(AnkiConnectClient client)
+    // {
+    //     Console.WriteLine("Checking Anki connection status...");
+    //
+    //     var status = await client.GetSyncStatusAsync();
+    //
+    //     Console.WriteLine("AnkiSync Status:");
+    //     Console.WriteLine($"  Anki Connection: {status.AnkiConnectionStatus}");
+    //     Console.WriteLine($"  Sync Running: {status.IsRunning}");
+    //
+    //     if (status.AnkiConnectionStatus == AnkiConnectionStatus.Connected)
+    //     {
+    //         Console.ForegroundColor = ConsoleColor.Green;
+    //         Console.WriteLine("? Connected to Anki");
+    //         Console.ResetColor();
+    //     }
+    //     else
+    //     {
+    //         Console.ForegroundColor = ConsoleColor.Red;
+    //         Console.WriteLine("? Not connected to Anki");
+    //         Console.ResetColor();
+    //     }
+    // }
 
-        var status = await client.GetSyncStatusAsync();
+    // private static async Task HandleDecksCommand(AnkiConnectClient client)
+    // {
+    //     Console.WriteLine("Retrieving Anki decks...");
+    //
+    //     var decks = await client.GetDecksAsync();
+    //
+    //     Console.WriteLine("Available Anki Decks:");
+    //     if (decks != null && decks.Any())
+    //     {
+    //         foreach (var deck in decks.OrderBy(d => d))
+    //         {
+    //             Console.WriteLine($"  � {deck}");
+    //         }
+    //     }
+    //     else
+    //     {
+    //         Console.WriteLine("  No decks found");
+    //     }
+    // }
 
-        Console.WriteLine("AnkiSync Status:");
-        Console.WriteLine($"  Anki Connection: {status.AnkiConnectionStatus}");
-        Console.WriteLine($"  Sync Running: {status.IsRunning}");
-
-        if (status.AnkiConnectionStatus == AnkiConnectionStatus.Connected)
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("✓ Connected to Anki");
-            Console.ResetColor();
-        }
-        else
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("✗ Not connected to Anki");
-            Console.ResetColor();
-        }
-    }
-
-    private static async Task HandleDecksCommand(AnkiConnectClient client)
-    {
-        Console.WriteLine("Retrieving Anki decks...");
-
-        var decks = await client.GetDecksAsync();
-
-        Console.WriteLine("Available Anki Decks:");
-        if (decks != null && decks.Any())
-        {
-            foreach (var deck in decks.OrderBy(d => d))
-            {
-                Console.WriteLine($"  • {deck}");
-            }
-        }
-        else
-        {
-            Console.WriteLine("  No decks found");
-        }
-    }
-
-    private static async Task HandleTestCommand(AnkiConnectClient client)
-    {
-        Console.WriteLine("Testing Anki connection...");
-
-        var isConnected = await client.ValidateAnkiConnectionAsync();
-
-        if (isConnected)
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("✓ Successfully connected to Anki");
-            Console.ResetColor();
-        }
-        else
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("✗ Failed to connect to Anki");
-            Console.ResetColor();
-            Console.WriteLine("Make sure Anki is running with AnkiConnect plugin installed");
-        }
-    }
+    // private static async Task HandleTestCommand(AnkiConnectClient client)
+    // {
+    //     Console.WriteLine("Testing Anki connection...");
+    //
+    //     var isConnected = await client.ValidateAnkiConnectionAsync();
+    //
+    //     if (isConnected)
+    //     {
+    //         Console.ForegroundColor = ConsoleColor.Green;
+    //         Console.WriteLine("? Successfully connected to Anki");
+    //         Console.ResetColor();
+    //     }
+    //     else
+    //     {
+    //         Console.ForegroundColor = ConsoleColor.Red;
+    //         Console.WriteLine("? Failed to connect to Anki");
+    //         Console.ResetColor();
+    //         Console.WriteLine("Make sure Anki is running with AnkiConnect plugin installed");
+    //     }
+    // }
 }
