@@ -1,0 +1,6 @@
+# No external dependencies required for basic AnkiConnect functionality
+# The script uses only Python standard library (urllib, json)
+
+# Optional: For enhanced functionality
+# requests>=2.31.0  # Alternative to urllib for HTTP requests
+# pandas>=2.0.0     # For data manipulation if working with bulk card data
