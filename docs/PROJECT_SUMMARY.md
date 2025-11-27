@@ -54,12 +54,11 @@ AnkiSync is a Windows service that monitors directories for file changes, parses
 - **Basic Sync Logic**: Foundation for the sync engine
 
 ### Ready for Implementation 🚀
-All planning documents are complete and approved. The project is ready to begin Phase 1 implementation including:
-- Windows service framework setup
-- File monitoring system
-- State management database
-- Configuration system
-- Integration of deck inference with sync engine
+All planning documents are complete and approved. The project is ready to begin Phase 1 implementation focusing on Anki integration:
+- .NET AnkiConnect adapter for direct Anki communication
+- State management database for sync tracking
+- Comprehensive integration testing against real Anki instances
+- Decision point: Add Python/gRPC layer only if .NET direct communication proves unreliable
 
 ## Key Differentiators
 
@@ -86,9 +85,9 @@ All planning documents are complete and approved. The project is ready to begin 
 
 With planning complete, the project is ready to enter implementation phase:
 
-1. **Phase 1**: Core Windows service with file monitoring
-2. **Phase 2**: State management and sync engine
-3. **Phase 3**: Deck inference integration
-4. **Phase 4**: Advanced features and optimization
+1. **Phase 1**: Anki integration with .NET adapter (4 weeks)
+2. **Phase 2**: File processing and sync engine (6 weeks)  
+3. **Phase 3**: Console application and Windows service (3 weeks)
+4. **Phase 4**: Production readiness and advanced features
 
 The foundation is solid, requirements are clear, and the prototype validates the core concepts. AnkiSync is positioned to become the premier solution for automated Obsidian-to-Anki synchronization.

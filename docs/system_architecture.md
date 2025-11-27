@@ -49,19 +49,19 @@ Each stage is independent, allowing for:
 
 ```mermaid
 graph TB
-    subgraph ".NET Layer<br/>(Windows Integration)"
+    subgraph ".NET Layer<br/>(Complete Solution)"
         SC[Service Controller<br/>Windows Service Lifecycle]
         SE[Sync Engine<br/>.NET Business Logic]
         SM[State Manager<br/>.NET + SQLite]
         CM[Config Manager<br/>.NET YAML/JSON]
         FM[File Monitor<br/>.NET FileSystemWatcher]
         FP[Flashcard Parser<br/>.NET Obsidian Parser]
-        GRPC_C[gRPC Client<br/>Communicates with Python]
+        AC[AnkiConnect Client<br/>.NET HTTP to Anki]
     end
 
-    subgraph "Python Layer<br/>(Anki Communication)"
-        GRPC_S[gRPC Server<br/>Exposes Anki Capabilities]
-        AC[AnkiConnect Client<br/>HTTP API to Anki]
+    subgraph "Python Layer<br/>(Optional - Added if needed)"
+        GRPC_S[gRPC Server<br/>Alternative Anki Access]
+        PAC[Python AnkiConnect<br/>HTTP API to Anki]
     end
 
     subgraph "External Systems"
@@ -76,10 +76,7 @@ graph TB
     SE --> CM
     SE --> FM
     SE --> FP
-    SE --> GRPC_C
-
-    GRPC_C --> GRPC_S
-    GRPC_S --> AC
+    SE --> AC
 
     FM --> FS
     FP --> FS
@@ -90,12 +87,10 @@ graph TB
     classDef dotnet fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef python fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
     classDef external fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    classDef grpc fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
 
-    class SC,SE,SM,CM,FM,FP dotnet
-    class AC python
+    class SC,SE,SM,CM,FM,FP,AC dotnet
+    class GRPC_S,PAC python
     class FS,ANKI,DB,CFG external
-    class GRPC_C,GRPC_S grpc
 ```
 
 #### Component Coupling Analysis
@@ -246,7 +241,7 @@ graph TB
 
         subgraph "Driven Adapters<br/>(Output Ports)"
             FSA[FileSystemAdapter<br/>.NET<br/>FileSystemWatcher<br/>File I/O]
-            ACA[AnkiConnectAdapter<br/>Python<br/>gRPC Server<br/>HTTP Client to Anki]
+            ACA[AnkiConnectAdapter<br/>.NET<br/>HTTP Client to Anki<br/>(Python optional)]
             SA[SQLiteAdapter<br/>.NET<br/>State Persistence<br/>Query Optimization]
             YCA[YAMLConfigAdapter<br/>.NET<br/>Configuration Loading<br/>Validation]
         end
@@ -377,7 +372,7 @@ The diagram above follows the **Hexagonal Architecture** (Ports & Adapters) patt
 - **Purpose**: Contain the core business rules and logic that are independent of any external concerns
 
 #### 6. **Communication Infrastructure**
-- **gRPC Interface**: Enables inter-process communication between .NET and Python components
+- **gRPC Interface**: Enables inter-process communication between .NET and Python components (added only if direct .NET AnkiConnect proves unreliable)
 - **Purpose**: Facilitates communication between different technology stacks while maintaining separation
 
 ### Key Hexagonal Architecture Principles
@@ -567,13 +562,15 @@ message SyncResult {
 }
 ```
 
-#### Python gRPC Server Implementation
+#### Python gRPC Server Implementation (Optional)
 The Python gRPC server provides a lightweight service layer that:
 - Receives flashcard data via gRPC from the .NET layer
 - Converts protobuf messages to AnkiConnect HTTP API format
 - Handles batch operations for efficient Anki communication
 - Manages error handling and retry logic for Anki API calls
 - Returns operation results back to the .NET layer
+
+**Note**: Python layer is only implemented if direct .NET AnkiConnect communication proves unreliable.
 
 #### .NET gRPC Client Implementation
 ```csharp
@@ -732,12 +729,12 @@ The Python gRPC service is composed with minimal dependencies focused on Anki co
     await server.wait_for_termination()
 ```
 
-#### Cross-Platform Composition Benefits
-- **Technology Independence**: .NET handles Windows concerns, Python handles Anki communication
-- **Independent Deployment**: Services can be updated independently
-- **Clear Boundaries**: gRPC interface defines the contract between layers
+#### Cross-Platform Composition Benefits (Optional Python Layer)
+- **Technology Independence**: .NET handles Windows concerns, Python handles Anki communication (if needed)
+- **Independent Deployment**: Services can be updated independently (if Python layer is added)
+- **Clear Boundaries**: gRPC interface defines the contract between layers (if implemented)
 - **Testability**: Each layer can be tested in isolation
-- **Scalability**: Python layer can be scaled separately if needed
+- **Scalability**: Python layer can be scaled separately if needed (if implemented)
 
 ### Testing with Hexagonal Architecture
 
@@ -790,10 +787,7 @@ flowchart TD
     FP --> SE
     SE --> CR[Conflict Resolution<br/>.NET<br/>Anki vs Obsidian]
     CR --> SE
-    SE --> GRPC_C[gRPC Client<br/>.NET → Python]
-
-    GRPC_C --> GRPC_S[gRPC Server<br/>Python Layer]
-    GRPC_S --> AC[AnkiConnect Client<br/>Python]
+    SE --> AC[AnkiConnect Client<br/>.NET HTTP<br/>Direct to Anki]
 
     AC --> ANKI[Anki Application]
 
@@ -801,14 +795,10 @@ flowchart TD
     SM --> DB[(SQLite Database)]
 
     classDef dotnet fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    classDef python fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
     classDef external fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    classDef grpc fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
 
-    class FCE,FM,SE,FP,CR,SM dotnet
-    class AC python
+    class FCE,FM,SE,FP,CR,SM,AC dotnet
     class ANKI,DB external
-    class GRPC_C,GRPC_S grpc
 ```
 
 ## Key Requirements

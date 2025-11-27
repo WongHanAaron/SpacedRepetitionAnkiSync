@@ -15,7 +15,7 @@ AnkiSync is a Windows service that automatically synchronizes flashcards from te
 - [x] Working prototype code (AnkiConnect interface and Obsidian parser)
 
 ### Key Decisions Made
-- **Architecture**: Event-driven Windows service with .NET/Python split via gRPC
+- **Architecture**: Start with direct .NET to Anki communication, add Python/gRPC layer only if needed
 - **Integration Priority**: Anki querying and synchronization as foundation milestone
 - **Parsing**: Line-by-line Obsidian format parsing with comprehensive format support
 - **Deck Inference**: Automatic tag nesting to deck hierarchy conversion
@@ -36,7 +36,7 @@ All planning documents are complete and approved. The project prioritizes Anki i
 ### Deliverables
 
 #### 1.1 .NET AnkiConnect Adapter
-- [ ] Complete gRPC client implementation for Python layer communication
+- [ ] Complete HTTP client implementation for direct Anki communication
 - [ ] AnkiConnect HTTP client wrapper with connection pooling
 - [ ] Comprehensive error handling and retry logic
 - [ ] Connection health monitoring and automatic reconnection
@@ -369,8 +369,8 @@ All planning documents are complete and approved. The project prioritizes Anki i
 - **Phase 5**: 2 developers (advanced features + integrations)
 
 ### Technology Stack
-- **Primary Language**: .NET 8.0 (Windows service, business logic, file processing)
-- **Secondary Language**: Python 3.11 (gRPC server, AnkiConnect client)
+- **Primary Language**: .NET 8.0 (Windows service, business logic, file processing, AnkiConnect client)
+- **Secondary Language**: Python 3.11 (optional gRPC server, alternative AnkiConnect client)
 - **Communication**: gRPC/Protobuf (inter-process communication)
 - **Database**: SQLite for state management
 - **Configuration**: YAML with validation and hot-reload
@@ -443,7 +443,7 @@ All planning documents are complete and approved. The project prioritizes Anki i
 ### External Dependencies
 - Anki Desktop with AnkiConnect plugin
 - Windows 10+ (64-bit)
-- Python 3.8+ runtime (bundled with installer)
+- Python 3.8+ runtime (optional - only if Python layer is needed)
 
 ### Internal Dependencies
 - Phase 1 must complete before Phase 2 begins
