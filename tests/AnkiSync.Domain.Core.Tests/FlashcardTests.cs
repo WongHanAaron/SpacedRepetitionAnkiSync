@@ -1,6 +1,7 @@
 using AnkiSync.Domain.Core;
 using AnkiSync.Domain.Core.Exceptions;
 using AnkiSync.Domain.Core.Extensions;
+using FluentAssertions;
 
 namespace AnkiSync.Domain.Core.Tests;
 
@@ -13,18 +14,18 @@ public class FlashcardTests
         var flashcard = new Flashcard();
 
         // Assert
-        Assert.NotNull(flashcard.Id);
-        Assert.NotEqual(Guid.Empty.ToString(), flashcard.Id);
-        Assert.Equal(string.Empty, flashcard.Question);
-        Assert.Equal(string.Empty, flashcard.Answer);
-        Assert.Equal(FlashcardType.Basic, flashcard.Type);
-        Assert.NotNull(flashcard.Tags);
-        Assert.Empty(flashcard.Tags);
-        Assert.Equal(string.Empty, flashcard.SourceFile);
-        Assert.Equal(0, flashcard.LineNumber);
-        Assert.True(flashcard.LastModified <= DateTime.UtcNow);
-        Assert.Null(flashcard.AnkiNoteId);
-        Assert.Equal(string.Empty, flashcard.InferredDeck);
+        flashcard.Id.Should().NotBeNull();
+        flashcard.Id.Should().NotBe(Guid.Empty.ToString());
+        flashcard.Question.Should().BeEmpty();
+        flashcard.Answer.Should().BeEmpty();
+        flashcard.Type.Should().Be(FlashcardType.Basic);
+        flashcard.Tags.Should().NotBeNull();
+        flashcard.Tags.Should().BeEmpty();
+        flashcard.SourceFile.Should().BeEmpty();
+        flashcard.LineNumber.Should().Be(0);
+        flashcard.LastModified.Should().BeOnOrBefore(DateTime.UtcNow);
+        flashcard.AnkiNoteId.Should().BeNull();
+        flashcard.InferredDeck.Should().BeEmpty();
     }
 
     [Fact]
@@ -40,8 +41,9 @@ public class FlashcardTests
         };
 
         // Act & Assert
-        var exception = Assert.Throws<ValidationException>(() => flashcard.Validate());
-        Assert.Contains("question cannot be empty", exception.Message.ToLower());
+        flashcard.Invoking(f => f.Validate())
+            .Should().Throw<ValidationException>()
+            .Which.Message.ToLower().Should().Contain("question cannot be empty");
     }
 
     [Fact]
@@ -57,8 +59,9 @@ public class FlashcardTests
         };
 
         // Act & Assert
-        var exception = Assert.Throws<ValidationException>(() => flashcard.Validate());
-        Assert.Contains("answer cannot be empty", exception.Message.ToLower());
+        flashcard.Invoking(f => f.Validate())
+            .Should().Throw<ValidationException>()
+            .Which.Message.ToLower().Should().Contain("answer cannot be empty");
     }
 
     [Fact]
@@ -74,8 +77,9 @@ public class FlashcardTests
         };
 
         // Act & Assert
-        var exception = Assert.Throws<ValidationException>(() => flashcard.Validate());
-        Assert.Contains("must have at least one tag", exception.Message.ToLower());
+        flashcard.Invoking(f => f.Validate())
+            .Should().Throw<ValidationException>()
+            .Which.Message.ToLower().Should().Contain("must have at least one tag");
     }
 
     [Fact]
@@ -91,8 +95,9 @@ public class FlashcardTests
         };
 
         // Act & Assert
-        var exception = Assert.Throws<ValidationException>(() => flashcard.Validate());
-        Assert.Contains("source file cannot be empty", exception.Message.ToLower());
+        flashcard.Invoking(f => f.Validate())
+            .Should().Throw<ValidationException>()
+            .Which.Message.ToLower().Should().Contain("source file cannot be empty");
     }
 
     [Fact]
@@ -108,7 +113,7 @@ public class FlashcardTests
         var firstTag = flashcard.GetFirstTag();
 
         // Assert
-        Assert.Equal("#first", firstTag);
+        firstTag.Should().Be("#first");
     }
 
     [Fact]
@@ -124,7 +129,7 @@ public class FlashcardTests
         var firstTag = flashcard.GetFirstTag();
 
         // Assert
-        Assert.Equal(string.Empty, firstTag);
+        firstTag.Should().Be(string.Empty);
     }
 
     [Fact]
@@ -140,7 +145,7 @@ public class FlashcardTests
         var isSynced = flashcard.IsSynced();
 
         // Assert
-        Assert.False(isSynced);
+        isSynced.Should().BeFalse();
     }
 
     [Fact]
@@ -156,6 +161,6 @@ public class FlashcardTests
         var isSynced = flashcard.IsSynced();
 
         // Assert
-        Assert.True(isSynced);
+        isSynced.Should().BeTrue();
     }
 }

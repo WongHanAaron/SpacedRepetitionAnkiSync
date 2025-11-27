@@ -33,7 +33,7 @@ public class AnkiNote
     /// <summary>
     /// Audio files attached to the note
     /// </summary>
-    public List<AnkiAudio> Audio { get; set; } = new();
+    public List<AnkiAudwio> Audio { get; set; } = new();
 
     /// <summary>
     /// Video files attached to the note

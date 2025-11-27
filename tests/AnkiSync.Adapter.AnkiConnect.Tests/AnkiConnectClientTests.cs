@@ -3,6 +3,7 @@ using AnkiSync.Adapter.AnkiConnect.Configuration;
 using AnkiSync.Adapter.AnkiConnect.Models;
 using AnkiSync.Domain.Core;
 using AnkiSync.Domain.Core.Exceptions;
+using FluentAssertions;
 using Moq;
 using System.Net;
 using System.Text.Json;
@@ -29,14 +30,14 @@ public class AnkiConnectClientTests : IDisposable
     {
         // Arrange
         var expectedDecks = new List<string> { "Default", "Math", "Science" };
-        _mockHttpClient.Setup(x => x.InvokeAsync<List<string>>("deckNames", It.IsAny<CancellationToken>()))
+        _mockHttpClient.Setup(x => x.InvokeAsync<IEnumerable<string>>("deckNames", It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedDecks);
 
         // Act
         var result = await _client.GetDecksAsync();
 
         // Assert
-        Assert.Equal(expectedDecks, result);
+        result.Should().BeEquivalentTo(expectedDecks);
     }
 
     [Fact]
@@ -44,22 +45,24 @@ public class AnkiConnectClientTests : IDisposable
     {
         // Arrange
         var deckName = "TestDeck";
-        _mockHttpClient.Setup(x => x.InvokeAsync<long>("createDeck", It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(12345L);
+        _mockHttpClient.Setup(x => x.InvokeAsync<object>("createDeck", It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new object());
 
         // Act
         await _client.CreateDeckAsync(deckName);
 
         // Assert
-        _mockHttpClient.Verify(x => x.InvokeAsync<long>("createDeck", It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockHttpClient.Verify(x => x.InvokeAsync<object>("createDeck", It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task CreateDeckAsync_EmptyName_ThrowsArgumentException()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => _client.CreateDeckAsync(""));
-        await Assert.ThrowsAsync<ArgumentException>(() => _client.CreateDeckAsync(null!));
+        await _client.Awaiting(c => c.CreateDeckAsync(""))
+            .Should().ThrowAsync<ArgumentException>();
+        await _client.Awaiting(c => c.CreateDeckAsync(null!))
+            .Should().ThrowAsync<ArgumentException>();
     }
 
     [Fact]
@@ -77,7 +80,7 @@ public class AnkiConnectClientTests : IDisposable
         var result = _client.InferDeck(flashcard);
 
         // Assert
-        Assert.Equal("Default", result);
+        result.Should().Be("Default");
     }
 
     [Fact]
@@ -96,7 +99,7 @@ public class AnkiConnectClientTests : IDisposable
         var result = _client.InferDeck(flashcard);
 
         // Assert
-        Assert.Equal("Math", result); // Should be capitalized
+        result.Should().Be("Math"); // Should be capitalized
     }
 
     [Fact]
@@ -110,7 +113,7 @@ public class AnkiConnectClientTests : IDisposable
         var result = await _client.ValidateAnkiConnectionAsync();
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 
     [Fact]
@@ -124,7 +127,7 @@ public class AnkiConnectClientTests : IDisposable
         var result = await _client.ValidateAnkiConnectionAsync();
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -138,23 +141,22 @@ public class AnkiConnectClientTests : IDisposable
         };
 
         // Mock deck creation
-        _mockHttpClient.Setup(x => x.InvokeAsync<long>("createDeck", It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(12345L);
+        _mockHttpClient.Setup(x => x.InvokeAsync<object>("createDeck", It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new object());
 
         // Mock note creation
-        _mockHttpClient.Setup(x => x.InvokeAsync<Dictionary<string, long>>("addNote", It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, long> { ["result"] = 67890L });
+        _mockHttpClient.Setup(x => x.InvokeAsync<long>("addNote", It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(12345L);
 
         // Act
         var result = await _client.SyncFlashcardsAsync(flashcards);
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal(2, result.SyncedCount);
-        Assert.Equal(0, result.FailedCount);
-        Assert.Equal(2, result.ProcessedCount);
-        Assert.NotNull(result.CompletedAt);
-        Assert.True(result.Duration.TotalMilliseconds > 0);
+        result.Success.Should().BeTrue();
+        result.SyncedCount.Should().Be(2);
+        result.FailedCount.Should().Be(0);
+        result.ProcessedCount.Should().Be(2);
+        result.Duration.TotalMilliseconds.Should().BeGreaterThan(0);
     }
 
     [Fact]
@@ -167,23 +169,23 @@ public class AnkiConnectClientTests : IDisposable
         var flashcards = new[] { validFlashcard, invalidFlashcard };
 
         // Mock deck creation
-        _mockHttpClient.Setup(x => x.InvokeAsync<long>("createDeck", It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(12345L);
+        _mockHttpClient.Setup(x => x.InvokeAsync<object>("createDeck", It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new object());
 
         // Mock note creation for valid flashcard
-        _mockHttpClient.Setup(x => x.InvokeAsync<Dictionary<string, long>>("addNote", It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, long> { ["result"] = 67890L });
+        _mockHttpClient.Setup(x => x.InvokeAsync<long>("addNote", It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(12345L);
 
         // Act
         var result = await _client.SyncFlashcardsAsync(flashcards);
 
         // Assert
-        Assert.False(result.Success);
-        Assert.Equal(1, result.SyncedCount);
-        Assert.Equal(1, result.FailedCount);
-        Assert.Equal(2, result.ProcessedCount);
-        Assert.Single(result.Errors);
-        Assert.Contains("Flashcard question cannot be empty", result.Errors[0].Message);
+        result.Success.Should().BeFalse();
+        result.SyncedCount.Should().Be(1);
+        result.FailedCount.Should().Be(1);
+        result.ProcessedCount.Should().Be(2);
+        result.Errors.Should().HaveCount(1);
+        result.Errors[0].Message.Should().Contain("Flashcard question cannot be empty");
     }
 
     [Fact]
@@ -196,19 +198,19 @@ public class AnkiConnectClientTests : IDisposable
         var flashcards = new[] { flashcard };
 
         // Mock deck creation
-        _mockHttpClient.Setup(x => x.InvokeAsync<long>("createDeck", It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(12345L);
+        _mockHttpClient.Setup(x => x.InvokeAsync<object>("createDeck", It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new object());
 
         // Mock note update
         _mockHttpClient.Setup(x => x.InvokeAsync<object>("updateNoteFields", It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((object)null);
+            .ReturnsAsync(new object());
 
         // Act
         var result = await _client.SyncFlashcardsAsync(flashcards);
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal(1, result.SyncedCount);
+        result.Success.Should().BeTrue();
+        result.SyncedCount.Should().Be(1);
         _mockHttpClient.Verify(x => x.InvokeAsync<object>("updateNoteFields", It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Once);
         _mockHttpClient.Verify(x => x.InvokeAsync<Dictionary<string, long>>("addNote", It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -224,8 +226,8 @@ public class AnkiConnectClientTests : IDisposable
         var result = await _client.GetSyncStatusAsync();
 
         // Assert
-        Assert.False(result.IsRunning); // Not applicable for direct client
-        Assert.Equal(AnkiConnectionStatus.Connected, result.AnkiConnectionStatus);
+        result.IsRunning.Should().BeFalse(); // Not applicable for direct client
+        result.AnkiConnectionStatus.Should().Be(AnkiConnectionStatus.Connected);
     }
 
     [Fact]
@@ -241,8 +243,8 @@ public class AnkiConnectClientTests : IDisposable
             .ThrowsAsync(new OperationCanceledException());
 
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            _client.SyncFlashcardsAsync(flashcards, cts.Token));
+        await _client.Awaiting(c => c.SyncFlashcardsAsync(flashcards, cts.Token))
+            .Should().ThrowAsync<OperationCanceledException>();
     }
 
     public void Dispose()

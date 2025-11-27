@@ -63,7 +63,7 @@ public class AnkiConnectHttpClient : IAnkiConnectHttpClient
                 $"AnkiConnect error for action '{action}': {response.Error.Message}");
         }
 
-        return response.Result;
+        return response.Result!;
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ public class AnkiConnectHttpClient : IAnkiConnectHttpClient
         string action,
         CancellationToken cancellationToken = default)
     {
-        return await InvokeAsync<object, TResponse>(action, null, cancellationToken);
+        return await InvokeAsync<object?, TResponse>(action, null, cancellationToken);
     }
 
     /// <summary>
@@ -93,7 +93,7 @@ public class AnkiConnectHttpClient : IAnkiConnectHttpClient
         object? parameters,
         CancellationToken cancellationToken = default)
     {
-        return await InvokeAsync<object, TResponse>(action, parameters, cancellationToken);
+        return await InvokeAsync<object?, TResponse>(action, parameters, cancellationToken);
     }
 
     /// <summary>
@@ -106,7 +106,7 @@ public class AnkiConnectHttpClient : IAnkiConnectHttpClient
         try
         {
             // Try to get deck names as a simple connectivity test
-            await InvokeAsync<List<string>>("deckNames", cancellationToken);
+            await InvokeAsync<IEnumerable<string>>("deckNames", cancellationToken);
             return true;
         }
         catch
@@ -133,7 +133,7 @@ public class AnkiConnectHttpClient : IAnkiConnectHttpClient
                 var result = await response.Content.ReadFromJsonAsync<TResponse>(_jsonOptions, cancellationToken);
                 return result ?? throw new AnkiConnectionException("Received null response from AnkiConnect");
             }
-            catch (Exception ex) when (attempt < maxRetries)
+            catch (Exception) when (attempt < maxRetries)
             {
                 // Wait before retrying
                 await Task.Delay(currentDelay, cancellationToken);

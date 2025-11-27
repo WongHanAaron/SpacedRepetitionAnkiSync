@@ -103,7 +103,7 @@ public class AnkiConnectClient : IAnkiSyncService, IDeckService, IDisposable
 
     public async Task<IEnumerable<string>> GetDecksAsync(CancellationToken cancellationToken = default)
     {
-        return await _httpClient.InvokeAsync<List<string>>("deckNames", cancellationToken) ?? new List<string>();
+        return await _httpClient.InvokeAsync<IEnumerable<string>>("deckNames", cancellationToken) ?? Enumerable.Empty<string>();
     }
 
     public async Task CreateDeckAsync(string deckName, CancellationToken cancellationToken = default)
@@ -113,7 +113,7 @@ public class AnkiConnectClient : IAnkiSyncService, IDeckService, IDisposable
             throw new ArgumentException("Deck name cannot be empty", nameof(deckName));
         }
 
-        await _httpClient.InvokeAsync<long>("createDeck", new { deck = deckName }, cancellationToken);
+        await _httpClient.InvokeAsync<object>("createDeck", new { deck = deckName }, cancellationToken);
     }
 
     public string InferDeck(Flashcard flashcard)
@@ -161,12 +161,12 @@ public class AnkiConnectClient : IAnkiSyncService, IDeckService, IDisposable
         else
         {
             // Create new note
-            var result = await _httpClient.InvokeAsync<Dictionary<string, long>>("addNote", new
+            var noteId = await _httpClient.InvokeAsync<long>("addNote", new
             {
                 note = note
             }, cancellationToken);
 
-            flashcard.AnkiNoteId = result["result"].ToString();
+            flashcard.AnkiNoteId = noteId.ToString();
         }
     }
 
