@@ -7,9 +7,6 @@ namespace AnkiSync.Adapter.AnkiConnect.Models;
 /// </summary>
 public record AnkiConnectResponse
 {
-    [JsonPropertyName("result")]
-    public object? Result { get; init; }
-    
     [JsonPropertyName("error")]
-    public object? Error { get; init; }
+    public string? Error { get; init; }
 }
