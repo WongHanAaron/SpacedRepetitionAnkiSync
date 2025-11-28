@@ -275,6 +275,38 @@ public class AnkiServiceTests
     }
 
     [Fact]
+    public async Task NotesInfoAsync_ShouldDeserializeModFieldToDateModified()
+    {
+        // Arrange
+        var request = new NotesInfoRequestDto(new[] { 123L });
+        var expectedResponse = new NotesInfoResponse
+        {
+            Result = new List<NoteInfo>
+            {
+                new NoteInfo 
+                { 
+                    NoteId = 123, 
+                    ModelName = "Basic", 
+                    ModificationTimestamp = 1764349536,
+                    Fields = new Dictionary<string, NoteFieldInfo> { ["Front"] = new NoteFieldInfo { Value = "Q1" }, ["Back"] = new NoteFieldInfo { Value = "A1" } } 
+                }
+            }
+        };
+        SetupHttpClientMock(expectedResponse);
+
+        // Act
+        var result = await _ankiService.NotesInfoAsync(request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Result.Should().NotBeNull();
+        result.Result.Should().HaveCount(1);
+        result.Result![0].ModificationTimestamp.Should().Be(1764349536);
+        result.Result![0].DateModified.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1764349536));
+        VerifyRequestSent("notesInfo", "{\"notes\":[123]}");
+    }
+
+    [Fact]
     public async Task SyncAsync_ShouldReturnSyncResponse()
     {
         // Arrange

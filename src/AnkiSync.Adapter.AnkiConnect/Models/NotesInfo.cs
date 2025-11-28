@@ -51,6 +51,14 @@ public record NoteInfo
 
     [JsonPropertyName("cards")]
     public List<long> Cards { get; init; } = new();
+
+    [JsonPropertyName("mod")]
+    public long ModificationTimestamp { get; init; }
+
+    /// <summary>
+    /// Gets the modification date as a DateTimeOffset
+    /// </summary>
+    public DateTimeOffset DateModified => DateTimeOffset.FromUnixTimeSeconds(ModificationTimestamp);
 }
 
 /// <summary>

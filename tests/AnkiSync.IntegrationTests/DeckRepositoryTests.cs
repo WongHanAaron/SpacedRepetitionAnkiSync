@@ -134,9 +134,15 @@ public class DeckRepositoryTests : IAsyncLifetime
             }
         };
 
+        // Capture time before adding note
+        var timeBeforeAdd = DateTimeOffset.Now;
+
         var addNoteRequest = new AddNoteRequestDto(testNote);
         var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
         _createdNotes.Add(addNoteResponse.Result!.Value);
+
+        // Capture time after adding note
+        var timeAfterAdd = DateTimeOffset.Now;
 
         // Act - Download the deck
         var deck = await _deckRepository.GetDeck(new DeckId { Name = uniqueTestDeckName });
@@ -152,6 +158,21 @@ public class DeckRepositoryTests : IAsyncLifetime
         var qaCard = (QuestionAnswerCard)card;
         qaCard.Question.Should().Be(TestFront);
         qaCard.Answer.Should().Be(TestBack);
+
+        // Additional assertion: Verify DateModified is close to when the note was added
+        var findNotesRequest = new FindNotesRequestDto($"deck:{uniqueTestDeckName}");
+        var findNotesResponse = await _ankiService.FindNotesAsync(findNotesRequest);
+        var noteIds = findNotesResponse.Result ?? new List<long>();
+
+        var notesInfoRequest = new NotesInfoRequestDto(noteIds);
+        var notesInfoResponse = await _ankiService.NotesInfoAsync(notesInfoRequest);
+
+        notesInfoResponse.Result.Should().NotBeNull();
+        notesInfoResponse.Result.Should().HaveCount(1);
+
+        var noteInfo = notesInfoResponse.Result!.First();
+        noteInfo.DateModified.Should().BeOnOrAfter(timeBeforeAdd.AddSeconds(-5)); // Allow 5 seconds grace before
+        noteInfo.DateModified.Should().BeOnOrBefore(timeAfterAdd.AddSeconds(5)); // Allow 5 seconds grace after
     }
 
     [Fact]

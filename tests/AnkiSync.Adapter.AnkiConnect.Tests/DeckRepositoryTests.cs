@@ -60,6 +60,7 @@ public class DeckRepositoryTests
             {
                 NoteId = 123,
                 ModelName = "Basic",
+                ModificationTimestamp = 1000000000,
                 Fields = new Dictionary<string, NoteFieldInfo>
                 {
                     ["Front"] = new NoteFieldInfo { Value = "Question 1?" },
@@ -70,6 +71,7 @@ public class DeckRepositoryTests
             {
                 NoteId = 456,
                 ModelName = "Basic",
+                ModificationTimestamp = 1000000001,
                 Fields = new Dictionary<string, NoteFieldInfo>
                 {
                     ["Front"] = new NoteFieldInfo { Value = "Question 2?" },
@@ -124,6 +126,7 @@ public class DeckRepositoryTests
             {
                 NoteId = 789,
                 ModelName = "Cloze",
+                ModificationTimestamp = 1000000002,
                 Fields = new Dictionary<string, NoteFieldInfo>
                 {
                     ["Text"] = new NoteFieldInfo { Value = "This is a {{c1::cloze}} test." }
@@ -174,6 +177,7 @@ public class DeckRepositoryTests
             {
                 NoteId = 123,
                 ModelName = "Basic",
+                ModificationTimestamp = 1000000003,
                 Fields = new Dictionary<string, NoteFieldInfo>
                 {
                     ["Front"] = new NoteFieldInfo { Value = "Question?" },
@@ -184,6 +188,7 @@ public class DeckRepositoryTests
             {
                 NoteId = 456,
                 ModelName = "Basic",
+                ModificationTimestamp = 1000000004,
                 Fields = new Dictionary<string, NoteFieldInfo>
                 {
                     ["Front"] = new NoteFieldInfo { Value = "Question 2?" },

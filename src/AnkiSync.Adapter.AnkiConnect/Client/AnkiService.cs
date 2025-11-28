@@ -104,6 +104,13 @@ public class AnkiService : IAnkiService
     }
 
     /// <inheritdoc />
+    public async Task<CardsInfoResponse> CardsInfoAsync(CardsInfoRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var response = await SendRequestAsync<CardsInfoResponse>(request.Action, request, cancellationToken);
+        return response;
+    }
+
+    /// <inheritdoc />
     public async Task<SyncResponse> SyncAsync(SyncRequestDto request, CancellationToken cancellationToken = default)
     {
         var response = await SendRequestAsync<SyncResponse>(request.Action, request, cancellationToken);
@@ -129,6 +136,10 @@ public class AnkiService : IAnkiService
             {
                 throw new InvalidOperationException("Failed to deserialize response from AnkiConnect");
             }
+
+            // Log the response for debugging
+            var responseJson = System.Text.Json.JsonSerializer.Serialize(response);
+            Console.WriteLine($"Received AnkiConnect response: {responseJson}");
 
             // Check for error if the response has an Error property
             var errorProperty = typeof(TResponse).GetProperty("Error");

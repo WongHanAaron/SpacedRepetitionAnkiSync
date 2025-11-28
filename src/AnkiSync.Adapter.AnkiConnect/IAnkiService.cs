@@ -69,6 +69,11 @@ public interface IAnkiService
     Task<NotesInfoResponse> NotesInfoAsync(NotesInfoRequestDto request, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets detailed information about cards
+    /// </summary>
+    Task<CardsInfoResponse> CardsInfoAsync(CardsInfoRequestDto request, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Syncs the Anki collection with AnkiWeb
     /// </summary>
     Task<SyncResponse> SyncAsync(SyncRequestDto request, CancellationToken cancellationToken = default);

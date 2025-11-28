@@ -503,4 +503,64 @@ public class AnkiConnectTests : IAsyncLifetime
         // We just verify the API call succeeds
         syncResponse.Should().NotBeNull();
     }
+
+    [Fact]
+    public async Task CardsInfoAsync_ShouldReturnCardInformationWithDatetimeFields()
+    {
+        // Arrange - Create a test deck and note
+        var uniqueTestDeckName = $"{TestDeckName}_CardsInfo_{Guid.NewGuid():N}";
+        var createDeckRequest = new CreateDeckRequestDto(uniqueTestDeckName);
+        var createDeckResponse = await _ankiService.CreateDeckAsync(createDeckRequest);
+        _createdDecks.Add(uniqueTestDeckName);
+
+        (createDeckResponse.Error == null).Should().BeTrue();
+
+        var testNote = new AnkiNote
+        {
+            DeckName = uniqueTestDeckName,
+            ModelName = "Basic",
+            Fields = new Dictionary<string, string>
+            {
+                ["Front"] = TestFront,
+                ["Back"] = TestBack
+            }
+        };
+
+        var addNoteRequest = new AddNoteRequestDto(testNote);
+        var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
+        _createdNotes.Add(addNoteResponse.Result!.Value);
+
+        // Get the card IDs from the note
+        var findNotesRequest = new FindNotesRequestDto($"deck:{uniqueTestDeckName}");
+        var findNotesResponse = await _ankiService.FindNotesAsync(findNotesRequest);
+        var noteIds = findNotesResponse.Result ?? new List<long>();
+
+        var notesInfoRequest = new NotesInfoRequestDto(noteIds);
+        var notesInfoResponse = await _ankiService.NotesInfoAsync(notesInfoRequest);
+
+        var cardIds = notesInfoResponse.Result?.FirstOrDefault()?.Cards ?? new List<long>();
+
+        // Act - Get card information
+        var cardsInfoRequest = new CardsInfoRequestDto(cardIds);
+        var cardsInfoResponse = await _ankiService.CardsInfoAsync(cardsInfoRequest);
+
+        // Assert
+        cardsInfoResponse.Should().NotBeNull();
+        (cardsInfoResponse.Error == null).Should().BeTrue();
+        cardsInfoResponse.Result.Should().NotBeNull();
+        cardsInfoResponse.Result.Should().HaveCount(cardIds.Count());
+
+        var cardInfo = cardsInfoResponse.Result!.First();
+        cardInfo.CardId.Should().BeGreaterThan(0);
+        cardInfo.Note.Should().Be(addNoteResponse.Result!.Value);
+
+        // Log the card info to see what datetime fields are available
+        Console.WriteLine($"CardInfo: {JsonSerializer.Serialize(cardInfo)}");
+
+        // Verify datetime-related fields exist and have reasonable values
+        cardInfo.Due.Should().BeGreaterThanOrEqualTo(0); // Due date (could be days or timestamp)
+        cardInfo.Interval.Should().BeGreaterThanOrEqualTo(0); // Review interval
+        cardInfo.Reps.Should().BeGreaterThanOrEqualTo(0); // Number of reviews
+        cardInfo.Lapses.Should().BeGreaterThanOrEqualTo(0); // Number of lapses
+    }
 }
