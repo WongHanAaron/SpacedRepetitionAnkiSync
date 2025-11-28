@@ -8,7 +8,7 @@ public record DeckId
     /// <summary>
     /// The hierarchical path components of the deck's parents, from root to immediate parent
     /// </summary>
-    public List<string> Parents { get; init; } = new List<string>();
+    public IReadOnlyList<string> Parents { get; init; } = new List<string>();
 
     /// <summary>
     /// The immediate name of this deck
