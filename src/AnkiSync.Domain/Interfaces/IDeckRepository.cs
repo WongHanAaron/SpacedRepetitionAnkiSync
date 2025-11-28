@@ -1,6 +1,6 @@
 using AnkiSync.Domain;
 
-namespace AnkiSync.Application;
+namespace AnkiSync.Domain;
 
 /// <summary>
 /// Repository for managing deck operations with Anki

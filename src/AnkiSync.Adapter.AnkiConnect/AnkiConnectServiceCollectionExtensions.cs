@@ -1,6 +1,6 @@
 using AnkiSync.Adapter.AnkiConnect.Client;
 using AnkiSync.Adapter.AnkiConnect.Models;
-using AnkiSync.Application;
+using AnkiSync.Domain;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AnkiSync.Adapter.AnkiConnect;

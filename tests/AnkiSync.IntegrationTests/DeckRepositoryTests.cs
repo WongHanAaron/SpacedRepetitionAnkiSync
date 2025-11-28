@@ -1,6 +1,6 @@
 using AnkiSync.Domain;
-using AnkiSync.Application;
 using AnkiSync.Adapter.AnkiConnect;
+using AnkiSync.Adapter.AnkiConnect.Client;
 using AnkiSync.Adapter.AnkiConnect.Models;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -220,7 +220,13 @@ public class DeckRepositoryTests : IAsyncLifetime
                 {
                     Id = Guid.NewGuid().ToString(),
                     DateModified = DateTimeOffset.Now,
-                    Text = "The {{c1::capital}} of {{c2::France}} is {{c1::Paris}}."
+                    Text = "The {keyword} of {country} is {city}",
+                    Answers = new Dictionary<string, string>
+                    {
+                        ["keyword"] = "capital",
+                        ["country"] = "France",
+                        ["city"] = "Paris"
+                    }
                 }
             }
         };
@@ -257,6 +263,8 @@ public class DeckRepositoryTests : IAsyncLifetime
         // Verify ClozeCard
         var clozeCard = downloadedDeck.Cards.OfType<ClozeCard>().FirstOrDefault();
         clozeCard.Should().NotBeNull();
-        clozeCard!.Text.Should().Be("The {{c1::capital}} of {{c2::France}} is {{c1::Paris}}.");
+        clozeCard!.Text.Should().Be("The {0} of {1} is {2}");
+        clozeCard.Answers.Should().HaveCount(4);
+        clozeCard.Answers.Should().Contain("keyword", "country", "city", "Paris");
     }
 }

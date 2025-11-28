@@ -56,7 +56,7 @@ public class ClozeCardTests
         // Act & Assert
         card.Invoking(c => c.Validate())
             .Should().Throw<ValidationException>()
-            .Which.Message.ToLower().Should().Contain("must contain cloze deletions");
+            .Which.Message.Should().Contain("must contain named placeholders");
     }
 
     [Fact]
@@ -67,11 +67,60 @@ public class ClozeCardTests
         {
             Id = Guid.NewGuid().ToString(),
             DateModified = DateTimeOffset.Now,
-            Text = "The capital of {{c1::France}} is {{c1::Paris}}"
+            Text = "The capital of {country} is {city}",
+            Answers = new Dictionary<string, string>
+            {
+                ["country"] = "France",
+                ["city"] = "Paris"
+            }
         };
 
         // Act & Assert
         card.Invoking(c => c.Validate())
             .Should().NotThrow();
+    }
+
+    [Fact]
+    public void ClozeCard_Validate_ThrowsWhenAnswersMismatchPlaceholders()
+    {
+        // Arrange
+        var card = new ClozeCard
+        {
+            Id = Guid.NewGuid().ToString(),
+            DateModified = DateTimeOffset.Now,
+            Text = "The capital of {country} is {city}",
+            Answers = new Dictionary<string, string>
+            {
+                ["country"] = "France"
+                // Missing city answer
+            }
+        };
+
+        // Act & Assert
+        card.Invoking(c => c.Validate())
+            .Should().Throw<ValidationException>()
+            .Which.Message.Should().Contain("missing answer for placeholder 'city'");
+    }
+
+    [Fact]
+    public void ClozeCard_Validate_ThrowsWhenAnswerIsEmpty()
+    {
+        // Arrange
+        var card = new ClozeCard
+        {
+            Id = Guid.NewGuid().ToString(),
+            DateModified = DateTimeOffset.Now,
+            Text = "The capital of {country} is {city}",
+            Answers = new Dictionary<string, string>
+            {
+                ["country"] = "France",
+                ["city"] = "" // Empty answer
+            }
+        };
+
+        // Act & Assert
+        card.Invoking(c => c.Validate())
+            .Should().Throw<ValidationException>()
+            .Which.Message.Should().Contain("answer for placeholder 'city' cannot be empty");
     }
 }

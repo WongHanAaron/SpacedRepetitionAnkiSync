@@ -1,7 +1,7 @@
-using AnkiSync.Application;
 using AnkiSync.Adapter.AnkiConnect.Models;
 using AnkiSync.Domain;
 using AnkiSync.Adapter.AnkiConnect.Client;
+using System.Text.RegularExpressions;
 
 namespace AnkiSync.Adapter.AnkiConnect;
 
@@ -178,12 +178,52 @@ public class DeckRepository : IDeckRepository
             return null; // Skip notes that don't have the expected fields
         }
 
+        var (text, answers) = ConvertClozeFormatToPlaceholders(textField.Value);
+
         return new ClozeCard
         {
             Id = note.NoteId.ToString(),
             DateModified = note.DateModified,
-            Text = textField.Value
+            Text = text,
+            Answers = answers
         };
+    }
+
+    private (string text, Dictionary<string, string> answers) ConvertClozeFormatToPlaceholders(string clozeText)
+    {
+        var text = clozeText;
+        var answers = new Dictionary<string, string>();
+        var clozePattern = @"{{(?:c(\d+)|([^:]+))::([^}]+)}}";
+        var matches = Regex.Matches(clozeText, clozePattern);
+
+        foreach (Match match in matches)
+        {
+            var answer = match.Groups[3].Value;
+            string keyword;
+
+            if (match.Groups[1].Success)
+            {
+                // This is a numbered cloze like {{c1::text}}, convert to named keyword
+                keyword = $"answer{match.Groups[1].Value}";
+            }
+            else if (match.Groups[2].Success)
+            {
+                // This is a named keyword like {{country::France}}
+                keyword = match.Groups[2].Value;
+            }
+            else
+            {
+                // Fallback for unexpected format
+                keyword = $"answer{Guid.NewGuid().ToString().Substring(0, 8)}";
+            }
+
+            answers[keyword] = answer;
+
+            var placeholder = $"{{{keyword}}}";
+            text = text.Replace(match.Value, placeholder);
+        }
+
+        return (text, answers);
     }
 
     private AnkiNote ConvertCardToAnkiNote(Card card, string deckName)
@@ -206,10 +246,26 @@ public class DeckRepository : IDeckRepository
                 ModelName = "Cloze",
                 Fields = new Dictionary<string, string>
                 {
-                    ["Text"] = clozeCard.Text
+                    ["Text"] = ConvertPlaceholdersToClozeFormat(clozeCard)
                 }
             },
             _ => throw new ArgumentException($"Unsupported card type: {card.GetType()}", nameof(card))
         };
+    }
+
+    private string ConvertPlaceholdersToClozeFormat(ClozeCard clozeCard)
+    {
+        var text = clozeCard.Text;
+        var clozeIndex = 1;
+
+        foreach (var answer in clozeCard.Answers)
+        {
+            var placeholder = $"{{{answer.Key}}}";
+            var clozeFormat = $"{{{{c{clozeIndex}::{answer.Value}}}}}";
+            text = text.Replace(placeholder, clozeFormat);
+            clozeIndex++;
+        }
+
+        return text;
     }
 }

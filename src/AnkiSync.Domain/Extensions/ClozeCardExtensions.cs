@@ -19,10 +19,49 @@ public static class ClozeCardExtensions
             throw new ValidationException("Cloze card text cannot be empty");
         }
 
-        // Check for cloze deletions (e.g., {{c1::text}})
-        if (!card.Text.Contains("{{") || !card.Text.Contains("}}"))
+        // Extract named placeholders from the text (e.g., {country}, {city})
+        var placeholderPattern = @"\{([^}]+)\}";
+        var matches = System.Text.RegularExpressions.Regex.Matches(card.Text, placeholderPattern);
+        var placeholdersInText = new HashSet<string>();
+
+        foreach (System.Text.RegularExpressions.Match match in matches)
         {
-            throw new ValidationException("Cloze card must contain cloze deletions in the format {{c1::text}}");
+            if (match.Groups.Count >= 2)
+            {
+                placeholdersInText.Add(match.Groups[1].Value);
+            }
+        }
+
+        if (placeholdersInText.Count == 0)
+        {
+            throw new ValidationException("Cloze card must contain named placeholders in the format {name}");
+        }
+
+        // Check that all placeholders have corresponding answers
+        foreach (var placeholder in placeholdersInText)
+        {
+            if (!card.Answers.ContainsKey(placeholder))
+            {
+                throw new ValidationException($"Cloze card is missing answer for placeholder '{placeholder}'");
+            }
+        }
+
+        // Check that all answers are non-empty
+        foreach (var answer in card.Answers)
+        {
+            if (string.IsNullOrWhiteSpace(answer.Value))
+            {
+                throw new ValidationException($"Cloze card answer for placeholder '{answer.Key}' cannot be empty");
+            }
+        }
+
+        // Check for extra answers that don't have placeholders
+        foreach (var answerKey in card.Answers.Keys)
+        {
+            if (!placeholdersInText.Contains(answerKey))
+            {
+                throw new ValidationException($"Cloze card has answer for '{answerKey}' but no corresponding placeholder in text");
+            }
         }
     }
 }

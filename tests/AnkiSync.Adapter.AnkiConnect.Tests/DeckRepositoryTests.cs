@@ -1,5 +1,5 @@
+using AnkiSync.Adapter.AnkiConnect.Client;
 using AnkiSync.Adapter.AnkiConnect.Models;
-using AnkiSync.Application;
 using AnkiSync.Domain;
 using FluentAssertions;
 using Moq;
@@ -144,7 +144,9 @@ public class DeckRepositoryTests
         var clozeCard = result.Cards[0] as ClozeCard;
         clozeCard.Should().NotBeNull();
         clozeCard!.Id.Should().Be("789");
-        clozeCard.Text.Should().Be("This is a {{c1::cloze}} test.");
+        clozeCard.Text.Should().Be("This is a {answer1} test.");
+        clozeCard.Answers.Should().ContainKey("answer1");
+        clozeCard.Answers["answer1"].Should().Be("cloze");
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using AnkiSync.Adapter.AnkiConnect;
+using AnkiSync.Adapter.AnkiConnect.Client;
 using AnkiSync.Adapter.AnkiConnect.Models;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;

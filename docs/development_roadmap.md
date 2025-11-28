@@ -19,202 +19,20 @@ AnkiSync is a Windows service that automatically synchronizes flashcards from te
 - **Integration Priority**: Anki querying and synchronization as foundation milestone
 - **Parsing**: Line-by-line Obsidian format parsing with comprehensive format support
 - **Deck Inference**: Automatic tag nesting to deck hierarchy conversion
-- **Testing**: Comprehensive integration tests for all AnkiConnect capabilities
-- **Configuration**: YAML-based settings with validation and hot-reload capability
 
-### Ready for Implementation
-All planning documents are complete and approved. The project prioritizes Anki integration as Phase 1 to establish reliable synchronization capabilities before building file processing features.
-
-## Phase 1: Anki Integration & Querying (4 weeks)
-
-### Objectives
-- Establish complete AnkiConnect integration through .NET adapter
-- Implement comprehensive querying and synchronization capabilities
-- **Validate all Anki capabilities through extensive integration and unit testing**
-- Create foundation for file-based flashcard synchronization
-
-### Deliverables
-
-#### 1.1 .NET AnkiConnect Adapter
-- [ ] Complete HTTP client implementation for direct Anki communication
-- [ ] AnkiConnect HTTP client wrapper with connection pooling
-- [ ] Comprehensive error handling and retry logic
-- [ ] Connection health monitoring and automatic reconnection
-- [ ] Request/response serialization and validation
-
-#### 1.2 Anki Querying Capabilities
-- [ ] Query existing decks (`getDecks`)
-- [ ] Query existing notes with filtering (`findNotes`, `notesInfo`)
-- [ ] Query note models/templates (`modelNames`, `modelFieldNames`)
-- [ ] Query deck statistics and card counts
-- [ ] Advanced query support (tag-based, deck-based, field-based)
-
-#### 1.3 Anki Synchronization Operations
-- [ ] Create new notes (`addNote`) with full field support
-- [ ] Update existing notes (`updateNoteFields`)
-- [ ] Delete notes (`deleteNotes`)
-- [ ] Create decks (`createDeck`) with hierarchy support
-- [ ] Batch operations for performance (`multi` actions)
-
-#### 1.4 Integration Test Suite
-- [ ] Complete test harness for AnkiConnect interactions
-- [ ] Mock AnkiConnect server for isolated testing
-- [ ] End-to-end integration tests covering all API operations
-- [ ] Performance testing for batch operations
-- [ ] Error scenario testing (connection failures, API errors, timeouts)
-- [ ] Test coverage for all AnkiConnect capabilities
-
-#### 1.5 Basic State Management
-- [ ] SQLite database schema for sync state tracking
-- [ ] Note ID mapping between flashcards and Anki notes
-- [ ] Basic conflict detection framework
-- [ ] Database migration and schema versioning
+#### 2.7 Comprehensive Test Suite (Parsing)
+- [ ] Unit tests for all parsing and processing logic
+- [ ] Integration tests for file parsing and deck inference
+- [ ] Configuration validation and error handling tests for parsing
+- [ ] Performance regression tests for parsing operations
 
 ### Success Criteria
-- **100% AnkiConnect API coverage** through .NET adapter
-- **Comprehensive integration tests** passing against real Anki instance
-- **All CRUD operations** working reliably (Create, Read, Update, Delete)
-- **Batch operations** supporting 100+ notes per operation
-- **Error handling** for all failure scenarios
-- **Performance benchmarks** established (<2 seconds for typical operations)
-- **API reliability** validated through extensive testing
-
-### Risks & Mitigations
-- **AnkiConnect API compatibility**: Implement version detection and graceful degradation
-- **Network reliability**: Comprehensive retry logic and connection pooling
-- **Performance bottlenecks**: Profile and optimize batch operations early
-- **API rate limiting**: Implement backoff strategies and request throttling
-
-## Phase 2: File Processing & Sync Engine (6 weeks)
-
-### Objectives
-- Implement comprehensive file monitoring and flashcard parsing
-- Build the sync engine with conflict resolution
-- Integrate file processing with Anki synchronization
-- Deliver core synchronization components as testable libraries
-- **Validate all capabilities through comprehensive integration and unit testing**
-
-### Deliverables
-
-#### 2.1 Core File Processing Libraries
-- [ ] File monitoring abstractions and interfaces
-- [ ] Flashcard parsing engine with Obsidian format support
-- [ ] Configuration management with YAML validation
-- [ ] State management and database abstractions
-- [ ] Logging framework with structured logging support
-
-#### 2.2 Advanced File Monitoring
-- [ ] Multiple directory support with configurable recursion
-- [ ] File type filtering (.md, .txt, .py, .js, etc.)
-- [ ] File change detection (create, modify, delete, rename, move)
-- [ ] Change debouncing and batching (500ms windows)
-- [ ] Network drive and UNC path support
-- [ ] File locking detection and handling
-
-#### 2.3 Flashcard Parsing Engine
-- [ ] Integrate and enhance existing Obsidian parser
-- [ ] Support all Obsidian Spaced Repetition formats
-- [ ] Tag extraction and deck inference from tag nesting
-- [ ] Custom cloze pattern support
-- [ ] Syntax validation and comprehensive error reporting
-- [ ] Performance optimization for large files and directories
-
-#### 2.4 Sync Engine & Conflict Resolution
-- [ ] Bidirectional synchronization logic
-- [ ] Configurable conflict resolution policies (file_wins, anki_wins, manual)
-- [ ] Change detection between file system and Anki state
-- [ ] Incremental sync optimization
-- [ ] Preserve Anki review history during updates
-- [ ] Batch processing for performance
-
-#### 2.5 Configuration Management
-- [ ] Comprehensive YAML configuration schema
-- [ ] Directory and file type settings
-- [ ] Sync behavior and performance tuning
-- [ ] Configuration validation and hot-reload
-- [ ] Environment-specific configuration support
-
-#### 2.6 Enhanced State Management
-- [ ] Complete flashcard lifecycle tracking
-- [ ] Conflict history and resolution logging
-- [ ] Performance metrics and monitoring
-- [ ] Database optimization and indexing
-- [ ] Data migration and backup capabilities
-
-#### 2.7 Comprehensive Test Suite
-- [ ] Unit tests for all parsing and processing logic
-- [ ] Integration tests for file monitoring and change detection
-- [ ] End-to-end sync tests with mock file system and Anki server
-- [ ] Configuration validation and error handling tests
-- [ ] Performance regression tests for sync operations
-- [ ] Conflict resolution scenario testing
-- [ ] Component interface and abstraction tests
-- [ ] Database state management and migration tests
-
-#### 2.4 Sync Engine & Conflict Resolution
-- [ ] Bidirectional synchronization logic
-- [ ] Configurable conflict resolution policies (file_wins, anki_wins, manual)
-- [ ] Change detection between file system and Anki state
-- [ ] Incremental sync optimization
-- [ ] Preserve Anki review history during updates
-- [ ] Batch processing for performance
-
-#### 2.5 Configuration Management
-- [ ] Comprehensive YAML configuration schema
-- [ ] Directory and file type settings
-- [ ] Sync behavior and performance tuning
-- [ ] Configuration validation and hot-reload
-- [ ] Environment-specific configuration support
-
-#### 2.6 Enhanced State Management
-- [ ] Complete flashcard lifecycle tracking
-- [ ] Conflict history and resolution logging
-- [ ] Performance metrics and monitoring
-- [ ] Database optimization and indexing
-- [ ] Data migration and backup capabilities
-
-#### 2.4 Sync Engine & Conflict Resolution
-- [ ] Bidirectional synchronization logic
-- [ ] Configurable conflict resolution policies (file_wins, anki_wins, manual)
-- [ ] Change detection between file system and Anki state
-- [ ] Incremental sync optimization
-- [ ] Preserve Anki review history during updates
-- [ ] Batch processing for performance
-
-#### 2.5 Configuration Management
-- [ ] Comprehensive YAML configuration schema
-- [ ] Directory and file type settings
-- [ ] Sync behavior and performance tuning
-- [ ] Configuration validation and hot-reload
-- [ ] Environment-specific configuration support
-
-#### 2.6 Enhanced State Management
-- [ ] Complete flashcard lifecycle tracking
-- [ ] Conflict history and resolution logging
-- [ ] Performance metrics and monitoring
-- [ ] Database optimization and indexing
-- [ ] Data migration and backup capabilities
-
-#### 2.7 Comprehensive Test Suite
-- [ ] Unit tests for all parsing and processing logic
-- [ ] Integration tests for file monitoring and change detection
-- [ ] End-to-end sync tests with mock file system and Anki server
-- [ ] Configuration validation and error handling tests
-- [ ] Performance regression tests for sync operations
-- [ ] Conflict resolution scenario testing
-- [ ] Command-line interface and argument parsing tests
-- [ ] Database state management and migration tests
-
-### Success Criteria
-- **End-to-end synchronization** working from file changes to Anki updates
-- **Multiple directory support** with complex folder structures
 - **All flashcard formats** parsed accurately
-- **Conflict resolution** working for all scenarios
-- **Performance targets** met (<5 seconds sync latency)
-- **Configuration flexibility** supporting diverse user needs
-- **Comprehensive error handling** with graceful degradation
-- **Core libraries** stable and thoroughly tested
-- **100% test coverage** for critical paths with passing integration tests
+- **Deck inference** working for complex tag hierarchies
+- **Parsing performance** meeting targets (<1 second for typical files)
+- **Comprehensive error handling** with graceful degradation for parsing
+- **Core parsing libraries** stable and thoroughly tested
+- **100% test coverage** for parsing logic with passing unit tests
 
 ## Phase 3: Application & Service Integration (3 weeks)
 
@@ -363,7 +181,7 @@ All planning documents are complete and approved. The project prioritizes Anki i
 
 ### Development Team
 - **Phase 1**: 2 developers (Anki integration + .NET adapter + integration tests)
-- **Phase 2**: 2 developers (file processing + sync engine + conflict resolution)
+- **Phase 2**: 1 developer (file parsing + deck inference)
 - **Phase 3**: 1 developer (Application & service integration)
 - **Phase 4**: 2-3 developers (QA + production hardening + documentation)
 - **Phase 5**: 2 developers (advanced features + integrations)
@@ -393,14 +211,11 @@ All planning documents are complete and approved. The project prioritizes Anki i
 - [ ] <2 second response time for individual operations
 - [ ] Comprehensive error handling for all failure scenarios
 
-### Phase 2 (File Processing & Sync)
-- [ ] End-to-end synchronization working reliably
-- [ ] Support for multiple directories and file types
+### Phase 2 (File Parsing)
+- [ ] Line-by-line Obsidian format parsing with comprehensive format support
+- [ ] Automatic tag nesting to deck hierarchy conversion
 - [ ] All Obsidian flashcard formats parsed accurately
-- [ ] Conflict resolution working for all scenarios
-- [ ] <5 second sync latency for typical workloads
-- [ ] 99%+ sync success rate
-- [ ] Core libraries stable and thoroughly tested
+- [ ] Core parsing libraries stable and thoroughly tested
 
 ### Phase 3 (Application & Service)
 - [ ] Console application working with command-line interface
@@ -469,11 +284,11 @@ All planning documents are complete and approved. The project prioritizes Anki i
 
 ### Development Costs
 - **Phase 1**: $50K (2 developers × 4 weeks)
-- **Phase 2**: $75K (2 developers × 6 weeks)
+- **Phase 2**: $40K (1 developer × 6 weeks)
 - **Phase 3**: $15K (1 developer × 3 weeks)
 - **Phase 4**: $60K (2.5 developers × 4 weeks)
 - **Phase 5**: $100K (2 developers × 8 weeks)
-- **Total**: $300K
+- **Total**: $265K
 
 ### Infrastructure Costs
 - Development servers: $500/month
