@@ -1,4 +1,5 @@
 using AnkiSync.Domain;
+using AnkiSync.Application;
 using AnkiSync.Adapter.AnkiConnect;
 using AnkiSync.Adapter.AnkiConnect.Models;
 using FluentAssertions;
@@ -502,6 +503,64 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
         // Note: The actual result depends on whether the user has AnkiWeb configured
         // We just verify the API call succeeds
         syncResponse.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DownloadDeckAsync_WithExistingDeck_ReturnsDeckWithCards()
+    {
+        // Arrange - Create a test deck with a card
+        var uniqueTestDeckName = $"{TestDeckName}_Download_{Guid.NewGuid():N}";
+        var createDeckRequest = new CreateDeckRequestDto(uniqueTestDeckName);
+        await _ankiService.CreateDeckAsync(createDeckRequest);
+        _createdDecks.Add(uniqueTestDeckName);
+
+        var testNote = new AnkiNote
+        {
+            DeckName = uniqueTestDeckName,
+            ModelName = "Basic",
+            Fields = new Dictionary<string, string>
+            {
+                ["Front"] = TestFront,
+                ["Back"] = TestBack
+            }
+        };
+
+        var addNoteRequest = new AddNoteRequestDto(testNote);
+        var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
+        _createdNotes.Add(addNoteResponse.Result!.Value);
+
+        // Act - Download the deck
+        var deckImportService = _serviceProvider.GetRequiredService<IDeckImportService>();
+        var deck = await deckImportService.DownloadDeckAsync(uniqueTestDeckName);
+
+        // Assert
+        deck.Should().NotBeNull();
+        deck.Name.Should().Be(uniqueTestDeckName);
+        deck.Cards.Should().NotBeEmpty();
+        deck.Cards.Should().ContainSingle();
+
+        var card = deck.Cards.First();
+        card.Should().BeOfType<QuestionAnswerCard>();
+        var qaCard = (QuestionAnswerCard)card;
+        qaCard.Question.Should().Be(TestFront);
+        qaCard.Answer.Should().Be(TestBack);
+    }
+
+    [Fact]
+    public async Task DownloadDeckAsync_WithNonExistentDeck_ReturnsEmptyDeck()
+    {
+        // Arrange
+        var nonExistentDeckName = "NonExistentDeck_12345";
+
+        // Act
+        var deckImportService = _serviceProvider.GetRequiredService<AnkiSync.Application.IDeckImportService>();
+        var deck = await deckImportService.DownloadDeckAsync(nonExistentDeckName);
+
+        // Assert
+        deck.Should().NotBeNull();
+        deck.Name.Should().Be(nonExistentDeckName);
+        deck.Cards.Should().BeEmpty();
+        deck.SubDeckNames.Should().BeEmpty();
     }
 }
 
