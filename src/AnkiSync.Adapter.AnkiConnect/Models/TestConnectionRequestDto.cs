@@ -5,5 +5,8 @@ namespace AnkiSync.Adapter.AnkiConnect.Models;
 /// </summary>
 public record TestConnectionRequestDto : AnkiConnectRequest
 {
-    public TestConnectionRequestDto() : base("version") { }
+    public TestConnectionRequestDto()
+    {
+        Action = "version";
+    }
 }

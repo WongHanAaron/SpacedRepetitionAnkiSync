@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AnkiSync.Adapter.AnkiConnect.Models;
 
 /// <summary>
@@ -5,10 +7,9 @@ namespace AnkiSync.Adapter.AnkiConnect.Models;
 /// </summary>
 public record AddNoteRequestDto : AnkiConnectRequest
 {
-    public AddNoteRequestDto(AnkiNoteDto note) : base("addNote")
+    public AddNoteRequestDto(AnkiNoteDto note)
     {
+        Action = "addNote";
         Params = new AddNoteParams { Note = note };
     }
-
-    public AddNoteParams Params { get; }
 }

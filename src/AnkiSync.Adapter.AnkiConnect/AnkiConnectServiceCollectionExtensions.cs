@@ -22,7 +22,6 @@ public static class AnkiConnectServiceCollectionExtensions
         // Register HttpClient for AnkiConnect
         services.AddHttpClient<IAnkiService, AnkiService>(client =>
         {
-            client.BaseAddress = new Uri(baseAddress);
             client.Timeout = TimeSpan.FromSeconds(30);
         });
 

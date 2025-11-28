@@ -35,5 +35,13 @@ public class AnkiConnectMappingProfile : Profile
         // FindNotesRequest -> FindNotesRequestDto
         CreateMap<FindNotesRequest, FindNotesRequestDto>()
             .ConstructUsing((src, ctx) => new FindNotesRequestDto(src.Query));
+
+        // DeleteDecksRequest -> DeleteDecksRequestDto
+        CreateMap<DeleteDecksRequest, DeleteDecksRequestDto>()
+            .ConstructUsing((src, ctx) => new DeleteDecksRequestDto(src.DeckNames, src.CardsToo));
+
+        // DeleteNotesRequest -> DeleteNotesRequestDto
+        CreateMap<DeleteNotesRequest, DeleteNotesRequestDto>()
+            .ConstructUsing((src, ctx) => new DeleteNotesRequestDto(src.NoteIds));
     }
 }

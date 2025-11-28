@@ -1,6 +1,6 @@
 namespace AnkiSync.Adapter.AnkiConnect.Models;
 
 /// <summary>
-/// Response for version/test connection
+/// Response for version check
 /// </summary>
-public record AnkiConnectVersionResponse : AnkiConnectResponse<int>;
+public record AnkiConnectVersionResponse : AnkiConnectResponse;

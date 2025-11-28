@@ -35,4 +35,14 @@ public interface IAnkiService
     /// Finds existing notes matching criteria
     /// </summary>
     Task<FindNotesResponse> FindNotesAsync(FindNotesRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes decks from Anki
+    /// </summary>
+    Task<DeleteDecksResponse> DeleteDecksAsync(DeleteDecksRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes notes from Anki
+    /// </summary>
+    Task<DeleteNotesResponse> DeleteNotesAsync(DeleteNotesRequest request, CancellationToken cancellationToken = default);
 }

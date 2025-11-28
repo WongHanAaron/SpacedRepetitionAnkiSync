@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AnkiSync.Adapter.AnkiConnect.Models;
 
 /// <summary>
@@ -5,10 +7,9 @@ namespace AnkiSync.Adapter.AnkiConnect.Models;
 /// </summary>
 public record CreateDeckRequestDto : AnkiConnectRequest
 {
-    public CreateDeckRequestDto(string deck) : base("createDeck")
+    public CreateDeckRequestDto(string deck)
     {
+        Action = "createDeck";
         Params = new CreateDeckParams { Deck = deck };
     }
-
-    public CreateDeckParams Params { get; }
 }

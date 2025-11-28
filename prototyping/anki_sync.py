@@ -173,7 +173,6 @@ def demo_sync():
         print("To sync with AnkiWeb, uncomment:")
         print('# anki.sync()')
         print('# print("Sync initiated")')
-        anki.add_note("Default", "Question?", "Answer!", ["prototype"])
         
     except Exception as e:
         print(f"Error during sync demo: {e}")

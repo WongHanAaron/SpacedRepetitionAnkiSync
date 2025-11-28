@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AnkiSync.Adapter.AnkiConnect.Models;
 
 /// <summary>
@@ -5,8 +7,15 @@ namespace AnkiSync.Adapter.AnkiConnect.Models;
 /// </summary>
 public record AnkiNoteDto
 {
+    [JsonPropertyName("deckName")]
     public required string DeckName { get; init; }
+
+    [JsonPropertyName("modelName")]
     public required string ModelName { get; init; }
+
+    [JsonPropertyName("fields")]
     public required Dictionary<string, string> Fields { get; init; }
+
+    [JsonPropertyName("tags")]
     public List<string> Tags { get; init; } = new();
 }

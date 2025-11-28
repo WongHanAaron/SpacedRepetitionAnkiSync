@@ -5,5 +5,8 @@ namespace AnkiSync.Adapter.AnkiConnect.Models;
 /// </summary>
 public record GetDecksRequestDto : AnkiConnectRequest
 {
-    public GetDecksRequestDto() : base("deckNames") { }
+    public GetDecksRequestDto()
+    {
+        Action = "deckNames";
+    }
 }

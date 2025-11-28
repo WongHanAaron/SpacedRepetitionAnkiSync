@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AnkiSync.Adapter.AnkiConnect.Models;
 
 /// <summary>
@@ -5,10 +7,12 @@ namespace AnkiSync.Adapter.AnkiConnect.Models;
 /// </summary>
 public record UpdateNoteRequestDto : AnkiConnectRequest
 {
-    public UpdateNoteRequestDto(long noteId, Dictionary<string, string> fields) : base("updateNoteFields")
+    public UpdateNoteRequestDto(long noteId, Dictionary<string, string> fields)
     {
-        Params = new UpdateNoteParams { Id = noteId, Fields = fields };
+        Action = "updateNoteFields";
+        Params = new UpdateNoteParams
+        {
+            Note = new UpdateNoteData { Id = noteId, Fields = fields }
+        };
     }
-
-    public UpdateNoteParams Params { get; }
 }
