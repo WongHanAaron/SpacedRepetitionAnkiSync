@@ -7,7 +7,7 @@ namespace AnkiSync.Adapter.AnkiConnect.Models;
 /// </summary>
 public record CreateNoteRequestDto : AnkiConnectRequest
 {
-    public CreateNoteRequestDto(AnkiNoteDto note)
+    public CreateNoteRequestDto(AnkiNote note)
     {
         Action = "addNote";
         Params = new CreateNoteParams { Note = note };
@@ -20,7 +20,7 @@ public record CreateNoteRequestDto : AnkiConnectRequest
 public record CreateNoteParams
 {
     [JsonPropertyName("note")]
-    public required AnkiNoteDto Note { get; init; }
+    public required AnkiNote Note { get; init; }
 }
 
 /// <summary>

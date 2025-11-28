@@ -102,6 +102,13 @@ public class AnkiService : IAnkiService
         return response;
     }
 
+    /// <inheritdoc />
+    public async Task<SyncResponse> SyncAsync(SyncRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var response = await SendRequestAsync<SyncResponse>(request.Action, request, cancellationToken);
+        return response;
+    }
+
     private async Task<TResponse> SendRequestAsync<TResponse>(string requestUri, AnkiConnectRequest request, CancellationToken cancellationToken)
         where TResponse : class
     {

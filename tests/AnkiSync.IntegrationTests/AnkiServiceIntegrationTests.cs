@@ -171,7 +171,7 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
             }
         };
 
-        var addNoteRequest = new AddNoteRequestDto(new AnkiNoteDto { DeckName = testNote.DeckName, ModelName = testNote.ModelName, Fields = testNote.Fields });
+        var addNoteRequest = new AddNoteRequestDto(testNote);
         var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
 
         addNoteResponse.Result.Should().NotBeNull();
@@ -282,7 +282,7 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
             }
         };
 
-        var addNoteRequest = new AddNoteRequestDto(new AnkiNoteDto { DeckName = testNote.DeckName, ModelName = testNote.ModelName, Fields = testNote.Fields });
+        var addNoteRequest = new AddNoteRequestDto(testNote);
         var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
 
         addNoteResponse.Result.Should().NotBeNull();
@@ -370,7 +370,7 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
             }
         };
 
-        var canAddNoteRequest = new CanAddNoteRequestDto(new AnkiNoteDto { DeckName = testNote.DeckName, ModelName = testNote.ModelName, Fields = testNote.Fields });
+        var canAddNoteRequest = new CanAddNoteRequestDto(testNote);
         var canAddNoteResponse = await _ankiService.CanAddNoteAsync(canAddNoteRequest);
 
         (canAddNoteResponse.Result as bool? == true).Should().BeTrue();
@@ -395,7 +395,7 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
             }
         };
 
-        var canAddNoteRequest = new CanAddNoteRequestDto(new AnkiNoteDto { DeckName = testNote.DeckName, ModelName = testNote.ModelName, Fields = testNote.Fields });
+        var canAddNoteRequest = new CanAddNoteRequestDto(testNote);
         var canAddNoteResponse = await _ankiService.CanAddNoteAsync(canAddNoteRequest);
 
         (canAddNoteResponse.Result as bool?).Should().BeFalse();
@@ -426,7 +426,7 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
             }
         };
 
-        var createNoteRequest = new CreateNoteRequestDto(new AnkiNoteDto { DeckName = testNote.DeckName, ModelName = testNote.ModelName, Fields = testNote.Fields });
+        var createNoteRequest = new CreateNoteRequestDto(testNote);
         var createNoteResponse = await _ankiService.CreateNoteAsync(createNoteRequest);
 
         createNoteResponse.Result.Should().NotBeNull();
@@ -469,7 +469,7 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
             }
         };
 
-        var addNoteRequest = new AddNoteRequestDto(new AnkiNoteDto { DeckName = testNote.DeckName, ModelName = testNote.ModelName, Fields = testNote.Fields });
+        var addNoteRequest = new AddNoteRequestDto(testNote);
         var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
         _createdNotes.Add(addNoteResponse.Result!.Value);
 
@@ -487,6 +487,21 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
         var findNotesResponse = await _ankiService.FindNotesAsync(findNotesRequest);
 
         (findNotesResponse.Result ?? new List<long>()).Should().Contain(addNoteResponse.Result!.Value);
+    }
+
+    [Fact]
+    public async Task SyncAsync_ShouldSyncCollectionWithAnkiWeb()
+    {
+        await EnsureAnkiConnectionAsync();
+
+        // Sync the collection with AnkiWeb
+        var syncRequest = new SyncRequestDto();
+        var syncResponse = await _ankiService.SyncAsync(syncRequest);
+
+        // The sync operation should complete without error
+        // Note: The actual result depends on whether the user has AnkiWeb configured
+        // We just verify the API call succeeds
+        syncResponse.Should().NotBeNull();
     }
 }
 
