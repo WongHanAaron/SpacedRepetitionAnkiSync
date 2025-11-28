@@ -220,7 +220,7 @@ public class DeckRepositoryTests : IAsyncLifetime
                 {
                     Id = Guid.NewGuid().ToString(),
                     DateModified = DateTimeOffset.Now,
-                    Text = "The {keyword} of {country} is {city}",
+                    Text = """The {keyword} of {country} is {city}""",
                     Answers = new Dictionary<string, string>
                     {
                         ["keyword"] = "capital",
@@ -263,8 +263,8 @@ public class DeckRepositoryTests : IAsyncLifetime
         // Verify ClozeCard
         var clozeCard = downloadedDeck.Cards.OfType<ClozeCard>().FirstOrDefault();
         clozeCard.Should().NotBeNull();
-        clozeCard!.Text.Should().Be("The {0} of {1} is {2}");
-        clozeCard.Answers.Should().HaveCount(4);
-        clozeCard.Answers.Should().Contain("keyword", "country", "city", "Paris");
+        clozeCard!.Text.Should().Be("""The {answer1} of {answer2} is {answer3}""");
+        clozeCard.Answers.Should().HaveCount(3);
+        clozeCard.Answers.Should().ContainValues("capital", "France", "Paris");
     }
 }

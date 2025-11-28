@@ -43,7 +43,7 @@ public class CollectionExtensionsTests
     {
         // Arrange
         var qaCard = new QuestionAnswerCard { Id = "1", DateModified = DateTimeOffset.Now, Question = "Q", Answer = "A" };
-        var clozeCard = new ClozeCard { Id = "2", DateModified = DateTimeOffset.Now, Text = "Test {keyword}", Answers = new Dictionary<string, string> { ["keyword"] = "value" } };
+        var clozeCard = new ClozeCard { Id = "2", DateModified = DateTimeOffset.Now, Text = """Test {keyword}""", Answers = new Dictionary<string, string> { ["keyword"] = "value" } };
         var duplicateQaCard = new QuestionAnswerCard { Id = "1", DateModified = DateTimeOffset.Now, Question = "Q2", Answer = "A2" };
         var cards = new List<Card> { qaCard, clozeCard, duplicateQaCard };
 

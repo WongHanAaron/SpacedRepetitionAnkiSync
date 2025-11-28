@@ -12,6 +12,7 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository
     private readonly IFileParser _fileParser;
     private readonly ICardExtractor _cardExtractor;
     private readonly IDeckInferencer _deckInferencer;
+    private readonly IFileSystem _fileSystem;
 
     /// <summary>
     /// Initializes a new instance of SpacedRepetitionNotesRepository
@@ -19,11 +20,13 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository
     public SpacedRepetitionNotesRepository(
         IFileParser fileParser,
         ICardExtractor cardExtractor,
-        IDeckInferencer deckInferencer)
+        IDeckInferencer deckInferencer,
+        IFileSystem fileSystem)
     {
         _fileParser = fileParser;
         _cardExtractor = cardExtractor;
         _deckInferencer = deckInferencer;
+        _fileSystem = fileSystem;
     }
 
     /// <summary>
@@ -31,7 +34,7 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository
     /// </summary>
     public async Task<IEnumerable<Deck>> GetCardsFromFiles(IEnumerable<string> filePaths, CancellationToken cancellationToken = default)
     {
-        var allCards = new List<ParsedCard>();
+        var allCards = new List<ParsedCardBase>();
 
         foreach (var filePath in filePaths)
         {
@@ -56,7 +59,7 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository
     }
 
     /// <summary>
-    /// Retrieves all flashcards from files in the specified directories
+    /// Retrieves all flashcards from the specified directories
     /// </summary>
     public async Task<IEnumerable<Deck>> GetCardsFromDirectories(IEnumerable<string> directories, CancellationToken cancellationToken = default)
     {
@@ -64,10 +67,10 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository
 
         foreach (var directory in directories)
         {
-            if (Directory.Exists(directory))
+            if (_fileSystem.DirectoryExists(directory))
             {
                 // Find all markdown files
-                var markdownFiles = Directory.GetFiles(directory, "*.md", SearchOption.AllDirectories);
+                var markdownFiles = _fileSystem.GetFiles(directory, "*.md", SearchOption.AllDirectories);
                 filePaths.AddRange(markdownFiles);
             }
         }
@@ -88,40 +91,44 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository
         {
             var deck = new Deck
             {
-                DeckId = DeckId.FromPath(parsedDeck.DeckPath.Split("::")),
+                DeckId = DeckId.FromPath([..parsedDeck.Tag.NestedTags]),
                 Cards = parsedDeck.Cards.Select(ConvertToDomainCard).ToList()
             };
             yield return deck;
         }
     }
 
-    private Card ConvertToDomainCard(ParsedCard parsedCard)
+    private Card ConvertToDomainCard(ParsedCardBase parsedCard)
     {
         // Generate a unique ID for the card
         var cardId = Guid.NewGuid().ToString();
 
         // Determine card type and create appropriate domain card
-        if (parsedCard.CardType == "Cloze")
+        if (parsedCard is ParsedClozeCard clozeCard)
         {
             return new ClozeCard
             {
                 Id = cardId,
                 DateModified = DateTimeOffset.UtcNow,
-                Text = parsedCard.Front,
-                Answers = parsedCard.Answers
+                Text = clozeCard.Text,
+                Answers = clozeCard.Answers
                 // Tags are not part of the domain model yet
             };
         }
-        else
+        else if (parsedCard is ParsedQuestionAnswerCard qaCard)
         {
             return new QuestionAnswerCard
             {
                 Id = cardId,
                 DateModified = DateTimeOffset.UtcNow,
-                Question = parsedCard.Front,
-                Answer = parsedCard.Back
+                Question = qaCard.Question,
+                Answer = qaCard.Answer
                 // Tags are not part of the domain model yet
             };
+        }
+        else
+        {
+            throw new InvalidOperationException($"Unknown card type: {parsedCard.GetType()}");
         }
     }
 }

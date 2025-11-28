@@ -20,6 +20,17 @@ public interface IFileParser
 /// </summary>
 public class FileParser : IFileParser
 {
+    private readonly IFileSystem _fileSystem;
+
+    /// <summary>
+    /// Creates a new instance of FileParser
+    /// </summary>
+    /// <param name="fileSystem">The file system abstraction to use</param>
+    public FileParser(IFileSystem fileSystem)
+    {
+        _fileSystem = fileSystem;
+    }
+
     /// <summary>
     /// Parses a file into metadata and content
     /// </summary>
@@ -27,13 +38,13 @@ public class FileParser : IFileParser
     /// <returns>The document metadata</returns>
     public async Task<Document> ParseFileAsync(string filePath)
     {
-        if (!File.Exists(filePath))
+        if (!_fileSystem.FileExists(filePath))
         {
             throw new FileNotFoundException($"File not found: {filePath}", filePath);
         }
 
-        var fileInfo = new FileInfo(filePath);
-        var content = await File.ReadAllTextAsync(filePath);
+        var fileInfo = _fileSystem.GetFileInfo(filePath);
+        var content = await _fileSystem.ReadAllTextAsync(filePath);
 
         // Extract tags from content (simple implementation - look for #tags)
         var tags = ExtractTags(content);

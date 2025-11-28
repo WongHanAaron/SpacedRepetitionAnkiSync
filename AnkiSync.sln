@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnkiSync.Presentation.Conso
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnkiSync.IntegrationTests", "tests\AnkiSync.IntegrationTests\AnkiSync.IntegrationTests.csproj", "{366F0813-0221-47AD-ADB3-F7EDF71C915B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnkiSync.Adapter.SpacedRepetitionNotes.Tests", "tests\AnkiSync.Adapter.SpacedRepetitionNotes.Tests\AnkiSync.Adapter.SpacedRepetitionNotes.Tests.csproj", "{C94247CC-113E-4AAE-9DEE-82FCD837BC68}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnkiSync.Application", "src\AnkiSync.Application\AnkiSync.Application.csproj", "{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnkiSync.Adapter.SpacedRepetitionNotes", "src\AnkiSync.Adapter.SpacedRepetitionNotes\AnkiSync.Adapter.SpacedRepetitionNotes.csproj", "{1ED403C3-7CC1-4330-B40E-C97CAAE3C838}"
@@ -129,6 +131,18 @@ Global
 		{1ED403C3-7CC1-4330-B40E-C97CAAE3C838}.Release|x64.Build.0 = Release|Any CPU
 		{1ED403C3-7CC1-4330-B40E-C97CAAE3C838}.Release|x86.ActiveCfg = Release|Any CPU
 		{1ED403C3-7CC1-4330-B40E-C97CAAE3C838}.Release|x86.Build.0 = Release|Any CPU
+		{C94247CC-113E-4AAE-9DEE-82FCD837BC68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C94247CC-113E-4AAE-9DEE-82FCD837BC68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C94247CC-113E-4AAE-9DEE-82FCD837BC68}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C94247CC-113E-4AAE-9DEE-82FCD837BC68}.Debug|x64.Build.0 = Debug|Any CPU
+		{C94247CC-113E-4AAE-9DEE-82FCD837BC68}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C94247CC-113E-4AAE-9DEE-82FCD837BC68}.Debug|x86.Build.0 = Debug|Any CPU
+		{C94247CC-113E-4AAE-9DEE-82FCD837BC68}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C94247CC-113E-4AAE-9DEE-82FCD837BC68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C94247CC-113E-4AAE-9DEE-82FCD837BC68}.Release|x64.ActiveCfg = Release|Any CPU
+		{C94247CC-113E-4AAE-9DEE-82FCD837BC68}.Release|x64.Build.0 = Release|Any CPU
+		{C94247CC-113E-4AAE-9DEE-82FCD837BC68}.Release|x86.ActiveCfg = Release|Any CPU
+		{C94247CC-113E-4AAE-9DEE-82FCD837BC68}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -142,5 +156,6 @@ Global
 		{366F0813-0221-47AD-ADB3-F7EDF71C915B} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{FA21CB25-1A44-4EFA-AE2D-CF5F3EE70230} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{1ED403C3-7CC1-4330-B40E-C97CAAE3C838} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{C94247CC-113E-4AAE-9DEE-82FCD837BC68} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

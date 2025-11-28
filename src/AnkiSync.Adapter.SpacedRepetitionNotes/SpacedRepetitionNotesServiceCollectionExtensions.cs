@@ -1,3 +1,4 @@
+using AnkiSync.Adapter.SpacedRepetitionNotes.Models;
 using AnkiSync.Domain.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,6 +20,7 @@ public static class SpacedRepetitionNotesServiceCollectionExtensions
         services.AddScoped<ICardSourceRepository, SpacedRepetitionNotesRepository>();
 
         // Register internal services
+        services.AddScoped<IFileSystem, FileSystem>();
         services.AddScoped<IFileParser, FileParser>();
         services.AddScoped<ICardExtractor, CardExtractor>();
         services.AddScoped<IDeckInferencer, DeckInferencer>();

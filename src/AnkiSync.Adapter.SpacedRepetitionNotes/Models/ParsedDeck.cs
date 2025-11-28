@@ -8,12 +8,12 @@ namespace AnkiSync.Adapter.SpacedRepetitionNotes.Models;
 public record ParsedDeck
 {
     /// <summary>
-    /// The hierarchical path of the deck (e.g., "Parent::Child::DeckName")
+    /// The tag representing the deck hierarchy
     /// </summary>
-    public required string DeckPath { get; init; }
+    public required Tag Tag { get; init; }
 
     /// <summary>
     /// The cards in this deck
     /// </summary>
-    public required IEnumerable<ParsedCard> Cards { get; init; }
+    public required IEnumerable<ParsedCardBase> Cards { get; init; }
 }

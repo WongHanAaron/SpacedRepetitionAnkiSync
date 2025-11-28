@@ -13,7 +13,7 @@ public record Document
     /// <summary>
     /// When the file was last modified
     /// </summary>
-    public required DateTime LastModified { get; init; }
+    public required DateTimeOffset LastModified { get; init; }
 
     /// <summary>
     /// Tags found in the file

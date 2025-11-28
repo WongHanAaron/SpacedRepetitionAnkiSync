@@ -12,7 +12,7 @@ public interface IDeckInferencer
     /// </summary>
     /// <param name="cards">The cards to group</param>
     /// <returns>The inferred decks</returns>
-    IEnumerable<ParsedDeck> InferDecks(IEnumerable<ParsedCard> cards);
+    IEnumerable<ParsedDeck> InferDecks(IEnumerable<ParsedCardBase> cards);
 }
 
 /// <summary>
@@ -20,35 +20,46 @@ public interface IDeckInferencer
 /// </summary>
 public class DeckInferencer : IDeckInferencer
 {
+    private readonly IFileSystem _fileSystem;
+
+    /// <summary>
+    /// Creates a new instance of DeckInferencer
+    /// </summary>
+    /// <param name="fileSystem">The file system abstraction to use</param>
+    public DeckInferencer(IFileSystem fileSystem)
+    {
+        _fileSystem = fileSystem;
+    }
+
     /// <summary>
     /// Groups cards into decks based on file paths and tags
     /// </summary>
     /// <param name="cards">The cards to group</param>
     /// <returns>The inferred decks</returns>
-    public IEnumerable<ParsedDeck> InferDecks(IEnumerable<ParsedCard> cards)
+    public IEnumerable<ParsedDeck> InferDecks(IEnumerable<ParsedCardBase> cards)
     {
-        // Group cards by inferred deck path
-        var deckGroups = cards.GroupBy(card => InferDeckPath(card));
+        // Group cards by inferred deck tag
+        var deckGroups = cards.GroupBy(card => InferDeckTag(card));
 
         foreach (var group in deckGroups)
         {
             yield return new ParsedDeck
             {
-                DeckPath = group.Key,
+                Tag = group.Key,
                 Cards = group
             };
         }
     }
 
-    private string InferDeckPath(ParsedCard card)
+    private Tag InferDeckTag(ParsedCardBase card)
     {
         // Use the directory structure to infer deck hierarchy
-        var fileInfo = new FileInfo(card.SourceFilePath);
+        var fileInfo = _fileSystem.GetFileInfo(card.SourceFilePath);
         var directory = fileInfo.Directory;
 
         if (directory == null)
         {
-            return Path.GetFileNameWithoutExtension(card.SourceFilePath);
+            return new Tag { NestedTags = new List<string> { _fileSystem.GetFileNameWithoutExtension(card.SourceFilePath) } };
         }
 
         // Build hierarchy from directory names
@@ -62,9 +73,9 @@ public class DeckInferencer : IDeckInferencer
         }
 
         // Add filename without extension
-        pathParts.Add(Path.GetFileNameWithoutExtension(card.SourceFilePath));
+        pathParts.Add(_fileSystem.GetFileNameWithoutExtension(card.SourceFilePath));
 
-        // Join with :: separator
-        return string.Join("::", pathParts);
+        // Return as Tag
+        return new Tag { NestedTags = pathParts };
     }
 }

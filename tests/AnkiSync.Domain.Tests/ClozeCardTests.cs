@@ -67,7 +67,7 @@ public class ClozeCardTests
         {
             Id = Guid.NewGuid().ToString(),
             DateModified = DateTimeOffset.Now,
-            Text = "The capital of {country} is {city}",
+            Text = """The capital of {country} is {city}""",
             Answers = new Dictionary<string, string>
             {
                 ["country"] = "France",
@@ -88,7 +88,7 @@ public class ClozeCardTests
         {
             Id = Guid.NewGuid().ToString(),
             DateModified = DateTimeOffset.Now,
-            Text = "The capital of {country} is {city}",
+            Text = """The capital of {country} is {city}""",
             Answers = new Dictionary<string, string>
             {
                 ["country"] = "France"
