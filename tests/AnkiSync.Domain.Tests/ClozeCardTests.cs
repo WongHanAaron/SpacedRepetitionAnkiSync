@@ -11,11 +11,16 @@ public class ClozeCardTests
     public void ClozeCard_Constructor_SetsDefaultValues()
     {
         // Arrange & Act
-        var card = new ClozeCard();
+        var card = new ClozeCard
+        {
+            Id = Guid.NewGuid().ToString(),
+            DateModified = DateTimeOffset.Now
+        };
 
         // Assert
         card.Id.Should().NotBeNull();
         card.Id.Should().NotBe(Guid.Empty.ToString());
+        card.DateModified.Should().BeCloseTo(DateTimeOffset.Now, TimeSpan.FromSeconds(1));
         card.Text.Should().BeEmpty();
         card.Type.Should().Be(CardType.Cloze);
     }
@@ -26,6 +31,8 @@ public class ClozeCardTests
         // Arrange
         var card = new ClozeCard
         {
+            Id = Guid.NewGuid().ToString(),
+            DateModified = DateTimeOffset.Now,
             Text = string.Empty
         };
 
@@ -41,6 +48,8 @@ public class ClozeCardTests
         // Arrange
         var card = new ClozeCard
         {
+            Id = Guid.NewGuid().ToString(),
+            DateModified = DateTimeOffset.Now,
             Text = "This is a regular text without cloze deletions"
         };
 
@@ -56,6 +65,8 @@ public class ClozeCardTests
         // Arrange
         var card = new ClozeCard
         {
+            Id = Guid.NewGuid().ToString(),
+            DateModified = DateTimeOffset.Now,
             Text = "The capital of {{c1::France}} is {{c1::Paris}}"
         };
 

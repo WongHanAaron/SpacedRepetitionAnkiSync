@@ -9,9 +9,10 @@ public class DeckIdentifierTests
     public void DeckId_CanBeCreated_WithName()
     {
         // Arrange & Act
-        var deckId = new DeckId { Name = "TestDeck" };
+        var deckId = DeckId.FromPath("TestDeck");
 
         // Assert
         deckId.Name.Should().Be("TestDeck");
+        deckId.Parents.Should().BeEmpty();
     }
 }

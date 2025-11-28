@@ -25,13 +25,14 @@ public class DeckRepository : IDeckRepository
         }
 
         // Find all notes in the specified deck
-        var findNotesRequest = new FindNotesRequestDto($"deck:{deckId.Name}");
+        var ankiDeckName = deckId.ToAnkiDeckName();
+        var findNotesRequest = new FindNotesRequestDto($"deck:\"{ankiDeckName}\"");
         var findNotesResponse = await _ankiService.FindNotesAsync(findNotesRequest, cancellationToken);
 
         if (findNotesResponse.Result == null || !findNotesResponse.Result.Any())
         {
             // Return empty deck if no notes found
-            return new Deck { Name = deckId.Name };
+            return new Deck { DeckId = deckId };
         }
 
         // Get detailed information about the notes
@@ -40,7 +41,7 @@ public class DeckRepository : IDeckRepository
 
         if (notesInfoResponse.Result == null)
         {
-            return new Deck { Name = deckId.Name };
+            return new Deck { DeckId = deckId };
         }
 
         // Convert notes to domain cards
@@ -50,20 +51,10 @@ public class DeckRepository : IDeckRepository
             .Cast<Card>()
             .ToList();
 
-        // Get all deck names to find sub-decks
-        var getDecksRequest = new GetDecksRequestDto();
-        var getDecksResponse = await _ankiService.GetDecksAsync(getDecksRequest, cancellationToken);
-
-        var subDeckNames = getDecksResponse.Result?
-            .Where(name => name.StartsWith($"{deckId.Name}::"))
-            .Select(name => name.Substring($"{deckId.Name}::".Length))
-            .ToList() ?? new List<string>();
-
         return new Deck
         {
-            Name = deckId.Name,
-            Cards = cards,
-            SubDeckNames = subDeckNames
+            DeckId = deckId,
+            Cards = cards
         };
     }
 
@@ -75,22 +66,76 @@ public class DeckRepository : IDeckRepository
             throw new ArgumentNullException(nameof(deck));
         }
 
-        if (string.IsNullOrWhiteSpace(deck.Name))
+        if (deck.DeckId == null)
         {
-            throw new ArgumentException("Deck name cannot be null or empty", nameof(deck));
+            throw new ArgumentException("Deck DeckId cannot be null", nameof(deck));
         }
 
         // Create the deck if it doesn't exist
-        var createDeckRequest = new CreateDeckRequestDto(deck.Name);
+        var ankiDeckName = deck.DeckId.ToAnkiDeckName();
+        var createDeckRequest = new CreateDeckRequestDto(ankiDeckName);
         await _ankiService.CreateDeckAsync(createDeckRequest, cancellationToken);
 
-        // Add all cards to the deck
+        // Process each card - update existing ones, add new ones
         foreach (var card in deck.Cards)
         {
-            var ankiNote = ConvertCardToAnkiNote(card, deck.Name);
-            var addNoteRequest = new AddNoteRequestDto(ankiNote);
-            await _ankiService.AddNoteAsync(addNoteRequest, cancellationToken);
+            long? noteId = null;
+
+            if (!string.IsNullOrEmpty(card.Id) && long.TryParse(card.Id, out var parsedId))
+            {
+                noteId = parsedId;
+            }
+            else
+            {
+                // Card ID is missing, try to find an existing card with the same content
+                var query = BuildFindQuery(card, ankiDeckName);
+                if (!string.IsNullOrEmpty(query))
+                {
+                    var findRequest = new FindNotesRequestDto(query);
+                    var findResponse = await _ankiService.FindNotesAsync(findRequest, cancellationToken);
+                    
+                    if (findResponse.Result != null && findResponse.Result.Any())
+                    {
+                        noteId = findResponse.Result.First();
+                        card.Id = noteId.Value.ToString(); // Update the card object with the found ID
+                    }
+                }
+            }
+
+            if (noteId.HasValue)
+            {
+                // Card exists (either provided ID or found by content), update it
+                var ankiNote = ConvertCardToAnkiNote(card, ankiDeckName);
+                var updateNoteRequest = new UpdateNoteFieldsRequestDto(noteId.Value, ankiNote.Fields);
+                await _ankiService.UpdateNoteFieldsAsync(updateNoteRequest, cancellationToken);
+            }
+            else
+            {
+                // Card doesn't exist, add it
+                var ankiNote = ConvertCardToAnkiNote(card, ankiDeckName);
+                var addNoteRequest = new AddNoteRequestDto(ankiNote);
+                var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest, cancellationToken);
+
+                // Update the card's Id with the newly created note ID
+                if (addNoteResponse.Result.HasValue)
+                {
+                    card.Id = addNoteResponse.Result.Value.ToString();
+                }
+            }
         }
+    }
+
+    private string BuildFindQuery(Card card, string deckName)
+    {
+        // Escape double quotes in the content
+        string Escape(string s) => s.Replace("\"", "\\\"");
+
+        return card switch
+        {
+            QuestionAnswerCard qaCard => $"deck:\"{deckName}\" \"Front:{Escape(qaCard.Question)}\"",
+            ClozeCard clozeCard => $"deck:\"{deckName}\" \"Text:{Escape(clozeCard.Text)}\"",
+            _ => string.Empty
+        };
     }
 
     private Card? ConvertNoteToCard(NoteInfo note)
@@ -118,6 +163,7 @@ public class DeckRepository : IDeckRepository
         return new QuestionAnswerCard
         {
             Id = note.NoteId.ToString(),
+            DateModified = note.DateModified,
             Question = frontField.Value,
             Answer = backField.Value
         };
@@ -134,6 +180,7 @@ public class DeckRepository : IDeckRepository
         return new ClozeCard
         {
             Id = note.NoteId.ToString(),
+            DateModified = note.DateModified,
             Text = textField.Value
         };
     }

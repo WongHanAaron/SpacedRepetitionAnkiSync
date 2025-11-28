@@ -11,17 +11,17 @@ public class Deck
     public string Id { get; set; } = Guid.NewGuid().ToString();
 
     /// <summary>
-    /// The name of the deck
+    /// The deck identifier with hierarchical path support
     /// </summary>
-    public string Name { get; set; } = string.Empty;
+    public required DeckId DeckId { get; set; }
+
+    /// <summary>
+    /// The name of the deck (derived from DeckId)
+    /// </summary>
+    public string Name => DeckId.Name;
 
     /// <summary>
     /// The cards in this deck
     /// </summary>
     public List<Card> Cards { get; set; } = new List<Card>();
-
-    /// <summary>
-    /// The names of sub-decks nested under this deck
-    /// </summary>
-    public List<string> SubDeckNames { get; set; } = new List<string>();
 }

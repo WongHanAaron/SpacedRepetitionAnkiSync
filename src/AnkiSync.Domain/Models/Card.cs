@@ -8,7 +8,9 @@ public abstract class Card
     /// <summary>
     /// Unique identifier for the card
     /// </summary>
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public required string Id { get; set; }
+
+    public required DateTimeOffset DateModified { get; set; }
 
     /// <summary>
     /// The type of the card

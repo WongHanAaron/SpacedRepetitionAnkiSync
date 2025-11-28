@@ -48,13 +48,6 @@ public class AnkiService : IAnkiService
     }
 
     /// <inheritdoc />
-    public async Task<UpdateNoteResponse> UpdateNoteAsync(UpdateNoteRequestDto request, CancellationToken cancellationToken = default)
-    {
-        var response = await SendRequestAsync<UpdateNoteResponse>(request.Action, request, cancellationToken);
-        return response;
-    }
-
-    /// <inheritdoc />
     public async Task<FindNotesResponse> FindNotesAsync(FindNotesRequestDto request, CancellationToken cancellationToken = default)
     {
         var response = await SendRequestAsync<FindNotesResponse>(request.Action, request, cancellationToken);

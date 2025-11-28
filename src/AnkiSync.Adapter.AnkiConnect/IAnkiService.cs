@@ -29,11 +29,6 @@ public interface IAnkiService
     Task<AddNoteResponse> AddNoteAsync(AddNoteRequestDto request, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Updates an existing note in Anki
-    /// </summary>
-    Task<UpdateNoteResponse> UpdateNoteAsync(UpdateNoteRequestDto request, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Finds existing notes matching criteria
     /// </summary>
     Task<FindNotesResponse> FindNotesAsync(FindNotesRequestDto request, CancellationToken cancellationToken = default);

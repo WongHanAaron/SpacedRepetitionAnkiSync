@@ -10,9 +10,9 @@ public class CollectionExtensionsTests
     public void DistinctById_ReturnsDistinctCards()
     {
         // Arrange
-        var card1 = new QuestionAnswerCard { Id = "1", Question = "Q1", Answer = "A1" };
-        var card2 = new QuestionAnswerCard { Id = "2", Question = "Q2", Answer = "A2" };
-        var card3 = new QuestionAnswerCard { Id = "1", Question = "Q3", Answer = "A3" }; // Duplicate ID
+        var card1 = new QuestionAnswerCard { Id = "1", DateModified = DateTimeOffset.Now, Question = "Q1", Answer = "A1" };
+        var card2 = new QuestionAnswerCard { Id = "2", DateModified = DateTimeOffset.Now, Question = "Q2", Answer = "A2" };
+        var card3 = new QuestionAnswerCard { Id = "1", DateModified = DateTimeOffset.Now, Question = "Q3", Answer = "A3" }; // Duplicate ID
         var cards = new List<Card> { card1, card2, card3 };
 
         // Act
@@ -42,9 +42,9 @@ public class CollectionExtensionsTests
     public void DistinctById_HandlesMixedCardTypes()
     {
         // Arrange
-        var qaCard = new QuestionAnswerCard { Id = "1", Question = "Q", Answer = "A" };
-        var clozeCard = new ClozeCard { Id = "2", Text = "{{c1::test}}" };
-        var duplicateQaCard = new QuestionAnswerCard { Id = "1", Question = "Q2", Answer = "A2" };
+        var qaCard = new QuestionAnswerCard { Id = "1", DateModified = DateTimeOffset.Now, Question = "Q", Answer = "A" };
+        var clozeCard = new ClozeCard { Id = "2", DateModified = DateTimeOffset.Now, Text = "{{c1::test}}" };
+        var duplicateQaCard = new QuestionAnswerCard { Id = "1", DateModified = DateTimeOffset.Now, Question = "Q2", Answer = "A2" };
         var cards = new List<Card> { qaCard, clozeCard, duplicateQaCard };
 
         // Act

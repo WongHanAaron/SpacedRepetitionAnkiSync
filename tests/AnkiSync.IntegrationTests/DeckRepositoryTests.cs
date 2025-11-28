@@ -145,7 +145,8 @@ public class DeckRepositoryTests : IAsyncLifetime
         var timeAfterAdd = DateTimeOffset.Now;
 
         // Act - Download the deck
-        var deck = await _deckRepository.GetDeck(new DeckId { Name = uniqueTestDeckName });
+        var deckId = DeckIdExtensions.FromAnkiDeckName(uniqueTestDeckName);
+        var deck = await _deckRepository.GetDeck(deckId);
 
         // Assert
         deck.Should().NotBeNull();
@@ -182,13 +183,13 @@ public class DeckRepositoryTests : IAsyncLifetime
         var nonExistentDeckName = "NonExistentDeck_12345";
 
         // Act
-        var deck = await _deckRepository.GetDeck(new DeckId { Name = nonExistentDeckName });
+        var deckId = DeckIdExtensions.FromAnkiDeckName(nonExistentDeckName);
+        var deck = await _deckRepository.GetDeck(deckId);
 
         // Assert
         deck.Should().NotBeNull();
         deck.Name.Should().Be(nonExistentDeckName);
         deck.Cards.Should().BeEmpty();
-        deck.SubDeckNames.Should().BeEmpty();
     }
 
     [Fact]
@@ -198,21 +199,27 @@ public class DeckRepositoryTests : IAsyncLifetime
         var uniqueDeckName = $"{TestDeckName}_RoundTrip_{Guid.NewGuid():N}";
         var originalDeck = new Deck
         {
-            Name = uniqueDeckName,
+            DeckId = DeckIdExtensions.FromAnkiDeckName(uniqueDeckName),
             Cards = new List<Card>
             {
                 new QuestionAnswerCard
                 {
+                    Id = Guid.NewGuid().ToString(),
+                    DateModified = DateTimeOffset.Now,
                     Question = "What is the capital of France?",
                     Answer = "Paris"
                 },
                 new QuestionAnswerCard
                 {
+                    Id = Guid.NewGuid().ToString(),
+                    DateModified = DateTimeOffset.Now,
                     Question = "What is 2 + 2?",
                     Answer = "4"
                 },
                 new ClozeCard
                 {
+                    Id = Guid.NewGuid().ToString(),
+                    DateModified = DateTimeOffset.Now,
                     Text = "The {{c1::capital}} of {{c2::France}} is {{c1::Paris}}."
                 }
             }
@@ -225,7 +232,8 @@ public class DeckRepositoryTests : IAsyncLifetime
         _createdDecks.Add(uniqueDeckName);
 
         // Act - Download the deck
-        var downloadedDeck = await _deckRepository.GetDeck(new DeckId { Name = uniqueDeckName });
+        var deckId = DeckIdExtensions.FromAnkiDeckName(uniqueDeckName);
+        var downloadedDeck = await _deckRepository.GetDeck(deckId);
 
         // Assert download
         downloadedDeck.Should().NotBeNull();

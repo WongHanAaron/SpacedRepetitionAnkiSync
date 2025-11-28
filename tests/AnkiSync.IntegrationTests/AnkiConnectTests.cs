@@ -187,11 +187,11 @@ public class AnkiConnectTests : IAsyncLifetime
         (findNotesResponse.Result ?? new List<long>()).Count().Should().Be(1);
 
         // Test 6: Update the note
-        var updateNoteRequest = new UpdateNoteRequestDto(createdNoteId, new Dictionary<string, string>
+        var updateNoteRequest = new UpdateNoteFieldsRequestDto(createdNoteId, new Dictionary<string, string>
         {
             ["Back"] = UpdatedBack
         });
-        var updateNoteResponse = await _ankiService.UpdateNoteAsync(updateNoteRequest);
+        var updateNoteResponse = await _ankiService.UpdateNoteFieldsAsync(updateNoteRequest);
 
         (updateNoteResponse.Error == null).Should().BeTrue();
 

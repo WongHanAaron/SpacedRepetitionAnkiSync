@@ -126,23 +126,6 @@ public class AnkiServiceTests
     }
 
     [Fact]
-    public async Task UpdateNoteAsync_ShouldReturnUpdateNoteResponse()
-    {
-        // Arrange
-        var request = new UpdateNoteRequestDto(123, new Dictionary<string, string> { ["Back"] = "Updated Answer!" });
-        var expectedResponse = new UpdateNoteResponse { Result = null };
-        SetupHttpClientMock(expectedResponse);
-
-        // Act
-        var result = await _ankiService.UpdateNoteAsync(request);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Result.Should().BeNull();
-        VerifyRequestSent("updateNoteFields", "{\"note\":{\"id\":123,\"fields\":{\"Back\":\"Updated Answer!\"}}}");
-    }
-
-    [Fact]
     public async Task DeleteDecksAsync_ShouldReturnDeleteDecksResponse()
     {
         // Arrange

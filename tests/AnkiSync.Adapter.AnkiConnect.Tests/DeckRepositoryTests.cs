@@ -29,7 +29,7 @@ public class DeckRepositoryTests
     public async Task GetDeck_ShouldReturnEmptyDeck_WhenNoNotesFound()
     {
         // Arrange
-        var deckId = new DeckId { Name = "TestDeck" };
+        var deckId = DeckIdExtensions.FromAnkiDeckName("TestDeck");
         var findNotesResponse = new FindNotesResponse { Result = new List<long>() };
 
         _ankiServiceMock
@@ -43,14 +43,13 @@ public class DeckRepositoryTests
         result.Should().NotBeNull();
         result.Name.Should().Be("TestDeck");
         result.Cards.Should().BeEmpty();
-        result.SubDeckNames.Should().BeEmpty();
     }
 
     [Fact]
     public async Task GetDeck_ShouldReturnDeckWithCards_WhenNotesFound()
     {
         // Arrange
-        var deckId = new DeckId { Name = "TestDeck" };
+        var deckId = DeckIdExtensions.FromAnkiDeckName("TestDeck");
         var noteIds = new List<long> { 123, 456 };
         var findNotesResponse = new FindNotesResponse { Result = noteIds };
 
@@ -81,9 +80,6 @@ public class DeckRepositoryTests
         };
         var notesInfoResponse = new NotesInfoResponse { Result = notesInfo };
 
-        var deckNames = new List<string> { "TestDeck", "TestDeck::SubDeck1", "OtherDeck" };
-        var getDecksResponse = new DeckNamesResponse { Result = deckNames };
-
         _ankiServiceMock
             .Setup(x => x.FindNotesAsync(It.IsAny<FindNotesRequestDto>(), default))
             .ReturnsAsync(findNotesResponse);
@@ -92,10 +88,6 @@ public class DeckRepositoryTests
             .Setup(x => x.NotesInfoAsync(It.IsAny<NotesInfoRequestDto>(), default))
             .ReturnsAsync(notesInfoResponse);
 
-        _ankiServiceMock
-            .Setup(x => x.GetDecksAsync(It.IsAny<GetDecksRequestDto>(), default))
-            .ReturnsAsync(getDecksResponse);
-
         // Act
         var result = await _deckRepository.GetDeck(deckId);
 
@@ -103,7 +95,6 @@ public class DeckRepositoryTests
         result.Should().NotBeNull();
         result.Name.Should().Be("TestDeck");
         result.Cards.Should().HaveCount(2);
-        result.SubDeckNames.Should().ContainSingle().Which.Should().Be("SubDeck1");
 
         var firstCard = result.Cards[0] as QuestionAnswerCard;
         firstCard.Should().NotBeNull();
@@ -116,7 +107,7 @@ public class DeckRepositoryTests
     public async Task GetDeck_ShouldHandleClozeCards()
     {
         // Arrange
-        var deckId = new DeckId { Name = "TestDeck" };
+        var deckId = DeckIdExtensions.FromAnkiDeckName("TestDeck");
         var noteIds = new List<long> { 789 };
         var findNotesResponse = new FindNotesResponse { Result = noteIds };
 
@@ -135,9 +126,6 @@ public class DeckRepositoryTests
         };
         var notesInfoResponse = new NotesInfoResponse { Result = notesInfo };
 
-        var deckNames = new List<string> { "TestDeck" };
-        var getDecksResponse = new DeckNamesResponse { Result = deckNames };
-
         _ankiServiceMock
             .Setup(x => x.FindNotesAsync(It.IsAny<FindNotesRequestDto>(), default))
             .ReturnsAsync(findNotesResponse);
@@ -145,10 +133,6 @@ public class DeckRepositoryTests
         _ankiServiceMock
             .Setup(x => x.NotesInfoAsync(It.IsAny<NotesInfoRequestDto>(), default))
             .ReturnsAsync(notesInfoResponse);
-
-        _ankiServiceMock
-            .Setup(x => x.GetDecksAsync(It.IsAny<GetDecksRequestDto>(), default))
-            .ReturnsAsync(getDecksResponse);
 
         // Act
         var result = await _deckRepository.GetDeck(deckId);
@@ -167,7 +151,7 @@ public class DeckRepositoryTests
     public async Task GetDeck_ShouldSkipNotesWithMissingFields()
     {
         // Arrange
-        var deckId = new DeckId { Name = "TestDeck" };
+        var deckId = DeckIdExtensions.FromAnkiDeckName("TestDeck");
         var noteIds = new List<long> { 123, 456 };
         var findNotesResponse = new FindNotesResponse { Result = noteIds };
 
@@ -198,9 +182,6 @@ public class DeckRepositoryTests
         };
         var notesInfoResponse = new NotesInfoResponse { Result = notesInfo };
 
-        var deckNames = new List<string> { "TestDeck" };
-        var getDecksResponse = new DeckNamesResponse { Result = deckNames };
-
         _ankiServiceMock
             .Setup(x => x.FindNotesAsync(It.IsAny<FindNotesRequestDto>(), default))
             .ReturnsAsync(findNotesResponse);
@@ -208,10 +189,6 @@ public class DeckRepositoryTests
         _ankiServiceMock
             .Setup(x => x.NotesInfoAsync(It.IsAny<NotesInfoRequestDto>(), default))
             .ReturnsAsync(notesInfoResponse);
-
-        _ankiServiceMock
-            .Setup(x => x.GetDecksAsync(It.IsAny<GetDecksRequestDto>(), default))
-            .ReturnsAsync(getDecksResponse);
 
         // Act
         var result = await _deckRepository.GetDeck(deckId);
@@ -233,33 +210,25 @@ public class DeckRepositoryTests
     }
 
     [Fact]
-    public async Task UpsertDeck_ShouldThrowArgumentException_WhenDeckNameIsNullOrEmpty()
-    {
-        // Arrange
-        var deck = new Deck { Name = "" };
-
-        // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => _deckRepository.UpsertDeck(deck));
-    }
-
-    [Fact]
     public async Task UpsertDeck_ShouldCreateDeckAndAddCards()
     {
-        // Arrange
+        // Arrange - Use empty IDs so cards are treated as new
         var deck = new Deck
         {
-            Name = "TestDeck",
+            DeckId = DeckIdExtensions.FromAnkiDeckName("TestDeck"),
             Cards = new List<Card>
             {
                 new QuestionAnswerCard
                 {
-                    Id = "1",
+                    Id = "",
+                    DateModified = DateTimeOffset.Now,
                     Question = "What is 2+2?",
                     Answer = "4"
                 },
                 new ClozeCard
                 {
-                    Id = "2",
+                    Id = "",
+                    DateModified = DateTimeOffset.Now,
                     Text = "The capital of France is {{c1::Paris}}."
                 }
             }
@@ -268,6 +237,11 @@ public class DeckRepositoryTests
         _ankiServiceMock
             .Setup(x => x.CreateDeckAsync(It.IsAny<CreateDeckRequestDto>(), default))
             .ReturnsAsync(new CreateDeckResponse());
+
+        // Mock FindNotesAsync to return empty results (no existing cards found)
+        _ankiServiceMock
+            .Setup(x => x.FindNotesAsync(It.IsAny<FindNotesRequestDto>(), default))
+            .ReturnsAsync(new FindNotesResponse { Result = new List<long>() });
 
         _ankiServiceMock
             .Setup(x => x.AddNoteAsync(It.IsAny<AddNoteRequestDto>(), default))
@@ -287,7 +261,7 @@ public class DeckRepositoryTests
         // Arrange
         var deck = new Deck
         {
-            Name = "EmptyDeck",
+            DeckId = DeckIdExtensions.FromAnkiDeckName("EmptyDeck"),
             Cards = new List<Card>()
         };
 
