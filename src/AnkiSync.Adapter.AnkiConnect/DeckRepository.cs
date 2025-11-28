@@ -17,21 +17,21 @@ public class DeckRepository : IDeckRepository
     }
 
     /// <inheritdoc />
-    public async Task<Deck> DownloadDeckAsync(string deckName, CancellationToken cancellationToken = default)
+    public async Task<Deck> GetDeck(DeckId deckId, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(deckName))
+        if (deckId == null)
         {
-            throw new ArgumentException("Deck name cannot be null or empty", nameof(deckName));
+            throw new ArgumentNullException(nameof(deckId));
         }
 
         // Find all notes in the specified deck
-        var findNotesRequest = new FindNotesRequestDto($"deck:{deckName}");
+        var findNotesRequest = new FindNotesRequestDto($"deck:{deckId.Name}");
         var findNotesResponse = await _ankiService.FindNotesAsync(findNotesRequest, cancellationToken);
 
         if (findNotesResponse.Result == null || !findNotesResponse.Result.Any())
         {
             // Return empty deck if no notes found
-            return new Deck { Name = deckName };
+            return new Deck { Name = deckId.Name };
         }
 
         // Get detailed information about the notes
@@ -40,7 +40,7 @@ public class DeckRepository : IDeckRepository
 
         if (notesInfoResponse.Result == null)
         {
-            return new Deck { Name = deckName };
+            return new Deck { Name = deckId.Name };
         }
 
         // Convert notes to domain cards
@@ -55,20 +55,20 @@ public class DeckRepository : IDeckRepository
         var getDecksResponse = await _ankiService.GetDecksAsync(getDecksRequest, cancellationToken);
 
         var subDeckNames = getDecksResponse.Result?
-            .Where(name => name.StartsWith($"{deckName}::"))
-            .Select(name => name.Substring($"{deckName}::".Length))
+            .Where(name => name.StartsWith($"{deckId.Name}::"))
+            .Select(name => name.Substring($"{deckId.Name}::".Length))
             .ToList() ?? new List<string>();
 
         return new Deck
         {
-            Name = deckName,
+            Name = deckId.Name,
             Cards = cards,
             SubDeckNames = subDeckNames
         };
     }
 
     /// <inheritdoc />
-    public async Task<DeckIdentifier> UploadDeckAsync(Deck deck, CancellationToken cancellationToken = default)
+    public async Task UpsertDeck(Deck deck, CancellationToken cancellationToken = default)
     {
         if (deck == null)
         {
@@ -91,8 +91,6 @@ public class DeckRepository : IDeckRepository
             var addNoteRequest = new AddNoteRequestDto(ankiNote);
             await _ankiService.AddNoteAsync(addNoteRequest, cancellationToken);
         }
-
-        return DeckIdentifier.FromFullName(deck.Name);
     }
 
     private Card? ConvertNoteToCard(NoteInfo note)

@@ -115,7 +115,7 @@ public class DeckRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task DownloadDeckAsync_WithExistingDeck_ReturnsDeckWithCards()
+    public async Task GetDeck_WithExistingDeck_ReturnsDeckWithCards()
     {
         // Arrange - Create a test deck with a card
         var uniqueTestDeckName = $"{TestDeckName}_Download_{Guid.NewGuid():N}";
@@ -139,7 +139,7 @@ public class DeckRepositoryTests : IAsyncLifetime
         _createdNotes.Add(addNoteResponse.Result!.Value);
 
         // Act - Download the deck
-        var deck = await _deckRepository.DownloadDeckAsync(uniqueTestDeckName);
+        var deck = await _deckRepository.GetDeck(new DeckId { Name = uniqueTestDeckName });
 
         // Assert
         deck.Should().NotBeNull();
@@ -155,13 +155,13 @@ public class DeckRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task DownloadDeckAsync_WithNonExistentDeck_ReturnsEmptyDeck()
+    public async Task GetDeck_WithNonExistentDeck_ReturnsEmptyDeck()
     {
         // Arrange
         var nonExistentDeckName = "NonExistentDeck_12345";
 
         // Act
-        var deck = await _deckRepository.DownloadDeckAsync(nonExistentDeckName);
+        var deck = await _deckRepository.GetDeck(new DeckId { Name = nonExistentDeckName });
 
         // Assert
         deck.Should().NotBeNull();
@@ -198,19 +198,13 @@ public class DeckRepositoryTests : IAsyncLifetime
         };
 
         // Act - Upload the deck
-        var uploadedDeckId = await _deckRepository.UploadDeckAsync(originalDeck);
-
-        // Assert upload
-        uploadedDeckId.Should().NotBeNull();
-        uploadedDeckId.FullName.Should().Be(uniqueDeckName);
-        uploadedDeckId.Name.Should().Be(uniqueDeckName);
-        uploadedDeckId.Parents.Should().BeEmpty();
+        await _deckRepository.UpsertDeck(originalDeck);
 
         // Track for cleanup
         _createdDecks.Add(uniqueDeckName);
 
         // Act - Download the deck
-        var downloadedDeck = await _deckRepository.DownloadDeckAsync(uniqueDeckName);
+        var downloadedDeck = await _deckRepository.GetDeck(new DeckId { Name = uniqueDeckName });
 
         // Assert download
         downloadedDeck.Should().NotBeNull();

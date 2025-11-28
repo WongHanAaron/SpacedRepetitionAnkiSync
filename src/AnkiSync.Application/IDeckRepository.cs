@@ -8,18 +8,17 @@ namespace AnkiSync.Application;
 public interface IDeckRepository
 {
     /// <summary>
-    /// Downloads a deck by name from Anki and converts it to domain models
+    /// Downloads a deck by identifier from Anki and converts it to domain models
     /// </summary>
-    /// <param name="deckName">The name of the deck to download</param>
+    /// <param name="deckId">The identifier of the deck to download</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The deck with all its cards</returns>
-    Task<Deck> DownloadDeckAsync(string deckName, CancellationToken cancellationToken = default);
+    Task<Deck> GetDeck(DeckId deckId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Uploads a deck to Anki, creating it if it doesn't exist
+    /// Uploads a deck to Anki, creating or updating it as necessary
     /// </summary>
     /// <param name="deck">The deck to upload</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>The uploaded deck identifier</returns>
-    Task<DeckIdentifier> UploadDeckAsync(Deck deck, CancellationToken cancellationToken = default);
+    Task UpsertDeck(Deck deck, CancellationToken cancellationToken = default);
 }

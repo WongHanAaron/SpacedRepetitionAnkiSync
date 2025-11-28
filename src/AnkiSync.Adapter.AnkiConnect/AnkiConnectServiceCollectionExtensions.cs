@@ -18,11 +18,21 @@ public static class AnkiConnectServiceCollectionExtensions
     /// <returns>The service collection for chaining</returns>
     public static IServiceCollection AddAnkiConnectAdapter(this IServiceCollection services, string baseAddress = "http://localhost:8765")
     {
-        // Register HttpClient for AnkiConnect
-        services.AddHttpClient<IAnkiService, AnkiService>(client =>
+        // Register HttpClient and wrap it with IHttpClient
+        services.AddHttpClient<HttpClientWrapper>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);
         });
+
+        // Register IHttpClient factory
+        services.AddScoped<IHttpClient>(sp =>
+        {
+            var httpClient = sp.GetRequiredService<HttpClientWrapper>();
+            return httpClient;
+        });
+
+        // Register AnkiService with IHttpClient
+        services.AddScoped<IAnkiService, AnkiService>();
 
         // Register application services implemented by this adapter
         services.AddScoped<IDeckRepository, DeckRepository>();

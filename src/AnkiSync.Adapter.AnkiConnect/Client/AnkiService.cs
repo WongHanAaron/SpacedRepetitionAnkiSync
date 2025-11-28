@@ -1,3 +1,4 @@
+using AnkiSync.Adapter.AnkiConnect.Client;
 using AnkiSync.Adapter.AnkiConnect.Models;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -10,10 +11,10 @@ namespace AnkiSync.Adapter.AnkiConnect.Client;
 /// </summary>
 public class AnkiService : IAnkiService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClient _httpClient;
     private readonly string _baseUrl = "http://127.0.0.1:8765";
 
-    public AnkiService(HttpClient httpClient)
+    public AnkiService(IHttpClient httpClient)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     }
@@ -123,7 +124,7 @@ public class AnkiService : IAnkiService
 
         try
         {
-            var response = await httpResponse.Content.ReadFromJsonAsync<TResponse>(cancellationToken: cancellationToken);
+            var response = await _httpClient.ReadFromJsonAsync<TResponse>(httpResponse.Content, cancellationToken: cancellationToken);
             if (response == null)
             {
                 throw new InvalidOperationException("Failed to deserialize response from AnkiConnect");
@@ -147,7 +148,7 @@ public class AnkiService : IAnkiService
             // If JSON deserialization fails, it means AnkiConnect returned a response that's not in the expected format
             // This could be HTML error page, different JSON format, etc.
             // Let's try to read the raw response content for debugging
-            var rawContent = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
+            var rawContent = await _httpClient.ReadAsStringAsync(httpResponse.Content, cancellationToken);
             throw new InvalidOperationException($"AnkiConnect returned an unexpected response format. Raw response: {rawContent[..Math.Min(500, rawContent.Length)]}. This may indicate AnkiConnect is not properly installed or configured.", ex);
         }
     }
