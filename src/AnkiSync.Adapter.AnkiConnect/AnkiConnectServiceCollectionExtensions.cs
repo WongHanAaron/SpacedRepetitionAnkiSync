@@ -25,7 +25,7 @@ public static class AnkiConnectServiceCollectionExtensions
         });
 
         // Register application services implemented by this adapter
-        services.AddScoped<IDeckImportService, DeckImportService>();
+        services.AddScoped<IDeckRepository, DeckRepository>();
 
         return services;
     }

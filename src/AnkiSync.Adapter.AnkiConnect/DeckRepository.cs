@@ -5,13 +5,13 @@ using AnkiSync.Domain;
 namespace AnkiSync.Adapter.AnkiConnect;
 
 /// <summary>
-/// Implementation of IDeckImportService using AnkiConnect
+/// Implementation of IDeckRepository using AnkiConnect
 /// </summary>
-public class DeckImportService : IDeckImportService
+public class DeckRepository : IDeckRepository
 {
     private readonly IAnkiService _ankiService;
 
-    public DeckImportService(IAnkiService ankiService)
+    public DeckRepository(IAnkiService ankiService)
     {
         _ankiService = ankiService ?? throw new ArgumentNullException(nameof(ankiService));
     }
@@ -67,6 +67,34 @@ public class DeckImportService : IDeckImportService
         };
     }
 
+    /// <inheritdoc />
+    public async Task<DeckIdentifier> UploadDeckAsync(Deck deck, CancellationToken cancellationToken = default)
+    {
+        if (deck == null)
+        {
+            throw new ArgumentNullException(nameof(deck));
+        }
+
+        if (string.IsNullOrWhiteSpace(deck.Name))
+        {
+            throw new ArgumentException("Deck name cannot be null or empty", nameof(deck));
+        }
+
+        // Create the deck if it doesn't exist
+        var createDeckRequest = new CreateDeckRequestDto(deck.Name);
+        await _ankiService.CreateDeckAsync(createDeckRequest, cancellationToken);
+
+        // Add all cards to the deck
+        foreach (var card in deck.Cards)
+        {
+            var ankiNote = ConvertCardToAnkiNote(card, deck.Name);
+            var addNoteRequest = new AddNoteRequestDto(ankiNote);
+            await _ankiService.AddNoteAsync(addNoteRequest, cancellationToken);
+        }
+
+        return DeckIdentifier.FromFullName(deck.Name);
+    }
+
     private Card? ConvertNoteToCard(NoteInfo note)
     {
         // Determine card type based on model name
@@ -109,6 +137,33 @@ public class DeckImportService : IDeckImportService
         {
             Id = note.NoteId.ToString(),
             Text = textField.Value
+        };
+    }
+
+    private AnkiNote ConvertCardToAnkiNote(Card card, string deckName)
+    {
+        return card switch
+        {
+            QuestionAnswerCard qaCard => new AnkiNote
+            {
+                DeckName = deckName,
+                ModelName = "Basic",
+                Fields = new Dictionary<string, string>
+                {
+                    ["Front"] = qaCard.Question,
+                    ["Back"] = qaCard.Answer
+                }
+            },
+            ClozeCard clozeCard => new AnkiNote
+            {
+                DeckName = deckName,
+                ModelName = "Cloze",
+                Fields = new Dictionary<string, string>
+                {
+                    ["Text"] = clozeCard.Text
+                }
+            },
+            _ => throw new ArgumentException($"Unsupported card type: {card.GetType()}", nameof(card))
         };
     }
 }

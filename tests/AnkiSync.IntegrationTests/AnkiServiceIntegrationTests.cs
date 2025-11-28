@@ -530,8 +530,8 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
         _createdNotes.Add(addNoteResponse.Result!.Value);
 
         // Act - Download the deck
-        var deckImportService = _serviceProvider.GetRequiredService<IDeckImportService>();
-        var deck = await deckImportService.DownloadDeckAsync(uniqueTestDeckName);
+        var deckRepository = _serviceProvider.GetRequiredService<IDeckRepository>();
+        var deck = await deckRepository.DownloadDeckAsync(uniqueTestDeckName);
 
         // Assert
         deck.Should().NotBeNull();
@@ -553,14 +553,82 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
         var nonExistentDeckName = "NonExistentDeck_12345";
 
         // Act
-        var deckImportService = _serviceProvider.GetRequiredService<AnkiSync.Application.IDeckImportService>();
-        var deck = await deckImportService.DownloadDeckAsync(nonExistentDeckName);
+        var deckRepository = _serviceProvider.GetRequiredService<IDeckRepository>();
+        var deck = await deckRepository.DownloadDeckAsync(nonExistentDeckName);
 
         // Assert
         deck.Should().NotBeNull();
         deck.Name.Should().Be(nonExistentDeckName);
         deck.Cards.Should().BeEmpty();
         deck.SubDeckNames.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task UploadAndDownloadDeck_ShouldPreserveContent()
+    {
+        // Arrange
+        var uniqueDeckName = $"{TestDeckName}_RoundTrip_{Guid.NewGuid():N}";
+        var originalDeck = new Deck
+        {
+            Name = uniqueDeckName,
+            Cards = new List<Card>
+            {
+                new QuestionAnswerCard
+                {
+                    Question = "What is the capital of France?",
+                    Answer = "Paris"
+                },
+                new QuestionAnswerCard
+                {
+                    Question = "What is 2 + 2?",
+                    Answer = "4"
+                },
+                new ClozeCard
+                {
+                    Text = "The {{c1::capital}} of {{c2::France}} is {{c1::Paris}}."
+                }
+            }
+        };
+
+        // Act - Upload the deck
+        var deckRepository = _serviceProvider.GetRequiredService<IDeckRepository>();
+        var uploadedDeckId = await deckRepository.UploadDeckAsync(originalDeck);
+
+        // Assert upload
+        uploadedDeckId.Should().NotBeNull();
+        uploadedDeckId.FullName.Should().Be(uniqueDeckName);
+        uploadedDeckId.Name.Should().Be(uniqueDeckName);
+        uploadedDeckId.Parents.Should().BeEmpty();
+
+        // Track for cleanup
+        _createdDecks.Add(uniqueDeckName);
+
+        // Act - Download the deck
+        var downloadedDeck = await deckRepository.DownloadDeckAsync(uniqueDeckName);
+
+        // Assert download
+        downloadedDeck.Should().NotBeNull();
+        downloadedDeck.Name.Should().Be(uniqueDeckName);
+        downloadedDeck.Cards.Should().HaveCount(3);
+
+        // Verify QuestionAnswerCard 1
+        var qaCard1 = downloadedDeck.Cards.OfType<QuestionAnswerCard>()
+            .FirstOrDefault(c => c.Question.Contains("France"));
+        qaCard1.Should().NotBeNull();
+        qaCard1!.Question.Should().Be("What is the capital of France?");
+        qaCard1.Answer.Should().Be("Paris");
+
+        // Verify QuestionAnswerCard 2
+        var qaCard2 = downloadedDeck.Cards.OfType<QuestionAnswerCard>()
+            .FirstOrDefault(c => c.Question.Contains("2 + 2"));
+        qaCard2.Should().NotBeNull();
+        qaCard2!.Question.Should().Be("What is 2 + 2?");
+        qaCard2.Answer.Should().Be("4");
+
+        // Verify ClozeCard
+        var clozeCard = downloadedDeck.Cards.OfType<ClozeCard>().FirstOrDefault();
+        clozeCard.Should().NotBeNull();
+        clozeCard!.Text.Should().Be("The {{c1::capital}} of {{c2::France}} is {{c1::Paris}}.");
     }
 }
 
