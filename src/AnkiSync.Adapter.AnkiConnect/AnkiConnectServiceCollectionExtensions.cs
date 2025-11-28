@@ -1,7 +1,5 @@
-using AnkiSync.Application.Ports.Anki;
 using AnkiSync.Adapter.AnkiConnect.Client;
 using AnkiSync.Adapter.AnkiConnect.Models;
-using AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AnkiSync.Adapter.AnkiConnect;
@@ -24,9 +22,6 @@ public static class AnkiConnectServiceCollectionExtensions
         {
             client.Timeout = TimeSpan.FromSeconds(30);
         });
-
-        // Register AutoMapper
-        services.AddAutoMapper(typeof(AnkiConnectMappingProfile));
 
         return services;
     }

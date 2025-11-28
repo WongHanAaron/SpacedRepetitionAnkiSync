@@ -1,7 +1,6 @@
 // using AnkiSync.Adapter.AnkiConnect;
 // using AnkiSync.Adapter.AnkiConnect.Configuration;
 using AnkiSync.Domain;
-using AnkiSync.Domain.Interfaces;
 using System;
 
 namespace AnkiSync.Presentation.Cli;

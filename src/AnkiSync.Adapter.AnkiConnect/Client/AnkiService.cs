@@ -1,6 +1,4 @@
-using AnkiSync.Application.Ports.Anki;
 using AnkiSync.Adapter.AnkiConnect.Models;
-using AutoMapper;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text;
@@ -13,117 +11,95 @@ namespace AnkiSync.Adapter.AnkiConnect.Client;
 public class AnkiService : IAnkiService
 {
     private readonly HttpClient _httpClient;
-    private readonly IMapper _mapper;
     private readonly string _baseUrl = "http://127.0.0.1:8765";
 
-    public AnkiService(HttpClient httpClient, IMapper mapper)
+    public AnkiService(HttpClient httpClient)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
     /// <inheritdoc />
-    public async Task<AnkiSync.Application.Ports.Anki.TestConnectionResponse> TestConnectionAsync(TestConnectionRequest request, CancellationToken cancellationToken = default)
+    public async Task<VersionResponse> TestConnectionAsync(TestConnectionRequestDto request, CancellationToken cancellationToken = default)
     {
-        var dto = _mapper.Map<TestConnectionRequestDto>(request);
-        var response = await SendRequestAsync<AnkiSync.Adapter.AnkiConnect.Models.VersionResponse>(dto.Action, dto, cancellationToken);
-        return new AnkiSync.Application.Ports.Anki.TestConnectionResponse(response.Error == null);
+        var response = await SendRequestAsync<VersionResponse>(request.Action, request, cancellationToken);
+        return response;
     }
 
     /// <inheritdoc />
-    public async Task<AnkiSync.Application.Ports.Anki.GetDecksResponse> GetDecksAsync(GetDecksRequest request, CancellationToken cancellationToken = default)
+    public async Task<DeckNamesResponse> GetDecksAsync(GetDecksRequestDto request, CancellationToken cancellationToken = default)
     {
-        var dto = _mapper.Map<GetDecksRequestDto>(request);
-        var response = await SendRequestAsync<AnkiSync.Adapter.AnkiConnect.Models.DeckNamesResponse>(dto.Action, dto, cancellationToken);
-        return new AnkiSync.Application.Ports.Anki.GetDecksResponse(response.Result ?? new List<string>());
+        var response = await SendRequestAsync<DeckNamesResponse>(request.Action, request, cancellationToken);
+        return response;
     }
 
     /// <inheritdoc />
-    public async Task<AnkiSync.Application.Ports.Anki.CreateDeckResponse> CreateDeckAsync(CreateDeckRequest request, CancellationToken cancellationToken = default)
+    public async Task<CreateDeckResponse> CreateDeckAsync(CreateDeckRequestDto request, CancellationToken cancellationToken = default)
     {
-        var dto = _mapper.Map<CreateDeckRequestDto>(request);
-        var response = await SendRequestAsync<AnkiSync.Adapter.AnkiConnect.Models.CreateDeckResponse>(dto.Action, dto, cancellationToken);
-        return new AnkiSync.Application.Ports.Anki.CreateDeckResponse(response.Result > 0);
+        var response = await SendRequestAsync<CreateDeckResponse>(request.Action, request, cancellationToken);
+        return response;
     }
 
     /// <inheritdoc />
-    public async Task<AnkiSync.Application.Ports.Anki.AddNoteResponse> AddNoteAsync(AddNoteRequest request, CancellationToken cancellationToken = default)
+    public async Task<AddNoteResponse> AddNoteAsync(AddNoteRequestDto request, CancellationToken cancellationToken = default)
     {
-        var dto = _mapper.Map<AddNoteRequestDto>(request);
-        var response = await SendRequestAsync<AnkiSync.Adapter.AnkiConnect.Models.AddNoteResponse>(dto.Action, dto, cancellationToken);
-        return new AnkiSync.Application.Ports.Anki.AddNoteResponse(response.Result ?? 0);
+        var response = await SendRequestAsync<AddNoteResponse>(request.Action, request, cancellationToken);
+        return response;
     }
 
     /// <inheritdoc />
-    public async Task<AnkiSync.Application.Ports.Anki.UpdateNoteResponse> UpdateNoteAsync(UpdateNoteRequest request, CancellationToken cancellationToken = default)
+    public async Task<UpdateNoteResponse> UpdateNoteAsync(UpdateNoteRequestDto request, CancellationToken cancellationToken = default)
     {
-        var dto = _mapper.Map<UpdateNoteRequestDto>(request);
-        var response = await SendRequestAsync<AnkiSync.Adapter.AnkiConnect.Models.UpdateNoteResponse>(dto.Action, dto, cancellationToken);
-        return new AnkiSync.Application.Ports.Anki.UpdateNoteResponse(response.Result == null);
+        var response = await SendRequestAsync<UpdateNoteResponse>(request.Action, request, cancellationToken);
+        return response;
     }
 
     /// <inheritdoc />
-    public async Task<AnkiSync.Application.Ports.Anki.FindNotesResponse> FindNotesAsync(FindNotesRequest request, CancellationToken cancellationToken = default)
+    public async Task<FindNotesResponse> FindNotesAsync(FindNotesRequestDto request, CancellationToken cancellationToken = default)
     {
-        var dto = _mapper.Map<FindNotesRequestDto>(request);
-        var response = await SendRequestAsync<AnkiSync.Adapter.AnkiConnect.Models.FindNotesResponse>(dto.Action, dto, cancellationToken);
-        return new AnkiSync.Application.Ports.Anki.FindNotesResponse(response.Result ?? new List<long>());
+        var response = await SendRequestAsync<FindNotesResponse>(request.Action, request, cancellationToken);
+        return response;
     }
 
     /// <inheritdoc />
-    public async Task<AnkiSync.Application.Ports.Anki.DeleteDecksResponse> DeleteDecksAsync(DeleteDecksRequest request, CancellationToken cancellationToken = default)
+    public async Task<DeleteDecksResponse> DeleteDecksAsync(DeleteDecksRequestDto request, CancellationToken cancellationToken = default)
     {
-        var dto = _mapper.Map<DeleteDecksRequestDto>(request);
-        var response = await SendRequestAsync<AnkiSync.Adapter.AnkiConnect.Models.DeleteDecksResponse>(dto.Action, dto, cancellationToken);
-        return new AnkiSync.Application.Ports.Anki.DeleteDecksResponse(response.Result ?? 0);
+        var response = await SendRequestAsync<DeleteDecksResponse>(request.Action, request, cancellationToken);
+        return response;
     }
 
     /// <inheritdoc />
-    public async Task<AnkiSync.Application.Ports.Anki.DeleteNotesResponse> DeleteNotesAsync(DeleteNotesRequest request, CancellationToken cancellationToken = default)
+    public async Task<DeleteNotesResponse> DeleteNotesAsync(DeleteNotesRequestDto request, CancellationToken cancellationToken = default)
     {
-        var dto = _mapper.Map<DeleteNotesRequestDto>(request);
-        var response = await SendRequestAsync<AnkiSync.Adapter.AnkiConnect.Models.DeleteNotesResponse>(dto.Action, dto, cancellationToken);
-        return new AnkiSync.Application.Ports.Anki.DeleteNotesResponse(response.Result ?? 0);
+        var response = await SendRequestAsync<DeleteNotesResponse>(request.Action, request, cancellationToken);
+        return response;
     }
 
     /// <inheritdoc />
-    public async Task<AnkiSync.Application.Ports.Anki.CanAddNoteResponse> CanAddNoteAsync(CanAddNoteRequest request, CancellationToken cancellationToken = default)
+    public async Task<CanAddNoteResponse> CanAddNoteAsync(CanAddNoteRequestDto request, CancellationToken cancellationToken = default)
     {
-        var dto = _mapper.Map<CanAddNoteRequestDto>(request);
-        var response = await SendRequestAsync<AnkiSync.Adapter.AnkiConnect.Models.CanAddNoteResponse>(dto.Action, dto, cancellationToken);
-        return new AnkiSync.Application.Ports.Anki.CanAddNoteResponse(response.Result != null);
+        var response = await SendRequestAsync<CanAddNoteResponse>(request.Action, request, cancellationToken);
+        return response;
     }
 
     /// <inheritdoc />
-    public async Task<AnkiSync.Application.Ports.Anki.CreateNoteResponse> CreateNoteAsync(CreateNoteRequest request, CancellationToken cancellationToken = default)
+    public async Task<CreateNoteResponse> CreateNoteAsync(CreateNoteRequestDto request, CancellationToken cancellationToken = default)
     {
-        var dto = _mapper.Map<CreateNoteRequestDto>(request);
-        var response = await SendRequestAsync<AnkiSync.Adapter.AnkiConnect.Models.CreateNoteResponse>(dto.Action, dto, cancellationToken);
-        return new AnkiSync.Application.Ports.Anki.CreateNoteResponse(response.Result);
+        var response = await SendRequestAsync<CreateNoteResponse>(request.Action, request, cancellationToken);
+        return response;
     }
 
     /// <inheritdoc />
-    public async Task<AnkiSync.Application.Ports.Anki.UpdateNoteFieldsResponse> UpdateNoteFieldsAsync(UpdateNoteFieldsRequest request, CancellationToken cancellationToken = default)
+    public async Task<UpdateNoteFieldsResponse> UpdateNoteFieldsAsync(UpdateNoteFieldsRequestDto request, CancellationToken cancellationToken = default)
     {
-        var dto = _mapper.Map<UpdateNoteFieldsRequestDto>(request);
-        var response = await SendRequestAsync<AnkiSync.Adapter.AnkiConnect.Models.UpdateNoteFieldsResponse>(dto.Action, dto, cancellationToken);
-        return new AnkiSync.Application.Ports.Anki.UpdateNoteFieldsResponse(response.Error == null);
+        var response = await SendRequestAsync<UpdateNoteFieldsResponse>(request.Action, request, cancellationToken);
+        return response;
     }
 
     /// <inheritdoc />
-    public async Task<AnkiSync.Application.Ports.Anki.AddTagsResponse> AddTagsAsync(AddTagsRequest request, CancellationToken cancellationToken = default)
+    public async Task<NotesInfoResponse> NotesInfoAsync(NotesInfoRequestDto request, CancellationToken cancellationToken = default)
     {
-        var dto = _mapper.Map<AddTagsRequestDto>(request);
-        var response = await SendRequestAsync<AnkiSync.Adapter.AnkiConnect.Models.AddTagsResponse>(dto.Action, dto, cancellationToken);
-        return new AnkiSync.Application.Ports.Anki.AddTagsResponse(response.Error == null);
-    }
-
-    /// <inheritdoc />
-    public async Task<AnkiSync.Application.Ports.Anki.GetTagsResponse> GetTagsAsync(GetTagsRequest request, CancellationToken cancellationToken = default)
-    {
-        var dto = _mapper.Map<GetTagsRequestDto>(request);
-        var response = await SendRequestAsync<AnkiSync.Adapter.AnkiConnect.Models.GetTagsResponse>(dto.Action, dto, cancellationToken);
-        return new AnkiSync.Application.Ports.Anki.GetTagsResponse(response.Result ?? new List<string>());
+        var response = await SendRequestAsync<NotesInfoResponse>(request.Action, request, cancellationToken);
+        return response;
     }
 
     private async Task<TResponse> SendRequestAsync<TResponse>(string requestUri, AnkiConnectRequest request, CancellationToken cancellationToken)

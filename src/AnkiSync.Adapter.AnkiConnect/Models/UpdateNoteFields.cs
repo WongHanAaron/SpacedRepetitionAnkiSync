@@ -1,6 +1,6 @@
-namespace AnkiSync.Adapter.AnkiConnect.Models;
-
 using System.Text.Json.Serialization;
+
+namespace AnkiSync.Adapter.AnkiConnect.Models;
 
 /// <summary>
 /// Request to update note fields
@@ -32,4 +32,13 @@ public record UpdateNoteFieldsNote
     public required long Id { get; init; }
     [JsonPropertyName("fields")]
     public required Dictionary<string, string> Fields { get; init; }
+}
+
+/// <summary>
+/// Response for updateNoteFields
+/// </summary>
+public record UpdateNoteFieldsResponse : AnkiConnectResponse
+{
+    [JsonPropertyName("result")]
+    public object? Result { get; init; }
 }

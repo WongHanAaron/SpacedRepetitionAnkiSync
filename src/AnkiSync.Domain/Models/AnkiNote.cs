@@ -21,11 +21,6 @@ public class AnkiNote
     public Dictionary<string, string> Fields { get; set; } = new();
 
     /// <summary>
-    /// Tags for the note
-    /// </summary>
-    public List<string> Tags { get; set; } = new();
-
-    /// <summary>
     /// Audio files attached to the note
     /// </summary>
     public List<AnkiAudio> Audio { get; set; } = new();

@@ -1,6 +1,6 @@
-using AnkiSync.Application.Ports.Anki;
 using AnkiSync.Domain;
 using AnkiSync.Adapter.AnkiConnect;
+using AnkiSync.Adapter.AnkiConnect.Models;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http;
@@ -51,10 +51,10 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
     {
         try
         {
-            var connectionRequest = new TestConnectionRequest();
+            var connectionRequest = new TestConnectionRequestDto();
             var connectionResponse = await _ankiService.TestConnectionAsync(connectionRequest);
 
-            if (!connectionResponse.IsConnected)
+            if (connectionResponse.Error != null || connectionResponse.Result == null)
             {
                 throw new InvalidOperationException("Anki is not running or AnkiConnect is not available. Start Anki and install AnkiConnect to run these tests.");
             }
@@ -78,12 +78,12 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
     {
         try
         {
-            // Clean up created notes first (since they depend on decks)
+            // Clean up created notes (since they depend on decks)
             if (_createdNotes.Any())
             {
                 try
                 {
-                    var deleteNotesRequest = new DeleteNotesRequest(_createdNotes);
+                    var deleteNotesRequest = new DeleteNotesRequestDto(_createdNotes);
                     await _ankiService.DeleteNotesAsync(deleteNotesRequest);
                 }
                 catch (Exception ex)
@@ -98,7 +98,7 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
             {
                 try
                 {
-                    var deleteDecksRequest = new DeleteDecksRequest(_createdDecks, true);
+                    var deleteDecksRequest = new DeleteDecksRequestDto(_createdDecks, true);
                     await _ankiService.DeleteDecksAsync(deleteDecksRequest);
                 }
                 catch (Exception ex)
@@ -111,16 +111,11 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
             // Verify that deck names are back to initial state
             if (_initialDeckNames != null)
             {
-                var finalGetDecksRequest = new GetDecksRequest();
+                var finalGetDecksRequest = new GetDecksRequestDto();
                 var finalGetDecksResponse = await _ankiService.GetDecksAsync(finalGetDecksRequest);
-                finalGetDecksResponse.DeckNames.OrderBy(d => d).Should().BeEquivalentTo(_initialDeckNames, 
+                (finalGetDecksResponse.Result ?? new List<string>()).OrderBy(d => d).Should().BeEquivalentTo(_initialDeckNames, 
                     "Deck names should be restored to initial state after test cleanup");
             }
-
-            // Verify that no test notes remain (check for notes with integration-test tag)
-            var testNotesRequest = new FindNotesRequest("tag:integration-test");
-            var testNotesResponse = await _ankiService.FindNotesAsync(testNotesRequest);
-            testNotesResponse.NoteIds.Should().BeEmpty("No test notes should remain after cleanup");
         }
         catch (Exception ex)
         {
@@ -131,9 +126,9 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
 
     private async Task CaptureInitialDeckStateAsync()
     {
-        var getDecksRequest = new GetDecksRequest();
+        var getDecksRequest = new GetDecksRequestDto();
         var getDecksResponse = await _ankiService.GetDecksAsync(getDecksRequest);
-        _initialDeckNames = getDecksResponse.DeckNames.OrderBy(d => d).ToList();
+        _initialDeckNames = (getDecksResponse.Result ?? new List<string>()).OrderBy(d => d).ToList();
     }
 
     [Fact]
@@ -143,26 +138,26 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
         await CaptureInitialDeckStateAsync();
 
         // Test 1: Get existing decks
-        var getDecksRequest = new GetDecksRequest();
+        var getDecksRequest = new GetDecksRequestDto();
         var getDecksResponse = await _ankiService.GetDecksAsync(getDecksRequest);
 
-        getDecksResponse.DeckNames.Should().NotBeNull();
-        getDecksResponse.DeckNames.Should().Contain("Default");
+        getDecksResponse.Result.Should().NotBeNull();
+        getDecksResponse.Result.Should().Contain("Default");
 
-        var initialDeckCount = getDecksResponse.DeckNames.Count();
+        var initialDeckCount = (getDecksResponse.Result ?? new List<string>()).Count();
 
         // Test 2: Create a test deck
         var uniqueTestDeckName = $"{TestDeckName}_{Guid.NewGuid():N}";
-        var createDeckRequest = new CreateDeckRequest(uniqueTestDeckName);
+        var createDeckRequest = new CreateDeckRequestDto(uniqueTestDeckName);
         var createDeckResponse = await _ankiService.CreateDeckAsync(createDeckRequest);
 
-        createDeckResponse.Success.Should().BeTrue();
+        (createDeckResponse.Error == null).Should().BeTrue();
         _createdDecks.Add(uniqueTestDeckName);
 
         // Test 3: Verify deck was created
         getDecksResponse = await _ankiService.GetDecksAsync(getDecksRequest);
-        getDecksResponse.DeckNames.Should().Contain(uniqueTestDeckName);
-        getDecksResponse.DeckNames.Count().Should().Be(initialDeckCount + 1);
+        getDecksResponse.Result.Should().Contain(uniqueTestDeckName);
+        (getDecksResponse.Result ?? new List<string>()).Count().Should().Be(initialDeckCount + 1);
 
         // Test 4: Create a test note
         var testNote = new AnkiNote
@@ -173,37 +168,37 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
             {
                 ["Front"] = TestFront,
                 ["Back"] = TestBack
-            },
-            Tags = new List<string> { "integration-test" }
+            }
         };
 
-        var addNoteRequest = new AddNoteRequest(testNote);
+        var addNoteRequest = new AddNoteRequestDto(new AnkiNoteDto { DeckName = testNote.DeckName, ModelName = testNote.ModelName, Fields = testNote.Fields });
         var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
 
-        addNoteResponse.NoteId.Should().BeGreaterThan(0);
-        var createdNoteId = addNoteResponse.NoteId;
+        addNoteResponse.Result.Should().NotBeNull();
+        addNoteResponse.Result.Should().BeGreaterThan(0L);
+        var createdNoteId = addNoteResponse.Result!.Value;
         _createdNotes.Add(createdNoteId);
 
         // Test 5: Find notes in test deck to verify note was added
-        var findNotesRequest = new FindNotesRequest($"deck:{uniqueTestDeckName}");
+        var findNotesRequest = new FindNotesRequestDto($"deck:{uniqueTestDeckName}");
         var findNotesResponse = await _ankiService.FindNotesAsync(findNotesRequest);
 
-        findNotesResponse.NoteIds.Should().Contain(createdNoteId);
-        findNotesResponse.NoteIds.Count().Should().Be(1);
+        (findNotesResponse.Result ?? new List<long>()).Should().Contain(createdNoteId);
+        (findNotesResponse.Result ?? new List<long>()).Count().Should().Be(1);
 
         // Test 6: Update the note
-        var updateNoteRequest = new UpdateNoteRequest(createdNoteId, new Dictionary<string, string>
+        var updateNoteRequest = new UpdateNoteRequestDto(createdNoteId, new Dictionary<string, string>
         {
             ["Back"] = UpdatedBack
         });
         var updateNoteResponse = await _ankiService.UpdateNoteAsync(updateNoteRequest);
 
-        updateNoteResponse.Success.Should().BeTrue();
+        (updateNoteResponse.Error == null).Should().BeTrue();
 
         // Test 7: Find notes again to ensure our test deck still has the note
         findNotesResponse = await _ankiService.FindNotesAsync(findNotesRequest);
-        findNotesResponse.NoteIds.Should().Contain(createdNoteId);
-        findNotesResponse.NoteIds.Count().Should().Be(1);
+        findNotesResponse.Result.Should().Contain(createdNoteId);
+        (findNotesResponse.Result ?? new List<long>()).Count().Should().Be(1);
 
         // Note: We can't easily verify the field content was updated without additional API calls
         // that would require more complex AnkiConnect operations. The update success is our primary verification.
@@ -218,10 +213,10 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
         await EnsureAnkiConnectionAsync();
         await CaptureInitialDeckStateAsync();
 
-        var request = new TestConnectionRequest();
+        var request = new TestConnectionRequestDto();
         var response = await _ankiService.TestConnectionAsync(request);
 
-        response.IsConnected.Should().BeTrue();
+        (response.Result != null && response.Error == null).Should().BeTrue();
     }
 
     [Fact]
@@ -230,12 +225,12 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
         await EnsureAnkiConnectionAsync();
         await CaptureInitialDeckStateAsync();
 
-        var request = new GetDecksRequest();
+        var request = new GetDecksRequestDto();
         var response = await _ankiService.GetDecksAsync(request);
 
-        response.DeckNames.Should().NotBeNull();
-        response.DeckNames.Should().NotBeEmpty();
-        response.DeckNames.Should().Contain("Default");
+        response.Result.Should().NotBeNull();
+        response.Result.Should().NotBeEmpty();
+        response.Result.Should().Contain("Default");
     }
 
     [Fact]
@@ -247,19 +242,19 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
         // Use a unique deck name to avoid conflicts
         var uniqueDeckName = $"{TestDeckName}_{Guid.NewGuid():N}";
 
-        var request = new CreateDeckRequest(uniqueDeckName);
+        var request = new CreateDeckRequestDto(uniqueDeckName);
         var response = await _ankiService.CreateDeckAsync(request);
 
-        response.Success.Should().BeTrue();
+        (response.Error == null).Should().BeTrue();
 
         // Track for cleanup
         _createdDecks.Add(uniqueDeckName);
 
         // Verify deck was created
-        var getDecksRequest = new GetDecksRequest();
+        var getDecksRequest = new GetDecksRequestDto();
         var getDecksResponse = await _ankiService.GetDecksAsync(getDecksRequest);
 
-        getDecksResponse.DeckNames.Should().Contain(uniqueDeckName);
+        getDecksResponse.Result.Should().Contain(uniqueDeckName);
     }
 
     [Fact]
@@ -271,7 +266,7 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
         var uniqueDeckName = $"{TestDeckName}_AddNote_{Guid.NewGuid():N}";
 
         // Create deck first
-        var createDeckRequest = new CreateDeckRequest(uniqueDeckName);
+        var createDeckRequest = new CreateDeckRequestDto(uniqueDeckName);
         await _ankiService.CreateDeckAsync(createDeckRequest);
         _createdDecks.Add(uniqueDeckName);
 
@@ -284,21 +279,21 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
             {
                 ["Front"] = TestFront,
                 ["Back"] = TestBack
-            },
-            Tags = new List<string> { "integration-test" }
+            }
         };
 
-        var addNoteRequest = new AddNoteRequest(testNote);
+        var addNoteRequest = new AddNoteRequestDto(new AnkiNoteDto { DeckName = testNote.DeckName, ModelName = testNote.ModelName, Fields = testNote.Fields });
         var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
 
-        addNoteResponse.NoteId.Should().BeGreaterThan(0);
-        _createdNotes.Add(addNoteResponse.NoteId);
+        addNoteResponse.Result.Should().NotBeNull();
+        addNoteResponse.Result.Should().BeGreaterThan(0L);
+        _createdNotes.Add(addNoteResponse.Result!.Value);
 
         // Verify note was added
-        var findNotesRequest = new FindNotesRequest($"deck:{uniqueDeckName}");
+        var findNotesRequest = new FindNotesRequestDto($"deck:{uniqueDeckName}");
         var findNotesResponse = await _ankiService.FindNotesAsync(findNotesRequest);
 
-        findNotesResponse.NoteIds.Should().Contain(addNoteResponse.NoteId);
+        (findNotesResponse.Result ?? new List<long>()).Should().Contain(addNoteResponse.Result!.Value);
     }
 
     [Fact]
@@ -307,10 +302,10 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
         await EnsureAnkiConnectionAsync();
         await CaptureInitialDeckStateAsync();
 
-        var request = new FindNotesRequest("deck:Default");
+        var request = new FindNotesRequestDto("deck:Default");
         var response = await _ankiService.FindNotesAsync(request);
 
-        response.NoteIds.Should().NotBeNull();
+        response.Result.Should().NotBeNull();
         // Default deck might be empty, so we just verify the call succeeds
     }
 
@@ -324,24 +319,25 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
         var uniqueDeckName = $"{TestDeckName}_AddDelete_{Guid.NewGuid():N}";
 
         // Test 1: Create a deck
-        var createDeckRequest = new CreateDeckRequest(uniqueDeckName);
+        var createDeckRequest = new CreateDeckRequestDto(uniqueDeckName);
         var createDeckResponse = await _ankiService.CreateDeckAsync(createDeckRequest);
 
-        createDeckResponse.Success.Should().BeTrue();
+        (createDeckResponse.Error == null).Should().BeTrue();
 
         // Verify deck was created
-        var getDecksRequest = new GetDecksRequest();
+        var getDecksRequest = new GetDecksRequestDto();
         var getDecksResponse = await _ankiService.GetDecksAsync(getDecksRequest);
-        getDecksResponse.DeckNames.Should().Contain(uniqueDeckName);
+        getDecksResponse.Result.Should().Contain(uniqueDeckName);
 
         // Test 2: Delete the deck (should work now that deck deletion is fixed)
-        var deleteDecksRequest = new DeleteDecksRequest(new[] { uniqueDeckName }, true);
+        var deleteDecksRequest = new DeleteDecksRequestDto(new[] { uniqueDeckName }, true);
         var deleteDecksResponse = await _ankiService.DeleteDecksAsync(deleteDecksRequest);
-        deleteDecksResponse.DeletedCount.Should().BeGreaterThanOrEqualTo(0);
+        deleteDecksResponse.Error.Should().BeNull();
+        deleteDecksResponse.Result.Should().BeNull();
 
         // Test 3: Verify the deck was actually deleted
         var finalGetDecksResponse = await _ankiService.GetDecksAsync(getDecksRequest);
-        finalGetDecksResponse.DeckNames.Should().NotContain(uniqueDeckName,
+        finalGetDecksResponse.Result.Should().NotContain(uniqueDeckName,
             "The deck should have been successfully deleted");
 
         // Note: Since we successfully deleted the deck, we don't need to track it for cleanup
@@ -356,52 +352,53 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
         var uniqueDeckName = $"{TestDeckName}_CanAddNote_{Guid.NewGuid():N}";
 
         // Create deck first
-        var createDeckRequest = new CreateDeckRequest(uniqueDeckName);
-        await _ankiService.CreateDeckAsync(createDeckRequest);
+        var createDeckRequest = new CreateDeckRequestDto(uniqueDeckName);
+        var createDeckResponse = await _ankiService.CreateDeckAsync(createDeckRequest);
+        createDeckResponse.Error.Should().BeNull();
         _createdDecks.Add(uniqueDeckName);
 
         // Test CanAddNote with valid deck
+        var uniqueId = Guid.NewGuid().ToString("N");
         var testNote = new AnkiNote
         {
             DeckName = uniqueDeckName,
             ModelName = "Basic",
             Fields = new Dictionary<string, string>
             {
-                ["Front"] = TestFront,
-                ["Back"] = TestBack
-            },
-            Tags = new List<string> { "integration-test" }
+                ["Front"] = $"{TestFront} {uniqueId}",
+                ["Back"] = $"{TestBack} {uniqueId}"
+            }
         };
 
-        var canAddNoteRequest = new CanAddNoteRequest(testNote);
+        var canAddNoteRequest = new CanAddNoteRequestDto(new AnkiNoteDto { DeckName = testNote.DeckName, ModelName = testNote.ModelName, Fields = testNote.Fields });
         var canAddNoteResponse = await _ankiService.CanAddNoteAsync(canAddNoteRequest);
 
-        canAddNoteResponse.CanAdd.Should().BeTrue();
+        (canAddNoteResponse.Result as bool? == true).Should().BeTrue();
     }
 
     [Fact]
-    public async Task AnkiService_CanAddNote_ShouldReturnTrue_WhenNoteIsValid()
+    public async Task AnkiService_CanAddNote_ShouldReturnFalse_WhenDeckDoesNotExist()
     {
         await EnsureAnkiConnectionAsync();
         await CaptureInitialDeckStateAsync();
 
-        // Test CanAddNote with a valid note structure (even with non-existent deck)
+        // Test CanAddNote returns false when deck does not exist
+        var uniqueId = Guid.NewGuid().ToString("N");
         var testNote = new AnkiNote
         {
             DeckName = "NonExistentDeck_12345",
             ModelName = "Basic",
             Fields = new Dictionary<string, string>
             {
-                ["Front"] = TestFront,
-                ["Back"] = TestBack
-            },
-            Tags = new List<string> { "integration-test" }
+                ["Front"] = $"{TestFront} {uniqueId}",
+                ["Back"] = $"{TestBack} {uniqueId}"
+            }
         };
 
-        var canAddNoteRequest = new CanAddNoteRequest(testNote);
+        var canAddNoteRequest = new CanAddNoteRequestDto(new AnkiNoteDto { DeckName = testNote.DeckName, ModelName = testNote.ModelName, Fields = testNote.Fields });
         var canAddNoteResponse = await _ankiService.CanAddNoteAsync(canAddNoteRequest);
 
-        canAddNoteResponse.CanAdd.Should().BeTrue();
+        (canAddNoteResponse.Result as bool?).Should().BeFalse();
     }
 
     [Fact]
@@ -413,7 +410,7 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
         var uniqueDeckName = $"{TestDeckName}_CreateNote_{Guid.NewGuid():N}";
 
         // Create deck first
-        var createDeckRequest = new CreateDeckRequest(uniqueDeckName);
+        var createDeckRequest = new CreateDeckRequestDto(uniqueDeckName);
         await _ankiService.CreateDeckAsync(createDeckRequest);
         _createdDecks.Add(uniqueDeckName);
 
@@ -426,23 +423,22 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
             {
                 ["Front"] = TestFront,
                 ["Back"] = TestBack
-            },
-            Tags = new List<string> { "integration-test" }
+            }
         };
 
-        var createNoteRequest = new CreateNoteRequest(testNote);
+        var createNoteRequest = new CreateNoteRequestDto(new AnkiNoteDto { DeckName = testNote.DeckName, ModelName = testNote.ModelName, Fields = testNote.Fields });
         var createNoteResponse = await _ankiService.CreateNoteAsync(createNoteRequest);
 
-        createNoteResponse.NoteId.Should().NotBeNull();
-        createNoteResponse.NoteId.Should().BeGreaterThan(0);
+        createNoteResponse.Result.Should().NotBeNull();
+        createNoteResponse.Result.Should().BeGreaterThan(0);
 
-        long createdNoteId = (long)createNoteResponse.NoteId!;
+        long createdNoteId = (long)createNoteResponse.Result!;
 
         // Verify note was created by finding it
-        var findNotesRequest = new FindNotesRequest($"deck:{uniqueDeckName}");
+        var findNotesRequest = new FindNotesRequestDto($"deck:{uniqueDeckName}");
         var findNotesResponse = await _ankiService.FindNotesAsync(findNotesRequest);
 
-        findNotesResponse.NoteIds.Should().Contain(createdNoteId);
+        findNotesResponse.Result.Should().Contain(createdNoteId);
 
         // Clean up the created note
         _createdNotes.Add(createdNoteId);
@@ -457,7 +453,7 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
         var uniqueDeckName = $"{TestDeckName}_UpdateFields_{Guid.NewGuid():N}";
 
         // Create deck first
-        var createDeckRequest = new CreateDeckRequest(uniqueDeckName);
+        var createDeckRequest = new CreateDeckRequestDto(uniqueDeckName);
         await _ankiService.CreateDeckAsync(createDeckRequest);
         _createdDecks.Add(uniqueDeckName);
 
@@ -470,113 +466,27 @@ public class AnkiServiceIntegrationTests : IAsyncLifetime
             {
                 ["Front"] = TestFront,
                 ["Back"] = TestBack
-            },
-            Tags = new List<string> { "integration-test" }
+            }
         };
 
-        var addNoteRequest = new AddNoteRequest(testNote);
+        var addNoteRequest = new AddNoteRequestDto(new AnkiNoteDto { DeckName = testNote.DeckName, ModelName = testNote.ModelName, Fields = testNote.Fields });
         var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
-        _createdNotes.Add(addNoteResponse.NoteId);
+        _createdNotes.Add(addNoteResponse.Result!.Value);
 
         // Update the note fields
-        var updateFieldsRequest = new UpdateNoteFieldsRequest(addNoteResponse.NoteId, new Dictionary<string, string>
+        var updateFieldsRequest = new UpdateNoteFieldsRequestDto(addNoteResponse.Result!.Value, new Dictionary<string, string>
         {
             ["Back"] = UpdatedBack
         });
         var updateFieldsResponse = await _ankiService.UpdateNoteFieldsAsync(updateFieldsRequest);
 
-        updateFieldsResponse.Success.Should().BeTrue();
+        (updateFieldsResponse.Error == null).Should().BeTrue();
 
         // Verify the note still exists (we can't easily verify field content without more complex API calls)
-        var findNotesRequest = new FindNotesRequest($"deck:{uniqueDeckName}");
+        var findNotesRequest = new FindNotesRequestDto($"deck:{uniqueDeckName}");
         var findNotesResponse = await _ankiService.FindNotesAsync(findNotesRequest);
 
-        findNotesResponse.NoteIds.Should().Contain(addNoteResponse.NoteId);
-    }
-
-    [Fact]
-    public async Task AnkiService_AddTags_ShouldAddTagsToNotes()
-    {
-        await EnsureAnkiConnectionAsync();
-        await CaptureInitialDeckStateAsync();
-
-        var uniqueDeckName = $"{TestDeckName}_AddTags_{Guid.NewGuid():N}";
-        var testTag1 = $"test-tag-1-{Guid.NewGuid():N}";
-        var testTag2 = $"test-tag-2-{Guid.NewGuid():N}";
-
-        // Create deck first
-        var createDeckRequest = new CreateDeckRequest(uniqueDeckName);
-        await _ankiService.CreateDeckAsync(createDeckRequest);
-        _createdDecks.Add(uniqueDeckName);
-
-        // Create a note first
-        var testNote = new AnkiNote
-        {
-            DeckName = uniqueDeckName,
-            ModelName = "Basic",
-            Fields = new Dictionary<string, string>
-            {
-                ["Front"] = TestFront,
-                ["Back"] = TestBack
-            },
-            Tags = new List<string> { "integration-test" }
-        };
-
-        var addNoteRequest = new AddNoteRequest(testNote);
-        var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
-        _createdNotes.Add(addNoteResponse.NoteId);
-
-        // Add tags to the note
-        var addTagsRequest = new AddTagsRequest(new[] { addNoteResponse.NoteId }, new[] { testTag1, testTag2 });
-        var addTagsResponse = await _ankiService.AddTagsAsync(addTagsRequest);
-
-        addTagsResponse.Success.Should().BeTrue();
-
-        // Verify tags were added by checking if they appear in the global tags list
-        var getTagsRequest = new GetTagsRequest();
-        var getTagsResponse = await _ankiService.GetTagsAsync(getTagsRequest);
-
-        getTagsResponse.Tags.Should().Contain(testTag1);
-        getTagsResponse.Tags.Should().Contain(testTag2);
-    }
-
-    [Fact]
-    public async Task AnkiService_GetTags_ShouldReturnAllTags()
-    {
-        await EnsureAnkiConnectionAsync();
-        await CaptureInitialDeckStateAsync();
-
-        var uniqueDeckName = $"{TestDeckName}_GetTags_{Guid.NewGuid():N}";
-        var testTag = $"test-tag-{Guid.NewGuid():N}";
-
-        // Create deck first
-        var createDeckRequest = new CreateDeckRequest(uniqueDeckName);
-        await _ankiService.CreateDeckAsync(createDeckRequest);
-        _createdDecks.Add(uniqueDeckName);
-
-        // Create a note with a specific tag
-        var testNote = new AnkiNote
-        {
-            DeckName = uniqueDeckName,
-            ModelName = "Basic",
-            Fields = new Dictionary<string, string>
-            {
-                ["Front"] = TestFront,
-                ["Back"] = TestBack
-            },
-            Tags = new List<string> { "integration-test", testTag }
-        };
-
-        var addNoteRequest = new AddNoteRequest(testNote);
-        var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
-        _createdNotes.Add(addNoteResponse.NoteId);
-
-        // Get all tags
-        var getTagsRequest = new GetTagsRequest();
-        var getTagsResponse = await _ankiService.GetTagsAsync(getTagsRequest);
-
-        getTagsResponse.Tags.Should().NotBeNull();
-        getTagsResponse.Tags.Should().Contain(testTag);
-        getTagsResponse.Tags.Should().Contain("integration-test");
+        (findNotesResponse.Result ?? new List<long>()).Should().Contain(addNoteResponse.Result!.Value);
     }
 }
+

@@ -10,3 +10,12 @@ public record GetDecksRequestDto : AnkiConnectRequest
         Action = "deckNames";
     }
 }
+
+/// <summary>
+/// Response for deck names
+/// </summary>
+public record DeckNamesResponse : AnkiConnectResponse
+{
+    [System.Text.Json.Serialization.JsonPropertyName("result")]
+    public List<string>? Result { get; init; }
+}

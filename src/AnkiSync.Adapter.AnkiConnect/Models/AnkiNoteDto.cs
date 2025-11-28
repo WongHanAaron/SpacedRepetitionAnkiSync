@@ -15,7 +15,4 @@ public record AnkiNoteDto
 
     [JsonPropertyName("fields")]
     public required Dictionary<string, string> Fields { get; init; }
-
-    [JsonPropertyName("tags")]
-    public List<string> Tags { get; init; } = new();
 }

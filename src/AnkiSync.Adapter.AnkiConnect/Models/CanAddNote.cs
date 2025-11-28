@@ -1,6 +1,6 @@
-namespace AnkiSync.Adapter.AnkiConnect.Models;
-
 using System.Text.Json.Serialization;
+
+namespace AnkiSync.Adapter.AnkiConnect.Models;
 
 /// <summary>
 /// Request to check if a note can be added
@@ -21,4 +21,13 @@ public record CanAddNoteParams
 {
     [JsonPropertyName("note")]
     public required AnkiNoteDto Note { get; init; }
+}
+
+/// <summary>
+/// Response for canAddNote
+/// </summary>
+public record CanAddNoteResponse : AnkiConnectResponse
+{
+    [JsonPropertyName("result")]
+    public bool? Result { get; init; }
 }
