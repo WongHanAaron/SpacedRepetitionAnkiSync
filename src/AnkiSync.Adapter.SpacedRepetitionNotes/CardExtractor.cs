@@ -43,78 +43,152 @@ public class CardExtractor : ICardExtractor
 
     private IEnumerable<ParsedCardBase> ExtractObsidianFlashcards(Document document)
     {
-        var cards = new List<ParsedCardBase>();
-        var lines = document.Content.Split('\n');
+        // Split by both Unix and Windows line endings, and keep empty entries
+        var lines = document.Content
+            .Replace("\r\n", "\n")  // Normalize Windows line endings
+            .Split('\n', StringSplitOptions.None);
 
-        // Extract single-line flashcards (Question::Answer and Question:::Answer)
-        cards.AddRange(ExtractSingleLineFlashcards(lines, document));
+        // First, try to extract single-line cards from all non-empty, non-comment lines
+        var nonEmptyLines = lines
+            .Where(line => !string.IsNullOrWhiteSpace(line) && !line.TrimStart().StartsWith("#"))
+            .ToArray();
 
-        // Extract multi-line flashcards (separated by ? and ??)
-        cards.AddRange(ExtractMultiLineFlashcards(lines, document));
+        var singleLineCards = ExtractSingleLineFlashcards(nonEmptyLines, document).ToList();
+        
+        // If we found single-line cards, return them
+        if (singleLineCards.Any())
+        {
+            return singleLineCards;
+        }
 
-        return cards;
+        // If no single-line cards, try reversed cards
+        var reversedCards = ExtractReversedFlashcards(nonEmptyLines, document).ToList();
+        if (reversedCards.Any())
+        {
+            return reversedCards;
+        }
+
+        // If no single-line or reversed cards, try multi-line extraction
+        return ExtractMultiLineFlashcards(lines, document).ToList();
     }
 
     private IEnumerable<ParsedCardBase> ExtractSingleLineFlashcards(string[] lines, Document document)
     {
+        Console.WriteLine($"Extracting cards from {lines.Length} lines");
+        
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var line = lines[i];
+            var trimmed = line.Trim();
+            Console.WriteLine($"Processing line {i}: '{trimmed}'");
+            
+            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#"))
+            {
+                Console.WriteLine("Skipping empty line or comment");
+                continue;
+            }
+
+            // First try to split by "?::" to handle the case where the question ends with a question mark
+            var parts = trimmed.Split(new[] { "?::" }, 2, StringSplitOptions.None);
+            if (parts.Length == 2)
+            {
+                var question = parts[0].Trim();
+                var answer = parts[1].Trim();
+                Console.WriteLine($"Found potential card with '?::' separator - Q: '{question}', A: '{answer}'");
+
+                if (!string.IsNullOrWhiteSpace(question) && !string.IsNullOrWhiteSpace(answer))
+                {
+                    // Add back the question mark if it's not already there
+                    if (!question.EndsWith("?"))
+                    {
+                        question += "?";
+                        Console.WriteLine("Added missing question mark");
+                    }
+
+                    var card = new ParsedQuestionAnswerCard
+                    {
+                        Question = question,
+                        Answer = answer,
+                        Tags = document.Tags,
+                        SourceFilePath = document.FilePath
+                    };
+                    Console.WriteLine($"Yielding card: Q: {card.Question}, A: {card.Answer}");
+                    yield return card;
+                    continue; // Move to next line after processing this card
+                }
+            }
+            else
+            {
+                Console.WriteLine("No '?::' separator found, trying '::'");
+            }
+
+            // If no match with "?::", try splitting by just "::"
+            parts = trimmed.Split(new[] { "::" }, 2, StringSplitOptions.None);
+            if (parts.Length == 2)
+            {
+                var question = parts[0].Trim();
+                var answer = parts[1].Trim();
+                Console.WriteLine($"Found potential card with '::' separator - Q: '{question}', A: '{answer}'");
+
+                // Only consider it a valid card if the question ends with a question mark
+                if (question.EndsWith("?") && !string.IsNullOrWhiteSpace(question) && !string.IsNullOrWhiteSpace(answer))
+                {
+                    var card = new ParsedQuestionAnswerCard
+                    {
+                        Question = question,
+                        Answer = answer,
+                        Tags = document.Tags,
+                        SourceFilePath = document.FilePath
+                    };
+                    Console.WriteLine($"Yielding card: Q: {card.Question}, A: {card.Answer}");
+                    yield return card;
+                }
+                else
+                {
+                    Console.WriteLine("Skipping card - question doesn't end with '?' or is invalid");
+                }
+            }
+            else
+            {
+                Console.WriteLine("No valid card format found on this line");
+            }
+        }
+    }
+
+    private IEnumerable<ParsedCardBase> ExtractReversedFlashcards(string[] lines, Document document)
+    {
         foreach (var line in lines)
         {
             var trimmed = line.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#"))
+                continue;
 
-            // Single-line basic: Question::Answer
-            if (trimmed.Contains("::") && !trimmed.Contains(":::"))
+            // Split the line by triple colons to find reversed question-answer pairs
+            var segments = trimmed.Split(new[] { ":::" }, StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Length == 2)
             {
-                var parts = trimmed.Split(new[] { "::" }, 2, StringSplitOptions.None);
-                if (parts.Length == 2)
+                var question = segments[0].Trim();
+                var answer = segments[1].Trim();
+
+                if (!string.IsNullOrWhiteSpace(question) && !string.IsNullOrWhiteSpace(answer))
                 {
-                    var question = parts[0].Trim();
-                    var answer = parts[1].Trim();
-
-                    if (!string.IsNullOrWhiteSpace(question))
+                    // Forward card: Question -> Answer
+                    yield return new ParsedQuestionAnswerCard
                     {
-                        if (string.IsNullOrWhiteSpace(answer))
-                        {
-                            question = trimmed; // Keep the original line for malformed
-                        }
-                        yield return new ParsedQuestionAnswerCard
-                        {
-                            Question = question,
-                            Answer = answer,
-                            Tags = document.Tags,
-                            SourceFilePath = document.FilePath
-                        };
-                    }
-                }
-            }
-            // Single-line reversed: Question:::Answer (creates two cards)
-            else if (trimmed.Contains(":::"))
-            {
-                var parts = trimmed.Split(new[] { ":::" }, 2, StringSplitOptions.None);
-                if (parts.Length == 2)
-                {
-                    var question = parts[0].Trim();
-                    var answer = parts[1].Trim();
+                        Question = question,
+                        Answer = answer,
+                        Tags = document.Tags,
+                        SourceFilePath = document.FilePath
+                    };
 
-                    if (!string.IsNullOrWhiteSpace(question) && !string.IsNullOrWhiteSpace(answer))
+                    // Reversed card: Answer -> Question
+                    yield return new ParsedQuestionAnswerCard
                     {
-                        // Forward card: Question -> Answer
-                        yield return new ParsedQuestionAnswerCard
-                        {
-                            Question = question,
-                            Answer = answer,
-                            Tags = document.Tags,
-                            SourceFilePath = document.FilePath
-                        };
-
-                        // Reverse card: Answer -> Question
-                        yield return new ParsedQuestionAnswerCard
-                        {
-                            Question = answer,
-                            Answer = question,
-                            Tags = document.Tags,
-                            SourceFilePath = document.FilePath
-                        };
-                    }
+                        Question = answer,
+                        Answer = question,
+                        Tags = document.Tags,
+                        SourceFilePath = document.FilePath
+                    };
                 }
             }
         }

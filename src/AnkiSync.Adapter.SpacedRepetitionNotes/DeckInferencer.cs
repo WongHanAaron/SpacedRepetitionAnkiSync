@@ -38,17 +38,36 @@ public class DeckInferencer : IDeckInferencer
     /// <returns>The inferred decks</returns>
     public IEnumerable<ParsedDeck> InferDecks(IEnumerable<ParsedCardBase> cards)
     {
-        // Group cards by inferred deck tag
-        var deckGroups = cards.GroupBy(card => InferDeckTag(card));
-
-        foreach (var group in deckGroups)
+        // First, group cards by their source file
+        var fileGroups = cards.GroupBy(card => card.SourceFilePath);
+        
+        // Then, group by the tags in each file
+        var tagGroups = new Dictionary<string, ParsedDeck>();
+        
+        foreach (var fileGroup in fileGroups)
         {
-            yield return new ParsedDeck
+            // Get the first card to extract tags (all cards in the same file share the same tags)
+            var firstCard = fileGroup.First();
+            
+            // If the card has tags, use them; otherwise, fall back to file-based tags
+            var tag = firstCard.Tags?.NestedTags?.Count > 0 
+                ? firstCard.Tags 
+                : InferDeckTag(firstCard);
+                
+            // Create a key for the tag to group by
+            var tagKey = string.Join("/", tag.NestedTags ?? new List<string>());
+            
+            if (!tagGroups.TryGetValue(tagKey, out var deck))
             {
-                Tag = group.Key,
-                Cards = group
-            };
+                deck = new ParsedDeck { Tag = tag, Cards = new List<ParsedCardBase>() };
+                tagGroups[tagKey] = deck;
+            }
+            
+            // Add all cards from this file to the deck
+            ((List<ParsedCardBase>)deck.Cards).AddRange(fileGroup);
         }
+        
+        return tagGroups.Values;
     }
 
     private Tag InferDeckTag(ParsedCardBase card)

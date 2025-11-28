@@ -56,19 +56,38 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
                 // Read file content and metadata
                 var fileInfo = _fileSystem.GetFileInfo(filePath);
                 var content = await _fileSystem.ReadAllTextAsync(filePath);
+                
+                if (content == null)
+                {
+                    _logger.LogWarning("Skipping {FilePath} as it has no content", filePath);
+                    continue;
+                }
+                
+                _logger.LogDebug("Processing file: {FilePath}, Content length: {Length}", filePath, content.Length);
 
                 // Parse the content
                 var document = await _fileParser.ParseContentAsync(filePath, content, fileInfo.LastWriteTimeUtc);
+                _logger.LogDebug("Parsed document from {FilePath} with {LineCount} lines", filePath, document.Content?.Split('\n').Length ?? 0);
 
                 // Skip documents without tags
                 if (document.Tags.NestedTags.Count == 0)
                 {
-                    _logger.LogDebug("Skipping file {FilePath} as it has no tags", filePath);
+                    _logger.LogDebug("Skipping {FilePath} as it has no tags", filePath);
                     continue;
                 }
 
-                var cards = _cardExtractor.ExtractCards(document);
-                _logger.LogDebug("Extracted {Count} cards from {FilePath}", cards.Count(), filePath);
+                var cards = _cardExtractor.ExtractCards(document).ToList();
+                _logger.LogDebug("Extracted {Count} cards from {FilePath}", cards.Count, filePath);
+                
+                // Log each extracted card
+                foreach (var card in cards)
+                {
+                    if (card is ParsedQuestionAnswerCard qaCard)
+                    {
+                        _logger.LogDebug("Card - Q: {Question}, A: {Answer}", qaCard.Question, qaCard.Answer);
+                    }
+                }
+                
                 allCards.AddRange(cards);
             }
             catch (Exception ex)
@@ -79,8 +98,19 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
             }
         }
 
-        var decks = _deckInferencer.InferDecks(allCards);
-        return ConvertToDomainDecks(decks);
+        _logger.LogInformation("Total cards extracted: {Count}", allCards.Count);
+        var decks = _deckInferencer.InferDecks(allCards).ToList();
+        _logger.LogInformation("Inferred {DeckCount} decks", decks.Count);
+        
+        var domainDecks = ConvertToDomainDecks(decks).ToList();
+        _logger.LogInformation("Converted to {DomainDeckCount} domain decks", domainDecks.Count);
+        
+        foreach (var deck in domainDecks)
+        {
+            _logger.LogDebug("Deck {DeckId} has {CardCount} cards", deck.DeckId, deck.Cards?.Count ?? 0);
+        }
+        
+        return domainDecks;
     }
 
     /// <summary>
