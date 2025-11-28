@@ -3,16 +3,18 @@ using AnkiSync.Adapter.SpacedRepetitionNotes.Models;
 namespace AnkiSync.Adapter.SpacedRepetitionNotes;
 
 /// <summary>
-/// Interface for parsing files into metadata
+/// Interface for parsing document content into documents
 /// </summary>
 public interface IFileParser
 {
     /// <summary>
-    /// Parses a file into metadata and content
+    /// Parses document content and extracts tags and metadata
     /// </summary>
-    /// <param name="filePath">The path to the file to parse</param>
-    /// <returns>The document metadata</returns>
-    Task<Document> ParseFileAsync(string filePath);
+    /// <param name="filePath">The path to the file (for metadata)</param>
+    /// <param name="content">The content of the document to parse</param>
+    /// <param name="lastModified">The last modified date of the file</param>
+    /// <returns>A document containing the parsed content</returns>
+    Task<Document> ParseContentAsync(string filePath, string content, DateTimeOffset lastModified);
 }
 
 /// <summary>
@@ -20,48 +22,42 @@ public interface IFileParser
 /// </summary>
 public class FileParser : IFileParser
 {
-    private readonly IFileSystem _fileSystem;
-
     /// <summary>
     /// Creates a new instance of FileParser
     /// </summary>
-    /// <param name="fileSystem">The file system abstraction to use</param>
-    public FileParser(IFileSystem fileSystem)
+    public FileParser()
     {
-        _fileSystem = fileSystem;
+        // No longer needs file system dependency since content is passed in
     }
 
     /// <summary>
-    /// Parses a file into metadata and content
+    /// Parses document content and extracts tags and metadata
     /// </summary>
-    /// <param name="filePath">The path to the file to parse</param>
-    /// <returns>The document metadata</returns>
-    public async Task<Document> ParseFileAsync(string filePath)
+    /// <param name="filePath">The path to the file (for metadata)</param>
+    /// <param name="content">The content of the document to parse</param>
+    /// <param name="lastModified">The last modified date of the file</param>
+    /// <returns>A document containing the parsed content</returns>
+    public Task<Document> ParseContentAsync(string filePath, string content, DateTimeOffset lastModified)
     {
-        if (!_fileSystem.FileExists(filePath))
-        {
-            throw new FileNotFoundException($"File not found: {filePath}", filePath);
-        }
-
-        var fileInfo = _fileSystem.GetFileInfo(filePath);
-        var content = await _fileSystem.ReadAllTextAsync(filePath);
-
-        // Extract tags from content (simple implementation - look for #tags)
+        // Extract tags from content
         var tags = ExtractTags(content);
 
-        return new Document
+        var document = new Document
         {
             FilePath = filePath,
-            LastModified = fileInfo.LastWriteTimeUtc,
+            LastModified = lastModified,
             Tags = new Tag { NestedTags = tags.ToList() },
             Content = content
         };
+
+        return Task.FromResult(document);
     }
 
     private static IEnumerable<string> ExtractTags(string content)
     {
-        // Simple tag extraction - find words starting with #
-        var tagMatches = System.Text.RegularExpressions.Regex.Matches(content, @"#(\w+)");
+        // Extract tags from content - handle multiple tags on same line separated by whitespace
+        // Tags can contain '/' for nested hierarchy and should be separated by whitespace followed by #
+        var tagMatches = System.Text.RegularExpressions.Regex.Matches(content, @"#([^#\s]+)");
         return tagMatches.Select(m => m.Groups[1].Value).Distinct();
     }
 }

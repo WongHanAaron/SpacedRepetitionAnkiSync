@@ -24,6 +24,12 @@ public interface ICardSourceRepository
     Task<IEnumerable<Deck>> GetCardsFromDirectories(IEnumerable<string> directories, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Subscribes to changes in the specified directory and raises CardsUpdated event when files change
+    /// </summary>
+    /// <param name="directoryPath">The directory path to monitor for changes</param>
+    void SubscribeToDirectoryChanges(string directoryPath);
+
+    /// <summary>
     /// Event raised when cards in the sources might have been updated
     /// </summary>
     event EventHandler<CardsUpdatedEventArgs>? CardsUpdated;

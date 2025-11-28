@@ -1,18 +1,22 @@
 using AnkiSync.Adapter.SpacedRepetitionNotes.Models;
 using AnkiSync.Domain;
 using AnkiSync.Domain.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.IO;
 
 namespace AnkiSync.Adapter.SpacedRepetitionNotes;
 
 /// <summary>
 /// Implementation of ICardSourceRepository for Spaced Repetition Notes
 /// </summary>
-public class SpacedRepetitionNotesRepository : ICardSourceRepository
+public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposable
 {
     private readonly IFileParser _fileParser;
     private readonly ICardExtractor _cardExtractor;
     private readonly IDeckInferencer _deckInferencer;
     private readonly IFileSystem _fileSystem;
+    private FileSystemWatcher? _fileSystemWatcher;
 
     /// <summary>
     /// Initializes a new instance of SpacedRepetitionNotesRepository
@@ -43,7 +47,12 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository
 
             try
             {
-                var document = await _fileParser.ParseFileAsync(filePath);
+                // Read file content and metadata
+                var fileInfo = _fileSystem.GetFileInfo(filePath);
+                var content = await _fileSystem.ReadAllTextAsync(filePath);
+
+                // Parse the content
+                var document = await _fileParser.ParseContentAsync(filePath, content, fileInfo.LastWriteTimeUtc);
                 var cards = _cardExtractor.ExtractCards(document);
                 allCards.AddRange(cards);
             }
@@ -76,6 +85,50 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository
         }
 
         return await GetCardsFromFiles(filePaths, cancellationToken);
+    }
+
+    /// <summary>
+    /// Subscribes to changes in the specified directory and raises CardsUpdated event when files change
+    /// </summary>
+    /// <param name="directoryPath">The directory path to monitor for changes</param>
+    public void SubscribeToDirectoryChanges(string directoryPath)
+    {
+        if (_fileSystemWatcher != null)
+        {
+            _fileSystemWatcher.Dispose();
+        }
+
+        _fileSystemWatcher = new FileSystemWatcher(directoryPath)
+        {
+            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
+            Filter = "*.md",
+            IncludeSubdirectories = true,
+            EnableRaisingEvents = true
+        };
+
+        _fileSystemWatcher.Changed += OnFileChanged;
+        _fileSystemWatcher.Created += OnFileChanged;
+        _fileSystemWatcher.Deleted += OnFileChanged;
+        _fileSystemWatcher.Renamed += OnFileRenamed;
+    }
+
+    private void OnFileChanged(object sender, FileSystemEventArgs e)
+    {
+        CardsUpdated?.Invoke(this, new CardsUpdatedEventArgs([e.FullPath]));
+    }
+
+    private void OnFileRenamed(object sender, RenamedEventArgs e)
+    {
+        var updatedPaths = new List<string>();
+        if (!string.IsNullOrEmpty(e.OldFullPath))
+        {
+            updatedPaths.Add(e.OldFullPath);
+        }
+        if (!string.IsNullOrEmpty(e.FullPath))
+        {
+            updatedPaths.Add(e.FullPath);
+        }
+        CardsUpdated?.Invoke(this, new CardsUpdatedEventArgs(updatedPaths));
     }
 
     /// <summary>
@@ -130,5 +183,13 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository
         {
             throw new InvalidOperationException($"Unknown card type: {parsedCard.GetType()}");
         }
+    }
+
+    /// <summary>
+    /// Disposes the repository and cleans up resources
+    /// </summary>
+    public void Dispose()
+    {
+        _fileSystemWatcher?.Dispose();
     }
 }
