@@ -43,5 +43,25 @@ public class AnkiConnectMappingProfile : Profile
         // DeleteNotesRequest -> DeleteNotesRequestDto
         CreateMap<DeleteNotesRequest, DeleteNotesRequestDto>()
             .ConstructUsing((src, ctx) => new DeleteNotesRequestDto(src.NoteIds));
+
+        // CanAddNoteRequest -> CanAddNoteRequestDto
+        CreateMap<CanAddNoteRequest, CanAddNoteRequestDto>()
+            .ConstructUsing((src, ctx) => new CanAddNoteRequestDto(ctx.Mapper.Map<AnkiNoteDto>(src.Note)));
+
+        // CreateNoteRequest -> CreateNoteRequestDto
+        CreateMap<CreateNoteRequest, CreateNoteRequestDto>()
+            .ConstructUsing((src, ctx) => new CreateNoteRequestDto(ctx.Mapper.Map<AnkiNoteDto>(src.Note)));
+
+        // UpdateNoteFieldsRequest -> UpdateNoteFieldsRequestDto
+        CreateMap<UpdateNoteFieldsRequest, UpdateNoteFieldsRequestDto>()
+            .ConstructUsing((src, ctx) => new UpdateNoteFieldsRequestDto(src.NoteId, src.Fields));
+
+        // AddTagsRequest -> AddTagsRequestDto
+        CreateMap<AddTagsRequest, AddTagsRequestDto>()
+            .ConstructUsing((src, ctx) => new AddTagsRequestDto(src.NoteIds, src.Tags, src.Add));
+
+        // GetTagsRequest -> GetTagsRequestDto
+        CreateMap<GetTagsRequest, GetTagsRequestDto>()
+            .ConstructUsing((src, ctx) => new GetTagsRequestDto());
     }
 }

@@ -86,6 +86,46 @@ public class AnkiService : IAnkiService
         return new DeleteNotesResponse(response.Result != null ? (int)((System.Text.Json.JsonElement)response.Result).GetInt32() : 0);
     }
 
+    /// <inheritdoc />
+    public async Task<CanAddNoteResponse> CanAddNoteAsync(CanAddNoteRequest request, CancellationToken cancellationToken = default)
+    {
+        var dto = _mapper.Map<CanAddNoteRequestDto>(request);
+        var response = await SendRequestAsync<AnkiConnectCanAddNoteResponse>(dto.Action, dto, cancellationToken);
+        return new CanAddNoteResponse(response.Result != null);
+    }
+
+    /// <inheritdoc />
+    public async Task<CreateNoteResponse> CreateNoteAsync(CreateNoteRequest request, CancellationToken cancellationToken = default)
+    {
+        var dto = _mapper.Map<CreateNoteRequestDto>(request);
+        var response = await SendRequestAsync<AnkiConnectCreateNoteResponse>(dto.Action, dto, cancellationToken);
+        return new CreateNoteResponse(response.Result != null ? (long)((System.Text.Json.JsonElement)response.Result).GetInt64() : null);
+    }
+
+    /// <inheritdoc />
+    public async Task<UpdateNoteFieldsResponse> UpdateNoteFieldsAsync(UpdateNoteFieldsRequest request, CancellationToken cancellationToken = default)
+    {
+        var dto = _mapper.Map<UpdateNoteFieldsRequestDto>(request);
+        var response = await SendRequestAsync<AnkiConnectUpdateNoteFieldsResponse>(dto.Action, dto, cancellationToken);
+        return new UpdateNoteFieldsResponse(response.Error == null);
+    }
+
+    /// <inheritdoc />
+    public async Task<AddTagsResponse> AddTagsAsync(AddTagsRequest request, CancellationToken cancellationToken = default)
+    {
+        var dto = _mapper.Map<AddTagsRequestDto>(request);
+        var response = await SendRequestAsync<AnkiConnectAddTagsResponse>(dto.Action, dto, cancellationToken);
+        return new AddTagsResponse(response.Error == null);
+    }
+
+    /// <inheritdoc />
+    public async Task<GetTagsResponse> GetTagsAsync(GetTagsRequest request, CancellationToken cancellationToken = default)
+    {
+        var dto = _mapper.Map<GetTagsRequestDto>(request);
+        var response = await SendRequestAsync<AnkiConnectGetTagsResponse>(dto.Action, dto, cancellationToken);
+        return new GetTagsResponse(response.Result != null ? System.Text.Json.JsonSerializer.Deserialize<List<string>>((System.Text.Json.JsonElement)response.Result)! : new List<string>());
+    }
+
     private async Task<TResponse> SendRequestAsync<TResponse>(string requestUri, AnkiConnectRequest request, CancellationToken cancellationToken)
         where TResponse : class
     {

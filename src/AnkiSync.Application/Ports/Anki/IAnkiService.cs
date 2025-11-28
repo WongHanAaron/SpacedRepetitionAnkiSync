@@ -45,4 +45,29 @@ public interface IAnkiService
     /// Deletes notes from Anki
     /// </summary>
     Task<DeleteNotesResponse> DeleteNotesAsync(DeleteNotesRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if a note can be added to Anki
+    /// </summary>
+    Task<CanAddNoteResponse> CanAddNoteAsync(CanAddNoteRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates a note object without saving it
+    /// </summary>
+    Task<CreateNoteResponse> CreateNoteAsync(CreateNoteRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates fields of an existing note
+    /// </summary>
+    Task<UpdateNoteFieldsResponse> UpdateNoteFieldsAsync(UpdateNoteFieldsRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds or removes tags from notes
+    /// </summary>
+    Task<AddTagsResponse> AddTagsAsync(AddTagsRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all tags from Anki
+    /// </summary>
+    Task<GetTagsResponse> GetTagsAsync(GetTagsRequest request, CancellationToken cancellationToken = default);
 }
