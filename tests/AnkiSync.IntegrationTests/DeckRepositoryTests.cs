@@ -58,9 +58,9 @@ public class DeckRepositoryTests : IAsyncLifetime
                     var deleteNotesRequest = new DeleteNotesRequestDto(_createdNotes);
                     await _ankiService.DeleteNotesAsync(deleteNotesRequest);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Console.WriteLine($"Warning: Failed to delete test notes: {ex.Message}");
+                    // Failed to delete test notes
                 }
                 _createdNotes.Clear();
             }
@@ -73,17 +73,16 @@ public class DeckRepositoryTests : IAsyncLifetime
                     var deleteDecksRequest = new DeleteDecksRequestDto(_createdDecks, true);
                     await _ankiService.DeleteDecksAsync(deleteDecksRequest);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Console.WriteLine($"Warning: Failed to delete test decks: {ex.Message}");
+                    // Failed to delete test decks
                 }
                 _createdDecks.Clear();
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Log cleanup failure but don't throw - we don't want cleanup failures to mask test failures
-            Console.WriteLine($"Warning: Failed to clean up test resources: {ex.Message}");
         }
     }
 
@@ -248,23 +247,33 @@ public class DeckRepositoryTests : IAsyncLifetime
 
         // Verify QuestionAnswerCard 1
         var qaCard1 = downloadedDeck.Cards.OfType<QuestionAnswerCard>()
-            .FirstOrDefault(c => c.Question.Contains("France"));
+            .FirstOrDefault(c => c.Question?.Contains("France") == true);
         qaCard1.Should().NotBeNull();
-        qaCard1!.Question.Should().Be("What is the capital of France?");
-        qaCard1.Answer.Should().Be("Paris");
+        if (qaCard1 != null)
+        {
+            qaCard1.Question.Should().Be("What is the capital of France?");
+            qaCard1.Answer.Should().Be("Paris");
+        }
 
         // Verify QuestionAnswerCard 2
         var qaCard2 = downloadedDeck.Cards.OfType<QuestionAnswerCard>()
-            .FirstOrDefault(c => c.Question.Contains("2 + 2"));
+            .FirstOrDefault(c => c.Question?.Contains("2 + 2") == true);
         qaCard2.Should().NotBeNull();
-        qaCard2!.Question.Should().Be("What is 2 + 2?");
-        qaCard2.Answer.Should().Be("4");
+        if (qaCard2 != null)
+        {
+            qaCard2.Question.Should().Be("What is 2 + 2?");
+            qaCard2.Answer.Should().Be("4");
+        }
 
         // Verify ClozeCard
         var clozeCard = downloadedDeck.Cards.OfType<ClozeCard>().FirstOrDefault();
         clozeCard.Should().NotBeNull();
-        clozeCard!.Text.Should().Be("""The {answer1} of {answer2} is {answer3}""");
-        clozeCard.Answers.Should().HaveCount(3);
-        clozeCard.Answers.Should().ContainValues("capital", "France", "Paris");
+        if (clozeCard != null)
+        {
+            clozeCard.Text.Should().Be("""The {answer1} of {answer2} is {answer3}""");
+            clozeCard.Answers.Should().NotBeNull();
+            clozeCard.Answers.Should().HaveCount(3);
+            clozeCard.Answers.Should().ContainValues("capital", "France", "Paris");
+        }
     }
 }

@@ -2,6 +2,7 @@ using AnkiSync.Adapter.AnkiConnect.Client;
 using AnkiSync.Adapter.AnkiConnect.Models;
 using AnkiSync.Domain;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -10,12 +11,14 @@ namespace AnkiSync.Adapter.AnkiConnect.Tests;
 public class DeckRepositoryTests
 {
     private readonly Mock<IAnkiService> _ankiServiceMock;
+    private readonly Mock<ILogger<DeckRepository>> _loggerMock;
     private readonly DeckRepository _deckRepository;
 
     public DeckRepositoryTests()
     {
         _ankiServiceMock = new Mock<IAnkiService>();
-        _deckRepository = new DeckRepository(_ankiServiceMock.Object);
+        _loggerMock = new Mock<ILogger<DeckRepository>>();
+        _deckRepository = new DeckRepository(_ankiServiceMock.Object, _loggerMock.Object);
     }
 
     [Fact]

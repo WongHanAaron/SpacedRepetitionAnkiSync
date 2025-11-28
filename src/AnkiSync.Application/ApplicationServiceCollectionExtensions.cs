@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace AnkiSync.Application;
 
 /// <summary>
@@ -8,12 +10,9 @@ public static class ApplicationServiceCollectionExtensions
     /// <summary>
     /// Adds application services to the service collection
     /// </summary>
-    /// <remarks>
-    /// Application services are registered in their respective adapter implementations.
-    /// This method exists for consistency and future application-level services.
-    /// </remarks>
-    public static void AddApplicationServices()
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        // Services are registered in their respective adapter layers
+        services.AddScoped<CardSynchronizationService>();
+        return services;
     }
 }

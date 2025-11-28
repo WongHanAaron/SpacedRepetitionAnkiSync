@@ -1,5 +1,6 @@
 using AnkiSync.Adapter.AnkiConnect.Client;
 using AnkiSync.Adapter.AnkiConnect.Models;
+using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text;
@@ -84,16 +85,19 @@ public interface IAnkiService
 public class AnkiService : IAnkiService
 {
     private readonly IHttpClient _httpClient;
+    private readonly ILogger<AnkiService> _logger;
     private readonly string _baseUrl = "http://127.0.0.1:8765";
 
-    public AnkiService(IHttpClient httpClient)
+    public AnkiService(IHttpClient httpClient, ILogger<AnkiService> logger)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <inheritdoc />
     public async Task<VersionResponse> TestConnectionAsync(TestConnectionRequestDto request, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Testing connection to Anki");
         var response = await SendRequestAsync<VersionResponse>(request.Action, request, cancellationToken);
         return response;
     }
@@ -101,6 +105,7 @@ public class AnkiService : IAnkiService
     /// <inheritdoc />
     public async Task<DeckNamesResponse> GetDecksAsync(GetDecksRequestDto request, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Retrieving deck names from Anki");
         var response = await SendRequestAsync<DeckNamesResponse>(request.Action, request, cancellationToken);
         return response;
     }
@@ -108,6 +113,12 @@ public class AnkiService : IAnkiService
     /// <inheritdoc />
     public async Task<CreateDeckResponse> CreateDeckAsync(CreateDeckRequestDto request, CancellationToken cancellationToken = default)
     {
+        if (request.Params == null)
+        {
+            throw new ArgumentException("Request parameters cannot be null", nameof(request));
+        }
+        var paramsObj = (CreateDeckParams)request.Params;
+        _logger.LogInformation("Creating deck {DeckName} in Anki", paramsObj.Deck);
         var response = await SendRequestAsync<CreateDeckResponse>(request.Action, request, cancellationToken);
         return response;
     }
@@ -115,6 +126,12 @@ public class AnkiService : IAnkiService
     /// <inheritdoc />
     public async Task<AddNoteResponse> AddNoteAsync(AddNoteRequestDto request, CancellationToken cancellationToken = default)
     {
+        if (request.Params == null)
+        {
+            throw new ArgumentException("Request parameters cannot be null", nameof(request));
+        }
+        var paramsObj = (AddNoteParams)request.Params;
+        _logger.LogInformation("Adding note to deck {DeckName}", paramsObj.Note.DeckName);
         var response = await SendRequestAsync<AddNoteResponse>(request.Action, request, cancellationToken);
         return response;
     }
@@ -122,6 +139,12 @@ public class AnkiService : IAnkiService
     /// <inheritdoc />
     public async Task<FindNotesResponse> FindNotesAsync(FindNotesRequestDto request, CancellationToken cancellationToken = default)
     {
+        if (request.Params == null)
+        {
+            throw new ArgumentException("Request parameters cannot be null", nameof(request));
+        }
+        var paramsObj = (FindNotesParams)request.Params;
+        _logger.LogDebug("Finding notes with query: {Query}", paramsObj.Query);
         var response = await SendRequestAsync<FindNotesResponse>(request.Action, request, cancellationToken);
         return response;
     }
@@ -157,6 +180,12 @@ public class AnkiService : IAnkiService
     /// <inheritdoc />
     public async Task<UpdateNoteFieldsResponse> UpdateNoteFieldsAsync(UpdateNoteFieldsRequestDto request, CancellationToken cancellationToken = default)
     {
+        if (request.Params == null)
+        {
+            throw new ArgumentException("Request parameters cannot be null", nameof(request));
+        }
+        var paramsObj = (UpdateNoteFieldsParams)request.Params;
+        _logger.LogInformation("Updating note {NoteId}", paramsObj.Note.Id);
         var response = await SendRequestAsync<UpdateNoteFieldsResponse>(request.Action, request, cancellationToken);
         return response;
     }
@@ -164,6 +193,12 @@ public class AnkiService : IAnkiService
     /// <inheritdoc />
     public async Task<NotesInfoResponse> NotesInfoAsync(NotesInfoRequestDto request, CancellationToken cancellationToken = default)
     {
+        if (request.Params == null)
+        {
+            throw new ArgumentException("Request parameters cannot be null", nameof(request));
+        }
+        var paramsObj = (NotesInfoParams)request.Params;
+        _logger.LogDebug("Getting info for {Count} notes", paramsObj.Notes?.Count() ?? 0);
         var response = await SendRequestAsync<NotesInfoResponse>(request.Action, request, cancellationToken);
         return response;
     }
@@ -186,11 +221,10 @@ public class AnkiService : IAnkiService
         where TResponse : class
     {
         // Log the request being sent for debugging
-        var requestJson = System.Text.Json.JsonSerializer.Serialize(request);
-        Console.WriteLine($"Sending AnkiConnect request: {requestJson}");
+        _logger.LogDebug("Sending AnkiConnect request: {Request}", System.Text.Json.JsonSerializer.Serialize(request));
 
         // AnkiConnect expects all requests to be sent to the base URL, not to action-specific endpoints
-        var content = new StringContent(requestJson, Encoding.UTF8);
+        var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(request), Encoding.UTF8);
         var httpResponse = await _httpClient.PostAsync(_baseUrl, content, cancellationToken);
         httpResponse.EnsureSuccessStatusCode();
 
@@ -203,8 +237,7 @@ public class AnkiService : IAnkiService
             }
 
             // Log the response for debugging
-            var responseJson = System.Text.Json.JsonSerializer.Serialize(response);
-            Console.WriteLine($"Received AnkiConnect response: {responseJson}");
+            _logger.LogDebug("Received AnkiConnect response: {Response}", System.Text.Json.JsonSerializer.Serialize(response));
 
             // Check for error if the response has an Error property
             var errorProperty = typeof(TResponse).GetProperty("Error");
@@ -213,6 +246,7 @@ public class AnkiService : IAnkiService
                 var error = errorProperty.GetValue(response);
                 if (error != null)
                 {
+                    _logger.LogError("AnkiConnect error: {Error}", error);
                     throw new InvalidOperationException($"AnkiConnect error: {error}");
                 }
             }
@@ -225,6 +259,7 @@ public class AnkiService : IAnkiService
             // This could be HTML error page, different JSON format, etc.
             // Let's try to read the raw response content for debugging
             var rawContent = await _httpClient.ReadAsStringAsync(httpResponse.Content, cancellationToken);
+            _logger.LogError(ex, "AnkiConnect returned an unexpected response format. Raw response: {RawContent}", rawContent[..Math.Min(500, rawContent.Length)]);
             throw new InvalidOperationException($"AnkiConnect returned an unexpected response format. Raw response: {rawContent[..Math.Min(500, rawContent.Length)]}. This may indicate AnkiConnect is not properly installed or configured.", ex);
         }
     }

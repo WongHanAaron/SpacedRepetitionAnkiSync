@@ -1,9 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\AnkiSync.Adapter.AnkiConnect\AnkiSync.Adapter.AnkiConnect.csproj" />
+    <ProjectReference Include="..\AnkiSync.Adapter.SpacedRepetitionNotes\AnkiSync.Adapter.SpacedRepetitionNotes.csproj" />
     <ProjectReference Include="..\AnkiSync.Application\AnkiSync.Application.csproj" />
     <ProjectReference Include="..\AnkiSync.Domain\AnkiSync.Domain.csproj" />
-    <ProjectReference Include="..\AnkiSync.Adapter.AnkiConnect\AnkiSync.Adapter.AnkiConnect.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -11,6 +12,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.0" />
   </ItemGroup>
 

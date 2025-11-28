@@ -28,7 +28,7 @@ public class DeckInferencer : IDeckInferencer
     /// <param name="fileSystem">The file system abstraction to use</param>
     public DeckInferencer(IFileSystem fileSystem)
     {
-        _fileSystem = fileSystem;
+        _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
     }
 
     /// <summary>

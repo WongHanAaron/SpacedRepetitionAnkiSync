@@ -1,6 +1,7 @@
 using AnkiSync.Adapter.AnkiConnect.Models;
 using AnkiSync.Domain;
 using AnkiSync.Adapter.AnkiConnect.Client;
+using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
 
 namespace AnkiSync.Adapter.AnkiConnect;
@@ -11,10 +12,12 @@ namespace AnkiSync.Adapter.AnkiConnect;
 public class DeckRepository : IDeckRepository
 {
     private readonly IAnkiService _ankiService;
+    private readonly ILogger<DeckRepository> _logger;
 
-    public DeckRepository(IAnkiService ankiService)
+    public DeckRepository(IAnkiService ankiService, ILogger<DeckRepository> logger)
     {
         _ankiService = ankiService ?? throw new ArgumentNullException(nameof(ankiService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <inheritdoc />
@@ -24,6 +27,8 @@ public class DeckRepository : IDeckRepository
         {
             throw new ArgumentNullException(nameof(deckId));
         }
+
+        _logger.LogInformation("Retrieving deck {DeckId} from Anki", deckId.ToAnkiDeckName());
 
         // Find all notes in the specified deck
         var ankiDeckName = deckId.ToAnkiDeckName();
@@ -71,6 +76,8 @@ public class DeckRepository : IDeckRepository
         {
             throw new ArgumentException("Deck DeckId cannot be null", nameof(deck));
         }
+
+        _logger.LogInformation("Upserting deck {DeckId} with {CardCount} cards", deck.DeckId.ToAnkiDeckName(), deck.Cards.Count);
 
         // Create the deck if it doesn't exist
         var ankiDeckName = deck.DeckId.ToAnkiDeckName();

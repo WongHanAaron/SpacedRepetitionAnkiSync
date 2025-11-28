@@ -1,6 +1,7 @@
 using AnkiSync.Adapter.SpacedRepetitionNotes.Models;
 using AnkiSync.Domain;
 using AnkiSync.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,6 +17,7 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
     private readonly ICardExtractor _cardExtractor;
     private readonly IDeckInferencer _deckInferencer;
     private readonly IFileSystem _fileSystem;
+    private readonly ILogger<SpacedRepetitionNotesRepository> _logger;
     private FileSystemWatcher? _fileSystemWatcher;
 
     /// <summary>
@@ -25,12 +27,14 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
         IFileParser fileParser,
         ICardExtractor cardExtractor,
         IDeckInferencer deckInferencer,
-        IFileSystem fileSystem)
+        IFileSystem fileSystem,
+        ILogger<SpacedRepetitionNotesRepository> logger)
     {
-        _fileParser = fileParser;
-        _cardExtractor = cardExtractor;
-        _deckInferencer = deckInferencer;
-        _fileSystem = fileSystem;
+        _fileParser = fileParser ?? throw new ArgumentNullException(nameof(fileParser));
+        _cardExtractor = cardExtractor ?? throw new ArgumentNullException(nameof(cardExtractor));
+        _deckInferencer = deckInferencer ?? throw new ArgumentNullException(nameof(deckInferencer));
+        _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -38,6 +42,8 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
     /// </summary>
     public async Task<IEnumerable<Deck>> GetCardsFromFiles(IEnumerable<string> filePaths, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Retrieving cards from files: {Files}", string.Join(", ", filePaths));
+
         var allCards = new List<ParsedCardBase>();
 
         foreach (var filePath in filePaths)
@@ -53,11 +59,21 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
 
                 // Parse the content
                 var document = await _fileParser.ParseContentAsync(filePath, content, fileInfo.LastWriteTimeUtc);
+
+                // Skip documents without tags
+                if (document.Tags.NestedTags.Count == 0)
+                {
+                    _logger.LogDebug("Skipping file {FilePath} as it has no tags", filePath);
+                    continue;
+                }
+
                 var cards = _cardExtractor.ExtractCards(document);
+                _logger.LogDebug("Extracted {Count} cards from {FilePath}", cards.Count(), filePath);
                 allCards.AddRange(cards);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to process file {FilePath}", filePath);
                 // Skip files that can't be parsed
                 continue;
             }
@@ -72,6 +88,13 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
     /// </summary>
     public async Task<IEnumerable<Deck>> GetCardsFromDirectories(IEnumerable<string> directories, CancellationToken cancellationToken = default)
     {
+        if (directories == null)
+        {
+            throw new ArgumentNullException(nameof(directories));
+        }
+
+        _logger.LogInformation("Retrieving cards from directories: {Directories}", string.Join(", ", directories));
+
         var filePaths = new List<string>();
 
         foreach (var directory in directories)

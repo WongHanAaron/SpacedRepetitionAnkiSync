@@ -1,6 +1,11 @@
 // using AnkiSync.Adapter.AnkiConnect;
 // using AnkiSync.Adapter.AnkiConnect.Configuration;
+using AnkiSync.Adapter.AnkiConnect;
+using AnkiSync.Adapter.SpacedRepetitionNotes;
+using AnkiSync.Application;
 using AnkiSync.Domain;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 
 namespace AnkiSync.Presentation.Cli;
@@ -12,12 +17,11 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        Console.WriteLine("AnkiSync - Synchronize flashcards from files to Anki");
-        Console.WriteLine();
+        var logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<Program>();
 
         if (args.Length == 0)
         {
-            ShowHelp();
+            ShowHelp(logger);
             return;
         }
 
@@ -25,118 +29,106 @@ public class Program
 
         try
         {
-            // TODO: Create client with new interface design
-            // var options = new AnkiConnectOptions();
-            // using var client = new AnkiConnectClient(options);
+            // Set up dependency injection
+            var services = new ServiceCollection();
+            ConfigureServices(services);
+            var serviceProvider = services.BuildServiceProvider();
 
-            Console.WriteLine("AnkiConnect interface not yet implemented.");
-            Console.WriteLine("Please implement the new AnkiConnect interface first.");
-
-            // switch (command)
-            // {
-            //     case "status":
-            //         await HandleStatusCommand(client);
-            //         break;
-            //     case "decks":
-            //         await HandleDecksCommand(client);
-            //         break;
-            //     case "test":
-            //         await HandleTestCommand(client);
-            //         break;
-            //     default:
-            //         Console.WriteLine($"Unknown command: {command}");
-            //         ShowHelp();
-            //         break;
-            // }
+            switch (command)
+            {
+                case "sync":
+                    await HandleSyncCommand(serviceProvider, args, logger);
+                    break;
+                case "status":
+                    // TODO: Implement status command
+                    logger.LogWarning("Status command not yet implemented.");
+                    break;
+                case "decks":
+                    // TODO: Implement decks command
+                    logger.LogWarning("Decks command not yet implemented.");
+                    break;
+                case "test":
+                    // TODO: Implement test command
+                    logger.LogWarning("Test command not yet implemented.");
+                    break;
+                default:
+                    logger.LogWarning("Unknown command: {Command}", command);
+                    ShowHelp(logger);
+                    break;
+            }
 
             await Task.CompletedTask; // Keep method async for future use
         }
         catch (Exception ex)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Error: {ex.Message}");
-            Console.ResetColor();
+            logger.LogError(ex, "An error occurred");
         }
     }
 
-    private static void ShowHelp()
+    private static void ShowHelp(ILogger logger)
     {
-        Console.WriteLine("Usage: AnkiSync <command>");
-        Console.WriteLine();
-        Console.WriteLine("Commands:");
-        Console.WriteLine("  status    Check Anki connection status");
-        Console.WriteLine("  decks     List available Anki decks");
-        Console.WriteLine("  test      Test Anki connection");
-        Console.WriteLine();
-        Console.WriteLine("Examples:");
-        Console.WriteLine("  AnkiSync status");
-        Console.WriteLine("  AnkiSync decks");
-        Console.WriteLine("  AnkiSync test");
+        logger.LogInformation("Usage: AnkiSync <command>");
+        logger.LogInformation("Commands:");
+        logger.LogInformation("  sync <directory>    Synchronize flashcards from directory to Anki");
+        logger.LogInformation("  status              Check Anki connection status");
+        logger.LogInformation("  decks               List available Anki decks");
+        logger.LogInformation("  test                Test Anki connection");
+        logger.LogInformation("Examples:");
+        logger.LogInformation("  AnkiSync sync C:\\MyNotes");
     }
 
     // TODO: Implement command handlers with new interface
     // private static async Task HandleStatusCommand(AnkiConnectClient client)
     // {
-    //     Console.WriteLine("Checking Anki connection status...");
+    //     logger.LogInformation("Checking Anki connection status...");
     //
     //     var status = await client.GetSyncStatusAsync();
     //
-    //     Console.WriteLine("AnkiSync Status:");
-    //     Console.WriteLine($"  Anki Connection: {status.AnkiConnectionStatus}");
-    //     Console.WriteLine($"  Sync Running: {status.IsRunning}");
+    //     logger.LogInformation("AnkiSync Status:");
+    //     logger.LogInformation("  Anki Connection: {Status}", status.AnkiConnectionStatus);
+    //     logger.LogInformation("  Sync Running: {Running}", status.IsRunning);
     //
     //     if (status.AnkiConnectionStatus == AnkiConnectionStatus.Connected)
     //     {
-    //         Console.ForegroundColor = ConsoleColor.Green;
-    //         Console.WriteLine("? Connected to Anki");
-    //         Console.ResetColor();
+    //         logger.LogInformation("✓ Connected to Anki");
     //     }
     //     else
     //     {
-    //         Console.ForegroundColor = ConsoleColor.Red;
-    //         Console.WriteLine("? Not connected to Anki");
-    //         Console.ResetColor();
+    //         logger.LogError("✗ Not connected to Anki");
     //     }
-    // }
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        // Register application services
+        services.AddApplicationServices();
+        
+        // Register adapters
+        services.AddSpacedRepetitionNotesAdapter();
+        services.AddAnkiConnectAdapter();
+    }
 
-    // private static async Task HandleDecksCommand(AnkiConnectClient client)
-    // {
-    //     Console.WriteLine("Retrieving Anki decks...");
-    //
-    //     var decks = await client.GetDecksAsync();
-    //
-    //     Console.WriteLine("Available Anki Decks:");
-    //     if (decks != null && decks.Any())
-    //     {
-    //         foreach (var deck in decks.OrderBy(d => d))
-    //         {
-    //             Console.WriteLine($"  � {deck}");
-    //         }
-    //     }
-    //     else
-    //     {
-    //         Console.WriteLine("  No decks found");
-    //     }
-    // }
+    private static async Task HandleSyncCommand(IServiceProvider serviceProvider, string[] args, ILogger logger)
+    {
+        if (args.Length < 2)
+        {
+            logger.LogError("Usage: ankisync sync <directory>");
+            logger.LogInformation("Example: ankisync sync C:\\MyNotes");
+            return;
+        }
 
-    // private static async Task HandleTestCommand(AnkiConnectClient client)
-    // {
-    //     Console.WriteLine("Testing Anki connection...");
-    //
-    //     var isConnected = await client.ValidateAnkiConnectionAsync();
-    //
-    //     if (isConnected)
-    //     {
-    //         Console.ForegroundColor = ConsoleColor.Green;
-    //         Console.WriteLine("? Successfully connected to Anki");
-    //         Console.ResetColor();
-    //     }
-    //     else
-    //     {
-    //         Console.ForegroundColor = ConsoleColor.Red;
-    //         Console.WriteLine("? Failed to connect to Anki");
-    //         Console.ResetColor();
-    //         Console.WriteLine("Make sure Anki is running with AnkiConnect plugin installed");
-    //     }
-    // }
+        var directory = args[1];
+        
+        logger.LogInformation("Synchronizing flashcards from directory: {Directory}", directory);
+        
+        try
+        {
+            var synchronizationService = serviceProvider.GetRequiredService<CardSynchronizationService>();
+            await synchronizationService.SynchronizeCardsAsync(new[] { directory });
+            
+            logger.LogInformation("Synchronization completed successfully!");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Synchronization failed");
+        }
+    }
 }

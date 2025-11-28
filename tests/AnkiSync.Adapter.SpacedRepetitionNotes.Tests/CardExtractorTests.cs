@@ -105,7 +105,7 @@ Largest planet:::Jupiter";
         var cards = _cardExtractor.ExtractCards(document).ToList();
 
         // Assert
-        cards.Should().HaveCount(5); // 4 reversed cards + 1 multi-line card from tags
+        cards.Should().HaveCount(4); // 4 reversed cards
         cards.Should().AllBeOfType<ParsedQuestionAnswerCard>();
 
         // First card: Capital of France -> Paris

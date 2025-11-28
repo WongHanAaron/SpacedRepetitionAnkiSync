@@ -70,8 +70,12 @@ public class CardExtractor : ICardExtractor
                     var question = parts[0].Trim();
                     var answer = parts[1].Trim();
 
-                    if (!string.IsNullOrWhiteSpace(question) && !string.IsNullOrWhiteSpace(answer))
+                    if (!string.IsNullOrWhiteSpace(question))
                     {
+                        if (string.IsNullOrWhiteSpace(answer))
+                        {
+                            question = trimmed; // Keep the original line for malformed
+                        }
                         yield return new ParsedQuestionAnswerCard
                         {
                             Question = question,
@@ -149,7 +153,7 @@ public class CardExtractor : ICardExtractor
                     currentCard.Clear();
                 }
             }
-            else if (!string.IsNullOrWhiteSpace(trimmed))
+            else if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.Contains("::"))
             {
                 currentCard.Add(line); // Keep original formatting
             }

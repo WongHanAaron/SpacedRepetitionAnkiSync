@@ -1,6 +1,7 @@
 using AnkiSync.Adapter.AnkiConnect.Client;
 using AnkiSync.Adapter.AnkiConnect.Models;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System.Net;
 using System.Net.Http;
@@ -16,12 +17,14 @@ namespace AnkiSync.Adapter.AnkiConnect.Tests;
 public class AnkiServiceTests
 {
     private readonly Mock<IHttpClient> _httpClientMock;
+    private readonly Mock<ILogger<AnkiService>> _loggerMock;
     private readonly AnkiService _ankiService;
 
     public AnkiServiceTests()
     {
         _httpClientMock = new Mock<IHttpClient>();
-        _ankiService = new AnkiService(_httpClientMock.Object);
+        _loggerMock = new Mock<ILogger<AnkiService>>();
+        _ankiService = new AnkiService(_httpClientMock.Object, _loggerMock.Object);
     }
 
     [Fact]
