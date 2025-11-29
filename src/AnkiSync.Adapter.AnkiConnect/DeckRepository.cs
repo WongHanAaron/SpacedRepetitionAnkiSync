@@ -274,4 +274,118 @@ public class DeckRepository : IDeckRepository
 
         return text;
     }
+
+    /// <inheritdoc />
+    public async Task<IEnumerable<DeckId>> GetAllDeckIdsAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving all deck IDs from Anki");
+
+        var decksResponse = await _ankiService.GetDecksAsync(new GetDecksRequestDto(), cancellationToken);
+        if (decksResponse.Result == null)
+        {
+            return new List<DeckId>();
+        }
+
+        var deckIds = new List<DeckId>();
+        foreach (var deckName in decksResponse.Result)
+        {
+            try
+            {
+                var deckId = DeckIdExtensions.FromAnkiDeckName(deckName);
+                deckIds.Add(deckId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to parse deck name '{DeckName}' as DeckId", deckName);
+            }
+        }
+
+        return deckIds;
+    }
+
+    /// <inheritdoc />
+    public async Task DeleteDeckAsync(DeckId deckId, CancellationToken cancellationToken = default)
+    {
+        if (deckId == null)
+        {
+            throw new ArgumentNullException(nameof(deckId));
+        }
+
+        _logger.LogInformation("Deleting deck {DeckId} from Anki", deckId.ToAnkiDeckName());
+
+        var ankiDeckName = deckId.ToAnkiDeckName();
+        var deleteDecksRequest = new DeleteDecksRequestDto(new List<string> { ankiDeckName }, true);
+        await _ankiService.DeleteDecksAsync(deleteDecksRequest, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task DeleteObsoleteCardsAsync(DeckId deckId, IEnumerable<Card> cardsToKeep, CancellationToken cancellationToken = default)
+    {
+        if (deckId == null)
+        {
+            throw new ArgumentNullException(nameof(deckId));
+        }
+
+        _logger.LogInformation("Deleting obsolete cards from deck {DeckId}", deckId.ToAnkiDeckName());
+
+        var ankiDeckName = deckId.ToAnkiDeckName();
+
+        // Find all notes in the deck
+        var findNotesRequest = new FindNotesRequestDto($"deck:\"{ankiDeckName}\"");
+        var findNotesResponse = await _ankiService.FindNotesAsync(findNotesRequest, cancellationToken);
+        var existingNoteIds = findNotesResponse.Result ?? new List<long>();
+
+        if (!existingNoteIds.Any())
+        {
+            return; // No notes to delete
+        }
+
+        // Get details of existing notes
+        var notesInfoRequest = new NotesInfoRequestDto(existingNoteIds);
+        var notesInfoResponse = await _ankiService.NotesInfoAsync(notesInfoRequest, cancellationToken);
+        var existingNotes = notesInfoResponse.Result ?? new List<NoteInfo>();
+
+        // Find notes that should be deleted (exist in Anki but not in cardsToKeep)
+        var notesToDelete = new List<long>();
+        var cardsToKeepList = cardsToKeep.ToList();
+
+        foreach (var note in existingNotes)
+        {
+            var shouldKeep = false;
+
+            foreach (var cardToKeep in cardsToKeepList)
+            {
+                if (CardMatchesNote(cardToKeep, note))
+                {
+                    shouldKeep = true;
+                    break;
+                }
+            }
+
+            if (!shouldKeep)
+            {
+                notesToDelete.Add(note.NoteId);
+            }
+        }
+
+        if (notesToDelete.Any())
+        {
+            _logger.LogDebug("Deleting {Count} obsolete notes from deck {DeckId}", notesToDelete.Count, deckId.ToAnkiDeckName());
+            var deleteNotesRequest = new DeleteNotesRequestDto(notesToDelete);
+            await _ankiService.DeleteNotesAsync(deleteNotesRequest, cancellationToken);
+        }
+    }
+
+    private bool CardMatchesNote(Card card, NoteInfo note)
+    {
+        return card switch
+        {
+            QuestionAnswerCard qaCard =>
+                note.Fields.TryGetValue("Front", out var front) && front.Value == qaCard.Question &&
+                note.Fields.TryGetValue("Back", out var back) && back.Value == qaCard.Answer,
+            ClozeCard clozeCard =>
+                note.Fields.TryGetValue("Text", out var text) && text.Value == ConvertPlaceholdersToClozeFormat(clozeCard),
+            _ => false
+        };
+    }
 }

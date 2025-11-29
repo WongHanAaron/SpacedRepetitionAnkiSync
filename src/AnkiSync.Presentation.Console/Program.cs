@@ -53,6 +53,10 @@ public class Program
             });
             logging.AddConsoleFormatter<AnkiSyncConsoleFormatter, ConsoleFormatterOptions>();
             logging.SetMinimumLevel(LogLevel.Information);
+            
+            // Filter to only show logs from AnkiSync namespaces
+            logging.AddFilter("AnkiSync", LogLevel.Information);
+            logging.AddFilter((category, level) => category?.StartsWith("AnkiSync.") ?? false);
         });
 
         // Register console service
