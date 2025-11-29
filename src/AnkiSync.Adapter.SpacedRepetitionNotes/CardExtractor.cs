@@ -1,5 +1,6 @@
 using AnkiSync.Adapter.SpacedRepetitionNotes.Models;
 using AnkiSync.Domain;
+using Microsoft.Extensions.Logging;
 
 namespace AnkiSync.Adapter.SpacedRepetitionNotes;
 
@@ -21,6 +22,15 @@ public interface ICardExtractor
 /// </summary>
 public class CardExtractor : ICardExtractor
 {
+    private readonly ILogger<CardExtractor> _logger;
+
+    /// <summary>
+    /// Initializes a new instance of CardExtractor
+    /// </summary>
+    public CardExtractor(ILogger<CardExtractor> logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
     /// <summary>
     /// Extracts cards from document metadata
     /// </summary>
@@ -68,29 +78,29 @@ public class CardExtractor : ICardExtractor
 
     private IEnumerable<ParsedCardBase> ExtractSingleLineFlashcards(string[] lines, Document document)
     {
-        Console.WriteLine($"Extracting cards from {lines.Length} lines");
+        _logger.LogDebug("Extracting cards from {LineCount} lines", lines.Length);
         
         for (int i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             var trimmed = line.Trim();
-            Console.WriteLine($"Processing line {i}: '{trimmed}'");
+            _logger.LogTrace("Processing line {LineNumber}: '{LineContent}'", i, trimmed);
             
             if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#"))
             {
-                Console.WriteLine("Skipping empty line or comment");
+                _logger.LogTrace("Skipping empty line or comment");
                 continue;
             }
 
             if (trimmed.Contains("{{") || trimmed.Contains("==") || trimmed.Contains("**"))
             {
-                Console.WriteLine("Skipping line with cloze markers");
+                _logger.LogTrace("Skipping line with cloze markers");
                 continue;
             }
 
             if (trimmed.Contains(":::"))
             {
-                Console.WriteLine("Skipping line with reversed card marker");
+                _logger.LogTrace("Skipping line with reversed card marker");
                 continue;
             }
 
@@ -100,7 +110,7 @@ public class CardExtractor : ICardExtractor
             {
                 var question = parts[0].Trim();
                 var answer = parts[1].Trim();
-                Console.WriteLine($"Found potential card with '?::' separator - Q: '{question}', A: '{answer}'");
+                _logger.LogTrace("Found potential card with '?::' separator - Q: '{Question}', A: '{Answer}'", question, answer);
 
                 if (!string.IsNullOrWhiteSpace(question))
                 {
@@ -108,7 +118,7 @@ public class CardExtractor : ICardExtractor
                     if (!question.EndsWith("?"))
                     {
                         question += "?";
-                        Console.WriteLine("Added missing question mark");
+                        _logger.LogTrace("Added missing question mark");
                     }
 
                     var q = string.IsNullOrWhiteSpace(answer) ? trimmed : question;
@@ -119,14 +129,14 @@ public class CardExtractor : ICardExtractor
                         Tags = document.Tags,
                         SourceFilePath = document.FilePath
                     };
-                    Console.WriteLine($"Yielding card: Q: {card.Question}, A: {card.Answer}");
+                    _logger.LogDebug("Yielding card: Q: {Question}, A: {Answer}", card.Question, card.Answer);
                     yield return card;
                     continue; // Move to next line after processing this card
                 }
             }
             else
             {
-                Console.WriteLine("No '?::' separator found, trying '::'");
+                _logger.LogTrace("No '?::' separator found, trying '::'");
             }
 
             // If no match with "?::", try splitting by just "::"
@@ -135,7 +145,7 @@ public class CardExtractor : ICardExtractor
             {
                 var question = parts[0].Trim();
                 var answer = parts[1].Trim();
-                Console.WriteLine($"Found potential card with '::' separator - Q: '{question}', A: '{answer}'");
+                _logger.LogTrace("Found potential card with '::' separator - Q: '{Question}', A: '{Answer}'", question, answer);
 
                 // Only consider it a valid card if the question ends with a question mark
                 if (!string.IsNullOrWhiteSpace(question))
@@ -148,17 +158,17 @@ public class CardExtractor : ICardExtractor
                         Tags = document.Tags,
                         SourceFilePath = document.FilePath
                     };
-                    Console.WriteLine($"Yielding card: Q: {card.Question}, A: {card.Answer}");
+                    _logger.LogDebug("Yielding card: Q: {Question}, A: {Answer}", card.Question, card.Answer);
                     yield return card;
                 }
                 else
                 {
-                    Console.WriteLine("Skipping card - question is invalid");
+                    _logger.LogTrace("Skipping card - question is invalid");
                 }
             }
             else
             {
-                Console.WriteLine("No valid card format found on this line");
+                _logger.LogTrace("No valid card format found on this line");
             }
         }
     }

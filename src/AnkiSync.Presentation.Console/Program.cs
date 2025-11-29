@@ -43,6 +43,18 @@ public class Program
         // Register file system abstraction
         services.AddSingleton<IFileSystem, FileSystem>();
 
+        // Configure logging
+        services.AddLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddConsole(options =>
+            {
+                options.FormatterName = "AnkiSyncFormatter";
+            });
+            logging.AddConsoleFormatter<AnkiSyncConsoleFormatter, ConsoleFormatterOptions>();
+            logging.SetMinimumLevel(LogLevel.Information);
+        });
+
         // Register console service
         services.AddSingleton<AnkiSyncConsoleService>();
     }

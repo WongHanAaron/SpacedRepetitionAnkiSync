@@ -57,7 +57,7 @@ Test Question 2?::This is the answer to question 2.
 
         // Create services
         var fileParser = new FileParser();
-        var cardExtractor = new CardExtractor();
+        var cardExtractor = new CardExtractor(NullLogger<CardExtractor>.Instance);
         var deckInferencer = new DeckInferencer(mockFileSystem);
         var logger = NullLogger<SpacedRepetitionNotesRepository>.Instance;
         var cardSourceRepository = new SpacedRepetitionNotesRepository(fileParser, cardExtractor, deckInferencer, mockFileSystem, logger);
@@ -131,7 +131,7 @@ New Question?::New Answer.
 
         // Create services manually
         var fileParser = new FileParser();
-        var cardExtractor = new CardExtractor();
+        var cardExtractor = new CardExtractor(NullLogger<CardExtractor>.Instance);
         
         var deckInferencer = new DeckInferencer(mockFileSystem);
         var logger = NullLogger<SpacedRepetitionNotesRepository>.Instance;
@@ -198,7 +198,7 @@ Question?::Updated Answer.
 
         // Create services manually
         var fileParser = new FileParser();
-        var cardExtractor = new CardExtractor();
+        var cardExtractor = new CardExtractor(NullLogger<CardExtractor>.Instance);
         
         var deckInferencer = new DeckInferencer(mockFileSystem);
         var logger = NullLogger<SpacedRepetitionNotesRepository>.Instance;
@@ -259,7 +259,7 @@ Q2?::A2.
 
         // Create services manually
         var fileParser = new FileParser();
-        var cardExtractor = new CardExtractor();
+        var cardExtractor = new CardExtractor(NullLogger<CardExtractor>.Instance);
         
         var deckInferencer = new DeckInferencer(mockFileSystem);
         var logger = NullLogger<SpacedRepetitionNotesRepository>.Instance;
@@ -303,7 +303,7 @@ The {{c3::Nile}} is the longest {{c4::river}} in the world.
 
         // Create services manually
         var fileParser = new FileParser();
-        var cardExtractor = new CardExtractor();
+        var cardExtractor = new CardExtractor(NullLogger<CardExtractor>.Instance);
         
         var deckInferencer = new DeckInferencer(mockFileSystem);
         var logger = NullLogger<SpacedRepetitionNotesRepository>.Instance;

@@ -1,6 +1,8 @@
 using AnkiSync.Adapter.SpacedRepetitionNotes;
 using AnkiSync.Adapter.SpacedRepetitionNotes.Models;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 using System.IO;
 
@@ -8,7 +10,13 @@ namespace AnkiSync.Adapter.SpacedRepetitionNotes.Tests;
 
 public class CardExtractorTests
 {
-    private readonly CardExtractor _cardExtractor = new();
+    private readonly CardExtractor _cardExtractor;
+
+    public CardExtractorTests()
+    {
+        var loggerMock = new Mock<ILogger<CardExtractor>>();
+        _cardExtractor = new CardExtractor(loggerMock.Object);
+    }
 
     [Fact]
     public void ExtractCards_WithAwsStudyGuideContent_ShouldExtractManyCards()
