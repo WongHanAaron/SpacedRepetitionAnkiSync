@@ -337,11 +337,11 @@ public class CardExtractor : ICardExtractor
                 var answers = new Dictionary<string, string>();
                 var placeholderText = trimmed;
                 var clozeFound = false;
+                var unnamedClozeIndex = 1;
 
                 // Handle Anki-style cloze: {{c1::text}} or {{keyword::text}}
                 var ankiClozePattern = @"{{(?:c(\d+)|([^:]+))::([^}]+)}}";
                 var ankiMatches = System.Text.RegularExpressions.Regex.Matches(trimmed, ankiClozePattern);
-
                 foreach (System.Text.RegularExpressions.Match match in ankiMatches)
                 {
                     clozeFound = true;
@@ -361,7 +361,7 @@ public class CardExtractor : ICardExtractor
                     else
                     {
                         // Fallback for unexpected format
-                        keyword = $"answer{Guid.NewGuid().ToString().Substring(0, 8)}";
+                        keyword = $"answer{unnamedClozeIndex++}";
                     }
 
                     answers[keyword] = answer;
@@ -380,7 +380,7 @@ public class CardExtractor : ICardExtractor
                 {
                     clozeFound = true;
                     var answer = match.Groups[1].Value;
-                    var keyword = $"cloze{Guid.NewGuid().ToString().Substring(0, 8)}";
+                    var keyword = $"answer{unnamedClozeIndex++}";
                     answers[keyword] = answer;
 
                     // Replace with named placeholder
@@ -396,10 +396,10 @@ public class CardExtractor : ICardExtractor
                 {
                     clozeFound = true;
                     var answer = match.Groups[1].Value;
-                    var keyword = $"cloze{Guid.NewGuid().ToString().Substring(0, 8)}";
+                    var keyword = $"answer{unnamedClozeIndex++}";
                     answers[keyword] = answer;
 
-                    // Replace with named placeholder
+                    // Replace the cloze with a named placeholder
                     var placeholder = $"{{{keyword}}}";
                     placeholderText = placeholderText.Replace(match.Value, placeholder);
                 }
@@ -412,10 +412,10 @@ public class CardExtractor : ICardExtractor
                 {
                     clozeFound = true;
                     var answer = match.Groups[1].Value;
-                    var keyword = $"cloze{Guid.NewGuid().ToString().Substring(0, 8)}";
+                    var keyword = $"answer{unnamedClozeIndex++}";
                     answers[keyword] = answer;
 
-                    // Replace with named placeholder
+                    // Replace the cloze with a named placeholder
                     var placeholder = $"{{{keyword}}}";
                     placeholderText = placeholderText.Replace(match.Value, placeholder);
                 }

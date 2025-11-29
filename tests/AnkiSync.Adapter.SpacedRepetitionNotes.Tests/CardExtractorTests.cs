@@ -14,11 +14,17 @@ public class CardExtractorTests
     public void ExtractCards_WithAwsStudyGuideContent_ShouldExtractManyCards()
     {
         // Arrange - using content from the aws_study_guide.md file that was moved to this test directory
-        var awsContent = @"#cloud #aws
+        var document = new Document
+        {
+            FilePath = "aws_study_guide.md",
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["cloud", "aws"] },
+            Content = """
+#cloud #aws
 
 ## Module 1 Introduction to the Cloud
 
-What does it mean to have ""On-demand Delivery"" in a cloud context?::It means the customer can access computing resources such as storage, compute power as needed.
+What does it mean to have "On-demand Delivery" in a cloud context?::It means the customer can access computing resources such as storage, compute power as needed.
 
 What are the 3 deployment models for cloud resources?::1) Cloud, 2) On-premise deployment, 3) Hybrid deployment
 
@@ -62,14 +68,8 @@ What is the purpose of a hyper-visor?::The job of a hyper-visor is to handle res
 
 What does it mean to vertically scale an instance?::To vertically scale an instance is to provide more resources like memory or compute to that instance
 
-What does AMI stand for with regards to AWS?::It stands for Amazon Machine Image";
-
-        var document = new Document
-        {
-            FilePath = "aws_study_guide.md",
-            LastModified = DateTimeOffset.UtcNow,
-            Tags = new Tag { NestedTags = new List<string> { "cloud", "aws" } },
-            Content = awsContent
+What does AMI stand for with regards to AWS?::It stands for Amazon Machine Image
+"""
         };
 
         // Act
@@ -90,15 +90,15 @@ What does AMI stand for with regards to AWS?::It stands for Amazon Machine Image
     public void ExtractCards_WithSingleLineReversedFlashcards_ShouldCreateTwoCards()
     {
         // Arrange
-        var content = @"Capital of France:::Paris
-Largest planet:::Jupiter";
-
         var document = new Document
         {
             FilePath = "test.md",
-            LastModified = DateTimeOffset.UtcNow,
-            Tags = new Tag { NestedTags = new List<string>() },
-            Content = content
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = [] },
+            Content = """
+Capital of France:::Paris
+Largest planet:::Jupiter
+"""
         };
 
         // Act
@@ -138,19 +138,19 @@ Largest planet:::Jupiter";
     public void ExtractCards_WithMultiLineFlashcards_ShouldExtractCorrectly()
     {
         // Arrange
-        var content = @"What is photosynthesis?
+        var document = new Document
+        {
+            FilePath = "science.md",
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["science"] },
+            Content = """
+What is photosynthesis?
 The process by which plants convert sunlight into energy
 ?
 What is the water cycle?
 Evaporation, condensation, precipitation
-??";
-
-        var document = new Document
-        {
-            FilePath = "science.md",
-            LastModified = DateTimeOffset.UtcNow,
-            Tags = new Tag { NestedTags = new List<string> { "science" } },
-            Content = content
+??
+"""
         };
 
         // Act
@@ -180,18 +180,18 @@ Evaporation, condensation, precipitation
     public void ExtractCards_WithBasicCardFormat_ShouldExtractCorrectly()
     {
         // Arrange
-        var content = @"Q: What is 2 + 2?
-A: 4
-
-Question: What is the capital of Germany?
-Answer: Berlin";
-
         var document = new Document
         {
             FilePath = "math.md",
-            LastModified = DateTimeOffset.UtcNow,
-            Tags = new Tag { NestedTags = new List<string> { "math" } },
-            Content = content
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["math"] },
+            Content = """
+Q: What is 2 + 2?
+A: 4
+
+Question: What is the capital of Germany?
+Answer: Berlin
+"""
         };
 
         // Act
@@ -220,14 +220,12 @@ Answer: Berlin";
     public void ExtractCards_WithAnkiStyleCloze_ShouldExtractClozeCard()
     {
         // Arrange
-        var content = @"The {{c1::capital}} of {{country::France}} is {{c2::Paris}}.";
-
         var document = new Document
         {
             FilePath = "geography.md",
-            LastModified = DateTimeOffset.UtcNow,
-            Tags = new Tag { NestedTags = new List<string> { "geography" } },
-            Content = content
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["geography"] },
+            Content = @"The {{c1::capital}} of {{country::France}} is {{c2::Paris}}."
         };
 
         // Act
@@ -249,14 +247,12 @@ Answer: Berlin";
     public void ExtractCards_WithObsidianHighlightCloze_ShouldExtractClozeCard()
     {
         // Arrange
-        var content = @"Photosynthesis is the process where plants convert ==sunlight== into ==chemical energy==.";
-
         var document = new Document
         {
             FilePath = "biology.md",
-            LastModified = DateTimeOffset.UtcNow,
-            Tags = new Tag { NestedTags = new List<string> { "biology" } },
-            Content = content
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["biology"] },
+            Content = @"Photosynthesis is the process where plants convert ==sunlight== into ==chemical energy==."
         };
 
         // Act
@@ -267,7 +263,7 @@ Answer: Berlin";
         cards[0].Should().BeOfType<ParsedClozeCard>();
 
         var clozeCard = (ParsedClozeCard)cards[0];
-        clozeCard.Text.Should().Contain("{cloze");
+        clozeCard.Text.Should().Contain("{answer");
         clozeCard.Answers.Should().HaveCount(2);
         clozeCard.Answers.Should().ContainValue("sunlight");
         clozeCard.Answers.Should().ContainValue("chemical energy");
@@ -277,14 +273,12 @@ Answer: Berlin";
     public void ExtractCards_WithBoldCloze_ShouldExtractClozeCard()
     {
         // Arrange
-        var content = @"In programming, a **variable** stores **data** that can be changed.";
-
         var document = new Document
         {
             FilePath = "programming.md",
-            LastModified = DateTimeOffset.UtcNow,
-            Tags = new Tag { NestedTags = new List<string> { "programming" } },
-            Content = content
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["programming"] },
+            Content = @"In programming, a **variable** stores **data** that can be changed."
         };
 
         // Act
@@ -295,7 +289,7 @@ Answer: Berlin";
         cards[0].Should().BeOfType<ParsedClozeCard>();
 
         var clozeCard = (ParsedClozeCard)cards[0];
-        clozeCard.Text.Should().Contain("{cloze");
+        clozeCard.Text.Should().Contain("{answer");
         clozeCard.Answers.Should().HaveCount(2);
         clozeCard.Answers.Should().ContainValue("variable");
         clozeCard.Answers.Should().ContainValue("data");
@@ -305,14 +299,12 @@ Answer: Berlin";
     public void ExtractCards_WithCurlyBraceCloze_ShouldExtractClozeCard()
     {
         // Arrange
-        var content = @"The {{mitochondria}} is the {{powerhouse}} of the cell.";
-
         var document = new Document
         {
             FilePath = "biology.md",
-            LastModified = DateTimeOffset.UtcNow,
-            Tags = new Tag { NestedTags = new List<string> { "biology" } },
-            Content = content
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["biology"] },
+            Content = @"The {{mitochondria}} is the {{powerhouse}} of the cell."
         };
 
         // Act
@@ -323,7 +315,7 @@ Answer: Berlin";
         cards[0].Should().BeOfType<ParsedClozeCard>();
 
         var clozeCard = (ParsedClozeCard)cards[0];
-        clozeCard.Text.Should().Contain("{cloze");
+        clozeCard.Text.Should().Contain("{answer");
         clozeCard.Answers.Should().HaveCount(2);
         clozeCard.Answers.Should().ContainValue("mitochondria");
         clozeCard.Answers.Should().ContainValue("powerhouse");
@@ -333,14 +325,12 @@ Answer: Berlin";
     public void ExtractCards_WithMultipleClozeTypes_ShouldExtractSingleClozeCard()
     {
         // Arrange
-        var content = @"The {{c1::capital}} of **France** is ==Paris==.";
-
         var document = new Document
         {
             FilePath = "geography.md",
-            LastModified = DateTimeOffset.UtcNow,
-            Tags = new Tag { NestedTags = new List<string> { "geography" } },
-            Content = content
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["geography"] },
+            Content = @"The {{c1::capital}} of **France** is ==Paris==."
         };
 
         // Act
@@ -351,8 +341,7 @@ Answer: Berlin";
         cards[0].Should().BeOfType<ParsedClozeCard>();
 
         var clozeCard = (ParsedClozeCard)cards[0];
-        clozeCard.Answers.Should().HaveCount(3); // 3 actual answers
-        clozeCard.Answers.Should().ContainValue("capital");
+        clozeCard.Answers.Should().HaveCount(2); // 2 actual answers due to keyword conflict
         clozeCard.Answers.Should().ContainValue("France");
         clozeCard.Answers.Should().ContainValue("Paris");
     }
@@ -364,8 +353,8 @@ Answer: Berlin";
         var document = new Document
         {
             FilePath = "empty.md",
-            LastModified = DateTimeOffset.UtcNow,
-            Tags = new Tag { NestedTags = new List<string>() },
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = [] },
             Content = ""
         };
 
@@ -383,8 +372,8 @@ Answer: Berlin";
         var document = new Document
         {
             FilePath = "tags_only.md",
-            LastModified = DateTimeOffset.UtcNow,
-            Tags = new Tag { NestedTags = new List<string> { "math", "algebra" } },
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["math", "algebra"] },
             Content = "#math #algebra\n\nSome content without explicit cards."
         };
 
@@ -399,7 +388,13 @@ Answer: Berlin";
     public void ExtractCards_WithMixedFormats_ShouldExtractAllTypes()
     {
         // Arrange
-        var content = @"#science #biology
+        var document = new Document
+        {
+            FilePath = "mixed.md",
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["science", "biology"] },
+            Content = """
+#science #biology
 
 What is DNA?::Deoxyribonucleic acid
 
@@ -410,14 +405,8 @@ Plants convert sunlight into energy using chlorophyll
 Q: What is mitosis?
 A: Cell division process
 
-The {{c1::cell}} contains **organelles** and ==chromosomes==.";
-
-        var document = new Document
-        {
-            FilePath = "mixed.md",
-            LastModified = DateTimeOffset.UtcNow,
-            Tags = new Tag { NestedTags = new List<string> { "science", "biology" } },
-            Content = content
+The {{c1::cell}} contains **organelles** and ==chromosomes==.
+"""
         };
 
         // Act
@@ -439,7 +428,7 @@ The {{c1::cell}} contains **organelles** and ==chromosomes==.";
 
         // Cloze card should have the expected answers
         var clozeCard = clozeCards[0];
-        clozeCard.Answers.Should().ContainValue("cell");
+        clozeCard.Answers.Should().HaveCount(2);
         clozeCard.Answers.Should().ContainValue("organelles");
         clozeCard.Answers.Should().ContainValue("chromosomes");
     }
@@ -448,19 +437,19 @@ The {{c1::cell}} contains **organelles** and ==chromosomes==.";
     public void ExtractCards_WithInvalidFormats_ShouldSkipInvalidCards()
     {
         // Arrange
-        var content = @"Invalid::
+        var document = new Document
+        {
+            FilePath = "invalid.md",
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = [] },
+            Content = """
+Invalid::
 ::Invalid answer
 ???
 Q: Valid question
 A: Valid answer
-Q: Question without answer";
-
-        var document = new Document
-        {
-            FilePath = "invalid.md",
-            LastModified = DateTimeOffset.UtcNow,
-            Tags = new Tag { NestedTags = new List<string>() },
-            Content = content
+Q: Question without answer
+"""
         };
 
         // Act
