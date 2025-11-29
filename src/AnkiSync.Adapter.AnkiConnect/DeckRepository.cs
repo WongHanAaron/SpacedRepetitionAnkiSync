@@ -21,7 +21,7 @@ public class DeckRepository : IDeckRepository
     }
 
     /// <inheritdoc />
-    public async Task<Deck> GetDeck(DeckId deckId, CancellationToken cancellationToken = default)
+    public async Task<Deck?> GetDeck(DeckId deckId, CancellationToken cancellationToken = default)
     {
         if (deckId == null)
         {
@@ -30,8 +30,17 @@ public class DeckRepository : IDeckRepository
 
         _logger.LogInformation("Retrieving deck {DeckId} from Anki", deckId.ToAnkiDeckName());
 
-        // Find all notes in the specified deck
         var ankiDeckName = deckId.ToAnkiDeckName();
+        
+        // First check if the deck exists by getting all decks and checking if our deck is among them
+        var decksResponse = await _ankiService.GetDecksAsync(new GetDecksRequestDto(), cancellationToken);
+        if (decksResponse.Result == null || !decksResponse.Result.Contains(ankiDeckName))
+        {
+            _logger.LogDebug("Deck {DeckName} does not exist", ankiDeckName);
+            return null;
+        }
+
+        // Find all notes in the specified deck
         var findNotesRequest = new FindNotesRequestDto($"deck:\"{ankiDeckName}\"");
         var findNotesResponse = await _ankiService.FindNotesAsync(findNotesRequest, cancellationToken);
 

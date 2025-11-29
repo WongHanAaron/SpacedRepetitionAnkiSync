@@ -36,6 +36,10 @@ public class DeckRepositoryTests
         var findNotesResponse = new FindNotesResponse { Result = new List<long>() };
 
         _ankiServiceMock
+            .Setup(x => x.GetDecksAsync(It.IsAny<GetDecksRequestDto>(), default))
+            .ReturnsAsync(new DeckNamesResponse { Result = new List<string> { "TestDeck" } });
+
+        _ankiServiceMock
             .Setup(x => x.FindNotesAsync(It.IsAny<FindNotesRequestDto>(), default))
             .ReturnsAsync(findNotesResponse);
 
@@ -44,8 +48,31 @@ public class DeckRepositoryTests
 
         // Assert
         result.Should().NotBeNull();
-        result.Name.Should().Be("TestDeck");
+        result!.DeckId.Name.Should().Be("TestDeck");
         result.Cards.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetDeck_ShouldReturnNull_WhenDeckDoesNotExist()
+    {
+        // Arrange
+        var deckId = DeckIdExtensions.FromAnkiDeckName("NonExistentDeck");
+        
+        // Mock the decks response to not include our test deck
+        var deckNamesResponse = new DeckNamesResponse 
+        { 
+            Result = new List<string> { "OtherDeck1", "OtherDeck2" } 
+        };
+        
+        _ankiServiceMock
+            .Setup(x => x.GetDecksAsync(It.IsAny<GetDecksRequestDto>(), default))
+            .ReturnsAsync(deckNamesResponse);
+
+        // Act
+        var result = await _deckRepository.GetDeck(deckId);
+
+        // Assert
+        result.Should().BeNull("because the deck does not exist");
     }
 
     [Fact]
@@ -84,6 +111,10 @@ public class DeckRepositoryTests
         var notesInfoResponse = new NotesInfoResponse { Result = notesInfo };
 
         _ankiServiceMock
+            .Setup(x => x.GetDecksAsync(It.IsAny<GetDecksRequestDto>(), default))
+            .ReturnsAsync(new DeckNamesResponse { Result = new List<string> { "TestDeck" } });
+
+        _ankiServiceMock
             .Setup(x => x.FindNotesAsync(It.IsAny<FindNotesRequestDto>(), default))
             .ReturnsAsync(findNotesResponse);
 
@@ -96,7 +127,7 @@ public class DeckRepositoryTests
 
         // Assert
         result.Should().NotBeNull();
-        result.Name.Should().Be("TestDeck");
+        result!.DeckId.Name.Should().Be("TestDeck");
         result.Cards.Should().HaveCount(2);
 
         var firstCard = result.Cards[0] as QuestionAnswerCard;
@@ -130,6 +161,10 @@ public class DeckRepositoryTests
         var notesInfoResponse = new NotesInfoResponse { Result = notesInfo };
 
         _ankiServiceMock
+            .Setup(x => x.GetDecksAsync(It.IsAny<GetDecksRequestDto>(), default))
+            .ReturnsAsync(new DeckNamesResponse { Result = new List<string> { "TestDeck" } });
+
+        _ankiServiceMock
             .Setup(x => x.FindNotesAsync(It.IsAny<FindNotesRequestDto>(), default))
             .ReturnsAsync(findNotesResponse);
 
@@ -142,7 +177,7 @@ public class DeckRepositoryTests
 
         // Assert
         result.Should().NotBeNull();
-        result.Cards.Should().HaveCount(1);
+        result!.Cards.Should().HaveCount(1);
 
         var clozeCard = result.Cards[0] as ClozeCard;
         clozeCard.Should().NotBeNull();
@@ -188,6 +223,10 @@ public class DeckRepositoryTests
         var notesInfoResponse = new NotesInfoResponse { Result = notesInfo };
 
         _ankiServiceMock
+            .Setup(x => x.GetDecksAsync(It.IsAny<GetDecksRequestDto>(), default))
+            .ReturnsAsync(new DeckNamesResponse { Result = new List<string> { "TestDeck" } });
+
+        _ankiServiceMock
             .Setup(x => x.FindNotesAsync(It.IsAny<FindNotesRequestDto>(), default))
             .ReturnsAsync(findNotesResponse);
 
@@ -200,7 +239,7 @@ public class DeckRepositoryTests
 
         // Assert
         result.Should().NotBeNull();
-        result.Cards.Should().HaveCount(1); // Only the valid card should be included
+        result!.Cards.Should().HaveCount(1); // Only the valid card should be included
 
         var card = result.Cards[0] as QuestionAnswerCard;
         card.Should().NotBeNull();

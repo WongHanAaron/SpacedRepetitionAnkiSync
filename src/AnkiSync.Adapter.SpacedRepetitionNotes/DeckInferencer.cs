@@ -91,9 +91,6 @@ public class DeckInferencer : IDeckInferencer
             currentDir = currentDir.Parent;
         }
 
-        // Add filename without extension
-        pathParts.Add(_fileSystem.GetFileNameWithoutExtension(card.SourceFilePath));
-
         // Return as Tag
         return new Tag { NestedTags = pathParts };
     }

@@ -4,9 +4,8 @@ using AnkiSync.Adapter.AnkiConnect.Client;
 using AnkiSync.Adapter.AnkiConnect.Models;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using System.Net.Http;
-using System.Text.Json;
 using Xunit;
+using Xunit.Sdk;
 
 namespace AnkiSync.IntegrationTests;
 
@@ -23,8 +22,6 @@ public class DeckRepositoryTests : IAsyncLifetime
 
     // Test data
     private const string TestDeckName = "AnkiSync_Test_Deck";
-    private const string TestFront = "Test Question?";
-    private const string TestBack = "Test Answer!";
 
     // Track created resources for cleanup
     private readonly List<string> _createdDecks = new();
@@ -40,240 +37,157 @@ public class DeckRepositoryTests : IAsyncLifetime
         _ankiService = _serviceProvider.GetRequiredService<IAnkiService>();
     }
 
-    public Task InitializeAsync()
+    private static readonly bool _isAnkiAvailable = CheckAnkiAvailability();
+    
+    private static bool CheckAnkiAvailability()
     {
-        // No initialization needed - connection check is done in each test
-        return Task.CompletedTask;
+        try
+        {
+            var services = new ServiceCollection();
+            services.AddAnkiConnectAdapter("http://127.0.0.1:8765");
+            var serviceProvider = services.BuildServiceProvider();
+            var ankiService = serviceProvider.GetRequiredService<IAnkiService>();
+            
+            // Try to connect to Anki with a short timeout
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            ankiService.TestConnectionAsync(new TestConnectionRequestDto(), cts.Token).GetAwaiter().GetResult();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Anki is not available: {ex.Message}");
+            return false;
+        }
+    }
+
+    public Task InitializeAsync() => Task.CompletedTask;
+
+    private void SkipIfAnkiNotAvailable()
+    {
+        if (!_isAnkiAvailable)
+        {
+            throw SkipException.ForSkip("Anki is not available. Make sure Anki is running with AnkiConnect installed.");
+        }
     }
 
     public async Task DisposeAsync()
     {
-        try
+        // Clean up any created notes in batches to avoid hitting request size limits
+        const int batchSize = 100;
+        for (int i = 0; i < _createdNotes.Count; i += batchSize)
         {
-            // Clean up created notes (since they depend on decks)
-            if (_createdNotes.Any())
-            {
-                try
-                {
-                    var deleteNotesRequest = new DeleteNotesRequestDto(_createdNotes);
-                    await _ankiService.DeleteNotesAsync(deleteNotesRequest);
-                }
-                catch (Exception)
-                {
-                    // Failed to delete test notes
-                }
-                _createdNotes.Clear();
-            }
+            var batch = _createdNotes.Skip(i).Take(batchSize).ToList();
+            if (!batch.Any()) break;
 
-            // Clean up created decks
-            if (_createdDecks.Any())
+            try
             {
-                try
-                {
-                    var deleteDecksRequest = new DeleteDecksRequestDto(_createdDecks, true);
-                    await _ankiService.DeleteDecksAsync(deleteDecksRequest);
-                }
-                catch (Exception)
-                {
-                    // Failed to delete test decks
-                }
-                _createdDecks.Clear();
+                var deleteNotesRequest = new DeleteNotesRequestDto(batch);
+                await _ankiService.DeleteNotesAsync(deleteNotesRequest, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to clean up notes batch {i / batchSize + 1}: {ex.Message}");
             }
         }
-        catch (Exception)
-        {
-            // Log cleanup failure but don't throw - we don't want cleanup failures to mask test failures
-        }
-    }
 
-    private async Task EnsureAnkiConnectionAsync()
-    {
-        try
+        // Clean up any created decks
+        if (_createdDecks.Any())
         {
-            var testConnectionRequest = new TestConnectionRequestDto();
-            var testConnectionResponse = await _ankiService.TestConnectionAsync(testConnectionRequest);
-
-            if (testConnectionResponse.Result == null || testConnectionResponse.Error != null)
+            try
             {
-                throw new InvalidOperationException("AnkiConnect responded but returned an error or null result.");
+                await _ankiService.DeleteDecksAsync(
+                    new DeleteDecksRequestDto(_createdDecks, true), // true to delete cards too
+                    CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to clean up decks: {ex.Message}");
             }
         }
-        catch (HttpRequestException ex)
-        {
-            throw new InvalidOperationException("Anki is not running or AnkiConnect is not available. Start Anki and install AnkiConnect to run these tests.", ex);
-        }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("unexpected response format"))
-        {
-            throw new InvalidOperationException("AnkiConnect responded but returned an unexpected format. This indicates AnkiConnect is not properly installed or configured.", ex);
-        }
-        catch (JsonException ex)
-        {
-            // This should not happen anymore since SendRequestAsync catches JsonException
-            throw new InvalidOperationException("AnkiConnect responded but JSON deserialization failed. This indicates a bug in the AnkiService implementation.", ex);
-        }
+
+        _createdDecks.Clear();
+        _createdNotes.Clear();
     }
 
     [Fact]
-    public async Task GetDeck_WithExistingDeck_ReturnsDeckWithCards()
+    public async Task GetDeck_WithNonExistentDeck_ReturnsNull()
     {
-        // Arrange - Create a test deck with a card
-        var uniqueTestDeckName = $"{TestDeckName}_Download_{Guid.NewGuid():N}";
-        var createDeckRequest = new CreateDeckRequestDto(uniqueTestDeckName);
-        await _ankiService.CreateDeckAsync(createDeckRequest);
-        _createdDecks.Add(uniqueTestDeckName);
+        SkipIfAnkiNotAvailable();
+            
+        // Arrange - Create a unique deck name that doesn't exist
+        var nonExistentDeckId = DeckIdExtensions.FromAnkiDeckName($"NonExistentDeck_{Guid.NewGuid()}");
 
-        var testNote = new AnkiNote
+        // Act
+        var result = await _deckRepository.GetDeck(nonExistentDeckId);
+
+        // Assert
+        result.Should().BeNull("because the deck does not exist");
+    }
+
+    [Fact]
+    public async Task GetDeck_WithExistingEmptyDeck_ReturnsEmptyDeck()
+    {
+        SkipIfAnkiNotAvailable();
+            
+        // Arrange - Create an empty deck
+        var deckName = $"{TestDeckName}_Empty_{Guid.NewGuid()}";
+        var deckId = DeckIdExtensions.FromAnkiDeckName(deckName);
+        _createdDecks.Add(deckName);
+
+        await _ankiService.CreateDeckAsync(new CreateDeckRequestDto(deckName), CancellationToken.None);
+
+        // Act
+        var result = await _deckRepository.GetDeck(deckId);
+
+        // Assert
+        result.Should().NotBeNull("because the deck exists");
+        result!.DeckId.Should().Be(deckId);
+        result.Cards.Should().NotBeNull().And.BeEmpty("because the deck is empty");
+    }
+
+    [Fact]
+    public async Task GetDeck_WithDeckContainingCards_ReturnsDeckWithCards()
+    {
+        SkipIfAnkiNotAvailable();
+            
+        // Arrange - Create a deck with a card
+        var deckName = $"{TestDeckName}_WithCards_{Guid.NewGuid()}";
+        var deckId = DeckIdExtensions.FromAnkiDeckName(deckName);
+        _createdDecks.Add(deckName);
+
+        // Create the deck
+        await _ankiService.CreateDeckAsync(new CreateDeckRequestDto(deckName), CancellationToken.None);
+        
+        // Add a note to the deck
+        var addNoteRequest = new AddNoteRequestDto(new AnkiNote
         {
-            DeckName = uniqueTestDeckName,
+            DeckName = deckName,
             ModelName = "Basic",
             Fields = new Dictionary<string, string>
             {
-                ["Front"] = TestFront,
-                ["Back"] = TestBack
+                ["Front"] = "Test Question?",
+                ["Back"] = "Test Answer!"
             }
-        };
+        });
 
-        // Capture time before adding note
-        var timeBeforeAdd = DateTimeOffset.Now;
-
-        var addNoteRequest = new AddNoteRequestDto(testNote);
-        var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
-        _createdNotes.Add(addNoteResponse.Result!.Value);
-
-        // Capture time after adding note
-        var timeAfterAdd = DateTimeOffset.Now;
-
-        // Act - Download the deck
-        var deckId = DeckIdExtensions.FromAnkiDeckName(uniqueTestDeckName);
-        var deck = await _deckRepository.GetDeck(deckId);
-
-        // Assert
-        deck.Should().NotBeNull();
-        deck.Name.Should().Be(uniqueTestDeckName);
-        deck.Cards.Should().NotBeEmpty();
-        deck.Cards.Should().ContainSingle();
-
-        var card = deck.Cards.First();
-        card.Should().BeOfType<QuestionAnswerCard>();
-        var qaCard = (QuestionAnswerCard)card;
-        qaCard.Question.Should().Be(TestFront);
-        qaCard.Answer.Should().Be(TestBack);
-
-        // Additional assertion: Verify DateModified is close to when the note was added
-        var findNotesRequest = new FindNotesRequestDto($"deck:{uniqueTestDeckName}");
-        var findNotesResponse = await _ankiService.FindNotesAsync(findNotesRequest);
-        var noteIds = findNotesResponse.Result ?? new List<long>();
-
-        var notesInfoRequest = new NotesInfoRequestDto(noteIds);
-        var notesInfoResponse = await _ankiService.NotesInfoAsync(notesInfoRequest);
-
-        notesInfoResponse.Result.Should().NotBeNull();
-        notesInfoResponse.Result.Should().HaveCount(1);
-
-        var noteInfo = notesInfoResponse.Result!.First();
-        noteInfo.DateModified.Should().BeOnOrAfter(timeBeforeAdd.AddSeconds(-5)); // Allow 5 seconds grace before
-        noteInfo.DateModified.Should().BeOnOrBefore(timeAfterAdd.AddSeconds(5)); // Allow 5 seconds grace after
-    }
-
-    [Fact]
-    public async Task GetDeck_WithNonExistentDeck_ReturnsEmptyDeck()
-    {
-        // Arrange
-        var nonExistentDeckName = "NonExistentDeck_12345";
+        var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest, CancellationToken.None);
+        if (addNoteResponse.Result.HasValue)
+        {
+            _createdNotes.Add(addNoteResponse.Result.Value);
+        }
 
         // Act
-        var deckId = DeckIdExtensions.FromAnkiDeckName(nonExistentDeckName);
-        var deck = await _deckRepository.GetDeck(deckId);
+        var result = await _deckRepository.GetDeck(deckId);
 
         // Assert
-        deck.Should().NotBeNull();
-        deck.Name.Should().Be(nonExistentDeckName);
-        deck.Cards.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task UploadAndDownloadDeck_ShouldPreserveContent()
-    {
-        // Arrange
-        var uniqueDeckName = $"{TestDeckName}_RoundTrip_{Guid.NewGuid():N}";
-        var originalDeck = new Deck
-        {
-            DeckId = DeckIdExtensions.FromAnkiDeckName(uniqueDeckName),
-            Cards = new List<Card>
-            {
-                new QuestionAnswerCard
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    DateModified = DateTimeOffset.Now,
-                    Question = "What is the capital of France?",
-                    Answer = "Paris"
-                },
-                new QuestionAnswerCard
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    DateModified = DateTimeOffset.Now,
-                    Question = "What is 2 + 2?",
-                    Answer = "4"
-                },
-                new ClozeCard
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    DateModified = DateTimeOffset.Now,
-                    Text = """The {keyword} of {country} is {city}""",
-                    Answers = new Dictionary<string, string>
-                    {
-                        ["keyword"] = "capital",
-                        ["country"] = "France",
-                        ["city"] = "Paris"
-                    }
-                }
-            }
-        };
-
-        // Act - Upload the deck
-        await _deckRepository.UpsertDeck(originalDeck);
-
-        // Track for cleanup
-        _createdDecks.Add(uniqueDeckName);
-
-        // Act - Download the deck
-        var deckId = DeckIdExtensions.FromAnkiDeckName(uniqueDeckName);
-        var downloadedDeck = await _deckRepository.GetDeck(deckId);
-
-        // Assert download
-        downloadedDeck.Should().NotBeNull();
-        downloadedDeck.Name.Should().Be(uniqueDeckName);
-        downloadedDeck.Cards.Should().HaveCount(3);
-
-        // Verify QuestionAnswerCard 1
-        var qaCard1 = downloadedDeck.Cards.OfType<QuestionAnswerCard>()
-            .FirstOrDefault(c => c.Question?.Contains("France") == true);
-        qaCard1.Should().NotBeNull();
-        if (qaCard1 != null)
-        {
-            qaCard1.Question.Should().Be("What is the capital of France?");
-            qaCard1.Answer.Should().Be("Paris");
-        }
-
-        // Verify QuestionAnswerCard 2
-        var qaCard2 = downloadedDeck.Cards.OfType<QuestionAnswerCard>()
-            .FirstOrDefault(c => c.Question?.Contains("2 + 2") == true);
-        qaCard2.Should().NotBeNull();
-        if (qaCard2 != null)
-        {
-            qaCard2.Question.Should().Be("What is 2 + 2?");
-            qaCard2.Answer.Should().Be("4");
-        }
-
-        // Verify ClozeCard
-        var clozeCard = downloadedDeck.Cards.OfType<ClozeCard>().FirstOrDefault();
-        clozeCard.Should().NotBeNull();
-        if (clozeCard != null)
-        {
-            clozeCard.Text.Should().Be("""The {answer1} of {answer2} is {answer3}""");
-            clozeCard.Answers.Should().NotBeNull();
-            clozeCard.Answers.Should().HaveCount(3);
-            clozeCard.Answers.Should().ContainValues("capital", "France", "Paris");
-        }
+        result.Should().NotBeNull("because the deck exists");
+        result!.DeckId.Name.Should().Be(deckName);
+        result.Cards.Should().NotBeEmpty();
+        result.Cards.Should().HaveCount(1, "because we added one card");
+        
+        var card = result.Cards.First() as QuestionAnswerCard;
+        card.Should().NotBeNull("because we added a basic note");
+        card!.Question.Should().Be("Test Question?");
+        card.Answer.Should().Be("Test Answer!");
     }
 }

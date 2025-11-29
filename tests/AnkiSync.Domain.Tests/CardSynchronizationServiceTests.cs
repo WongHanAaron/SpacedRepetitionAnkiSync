@@ -39,7 +39,7 @@ public class CardSynchronizationServiceTests
         
         _deckRepositoryMock
             .Setup(x => x.GetDeck(sourceDeck.DeckId, default))
-            .ThrowsAsync(new Exception("Deck not found"));
+            .ReturnsAsync((Deck?)null);
 
         // Act
         await _synchronizationService.SynchronizeCardsAsync(directories);

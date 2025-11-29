@@ -12,8 +12,8 @@ public interface IDeckRepository
     /// </summary>
     /// <param name="deckId">The identifier of the deck to download</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>The deck with all its cards</returns>
-    Task<Deck> GetDeck(DeckId deckId, CancellationToken cancellationToken = default);
+    /// <returns>The deck with all its cards, or null if the deck doesn't exist</returns>
+    Task<Deck?> GetDeck(DeckId deckId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Uploads a deck to Anki, creating or updating it as necessary

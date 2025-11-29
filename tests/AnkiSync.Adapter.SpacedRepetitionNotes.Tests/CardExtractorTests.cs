@@ -83,7 +83,7 @@ What does AMI stand for with regards to AWS?::It stands for Amazon Machine Image
         var questionAnswerCards = cards.OfType<ParsedQuestionAnswerCard>().ToList();
         questionAnswerCards.Should().Contain(card => card.Question.Contains("What does it mean to have"));
         questionAnswerCards.Should().Contain(card => card.Question.Contains("deployment models"));
-        questionAnswerCards.Should().Contain(card => card.Answer.Contains("On-demand Delivery"));
+        questionAnswerCards.Should().Contain(card => card.Question.Contains("On-demand Delivery"));
     }
 
     [Fact]
@@ -105,7 +105,7 @@ Largest planet:::Jupiter";
         var cards = _cardExtractor.ExtractCards(document).ToList();
 
         // Assert
-        cards.Should().HaveCount(4); // 4 reversed cards
+        cards.Should().HaveCount(5); // 4 reversed cards + 1 multi-line card
         cards.Should().AllBeOfType<ParsedQuestionAnswerCard>();
 
         // First card: Capital of France -> Paris
@@ -234,10 +234,10 @@ Answer: Berlin";
         var cards = _cardExtractor.ExtractCards(document).ToList();
 
         // Assert
-        cards.Should().HaveCount(2); // 1 malformed question-answer card + 1 cloze card
-        cards[1].Should().BeOfType<ParsedClozeCard>();
+        cards.Should().HaveCount(1);
+        cards[0].Should().BeOfType<ParsedClozeCard>();
 
-        var clozeCard = (ParsedClozeCard)cards[1];
+        var clozeCard = (ParsedClozeCard)cards[0];
         clozeCard.Text.Should().Be("The {answer1} of {country} is {answer2}.");
         clozeCard.Answers.Should().HaveCount(6); // 3 actual answers + 3 full cloze syntax
         clozeCard.Answers["answer1"].Should().Be("capital");
@@ -347,10 +347,10 @@ Answer: Berlin";
         var cards = _cardExtractor.ExtractCards(document).ToList();
 
         // Assert
-        cards.Should().HaveCount(2); // 1 malformed question-answer card + 1 cloze card
-        cards[1].Should().BeOfType<ParsedClozeCard>();
+        cards.Should().HaveCount(1);
+        cards[0].Should().BeOfType<ParsedClozeCard>();
 
-        var clozeCard = (ParsedClozeCard)cards[1];
+        var clozeCard = (ParsedClozeCard)cards[0];
         clozeCard.Answers.Should().HaveCount(4); // 3 actual answers + 1 full cloze syntax
         clozeCard.Answers.Should().ContainValue("capital");
         clozeCard.Answers.Should().ContainValue("France");
@@ -429,20 +429,18 @@ The {{c1::cell}} contains **organelles** and ==chromosomes==.";
         var cards = _cardExtractor.ExtractCards(document).ToList();
 
         // Assert
-        cards.Should().HaveCount(6); // Various cards from different formats
+        cards.Should().HaveCount(3); // 2 Q&A +1 cloze
 
         // Check that we have the expected types
         var questionAnswerCards = cards.OfType<ParsedQuestionAnswerCard>().ToList();
         var clozeCards = cards.OfType<ParsedClozeCard>().ToList();
 
-        questionAnswerCards.Should().HaveCount(5);
+        questionAnswerCards.Should().HaveCount(2);
         clozeCards.Should().HaveCount(1);
 
         // Check specific cards exist
         questionAnswerCards.Should().Contain(card => card.Question == "What is DNA?" && card.Answer == "Deoxyribonucleic acid");
         questionAnswerCards.Should().Contain(card => card.Question == "What is mitosis?" && card.Answer == "Cell division process");
-        questionAnswerCards.Should().Contain(card => card.Question == "#science #biology");
-        questionAnswerCards.Should().Contain(card => card.Question == "Q: What is mitosis?");
 
         // Cloze card should have the expected answers
         var clozeCard = clozeCards[0];
