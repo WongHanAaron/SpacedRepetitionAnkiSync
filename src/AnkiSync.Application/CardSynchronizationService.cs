@@ -46,7 +46,14 @@ public class CardSynchronizationService
 
         foreach (var sourceDeck in sourceDecks)
         {
-            await SynchronizeDeckAsync(sourceDeck, cancellationToken);
+            try
+            {
+                await SynchronizeDeckAsync(sourceDeck, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error synchronizing deck {DeckId}", sourceDeck.DeckId);
+            }
         }
     }
 
@@ -173,47 +180,6 @@ public class CardSynchronizationService
             DeckId = sourceDeck.DeckId,
             Cards = mergedCards
         };
-    }
-
-    private List<Card> MergeCards(List<Card> existingCards, List<Card> sourceCards)
-    {
-        var mergedCards = new List<Card>(existingCards); // Start with existing cards
-
-        foreach (var sourceCard in sourceCards)
-        {
-            var existingCard = FindMatchingCard(existingCards, sourceCard);
-            
-            if (existingCard == null)
-            {
-                // New card, add it
-                mergedCards.Add(sourceCard);
-            }
-            else if (HasCardChanged(existingCard, sourceCard))
-            {
-                // Card changed, update it
-                Card updatedCard = sourceCard switch
-                {
-                    QuestionAnswerCard qa => new QuestionAnswerCard
-                    {
-                        Question = qa.Question,
-                        Answer = qa.Answer,
-                        DateModified = qa.DateModified
-                    },
-                    ClozeCard cloze => new ClozeCard
-                    {
-                        Text = cloze.Text,
-                        Answers = cloze.Answers,
-                        DateModified = cloze.DateModified
-                    },
-                    _ => sourceCard
-                };
-                var index = mergedCards.IndexOf(existingCard);
-                mergedCards[index] = updatedCard;
-            }
-            // If card exists and hasn't changed, keep existing
-        }
-
-        return mergedCards;
     }
 
     private Card? FindMatchingCard(List<Card> cards, Card targetCard)

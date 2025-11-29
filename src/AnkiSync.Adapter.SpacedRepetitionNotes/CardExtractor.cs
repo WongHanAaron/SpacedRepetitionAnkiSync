@@ -226,7 +226,7 @@ public class CardExtractor : ICardExtractor
                 // Basic multi-line card
                 if (currentCard.Count > 0)
                 {
-                    foreach (var card in CreateMultiLineCard(currentCard, false, document))
+                    foreach (var card in CreateMultiLineCard(currentCard, false, document, false))
                     {
                         yield return card;
                     }
@@ -238,7 +238,7 @@ public class CardExtractor : ICardExtractor
                 // Reversed multi-line card
                 if (currentCard.Count > 0)
                 {
-                    foreach (var card in CreateMultiLineCard(currentCard, true, document))
+                    foreach (var card in CreateMultiLineCard(currentCard, true, document, false))
                     {
                         yield return card;
                     }
@@ -251,19 +251,27 @@ public class CardExtractor : ICardExtractor
             }
         }
 
-        // Handle card at end of file
+        // Handle card at end of file - only if it contains flashcard patterns
         if (currentCard.Count > 0)
         {
-            foreach (var card in CreateMultiLineCard(currentCard, false, document))
+            foreach (var card in CreateMultiLineCard(currentCard, false, document, true))
             {
                 yield return card;
             }
         }
     }
 
-    private IEnumerable<ParsedCardBase> CreateMultiLineCard(List<string> lines, bool isReversed, Document document)
+    private IEnumerable<ParsedCardBase> CreateMultiLineCard(List<string> lines, bool isReversed, Document document, bool requireFlashcardPatterns = false)
     {
         if (lines.Count < 2) yield break;
+
+        // Check if the content contains flashcard patterns (only for end-of-file cards)
+        if (requireFlashcardPatterns)
+        {
+            var combinedContent = string.Join("\n", lines);
+            if (!combinedContent.Contains("::") && !combinedContent.Contains("Q:") && !combinedContent.Contains("A:"))
+                yield break;
+        }
 
         // First line is question, rest are answer
         var question = lines[0].Trim();

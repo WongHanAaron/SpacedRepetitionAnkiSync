@@ -277,6 +277,26 @@ Answer: Berlin
         clozeCard.Answers.Should().ContainValue("chemical energy");
     }
 
+    [Theory]
+    [InlineData("#computervision\n\nImage Segmentation is that task of taking an image and assigning every pixel in the image to a specific group. The group might indicate a specific label that the pixel represents.\n\n[[An Adaptive Clustering Algorithm for Image Segmentation|Clustering]] is a common method used for image segmentation. Additionally, [[Max Flow Problem]] is a method that is often used for splitting an image by a specific transition criteria. \n")]
+    public void Should_not_extract_any_cards(string contentWithoutCards)
+    {
+        // Arrange
+        var document = new Document
+        {
+            FilePath = "programming.md",
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["programming"] },
+            Content = contentWithoutCards
+        };
+
+        // Act
+        var cards = _cardExtractor.ExtractCards(document).ToList();
+
+        // Assert
+        cards.Should().HaveCount(0);
+    }
+
     [Fact]
     public void ExtractCards_WithBoldCloze_ShouldExtractClozeCard()
     {
@@ -402,7 +422,7 @@ Answer: Berlin
             FilePath = "mixed.md",
             LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
             Tags = new Tag { NestedTags = ["science", "biology"] },
-            Content = """
+            Content = @"
 #science #biology
 
 What is DNA?::Deoxyribonucleic acid
@@ -415,7 +435,7 @@ Q: What is mitosis?
 A: Cell division process
 
 The {{c1::cell}} contains **organelles** and ==chromosomes==.
-"""
+"
         };
 
         // Act

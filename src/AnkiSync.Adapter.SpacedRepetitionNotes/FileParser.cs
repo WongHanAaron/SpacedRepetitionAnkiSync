@@ -57,7 +57,8 @@ public class FileParser : IFileParser
     {
         // Extract only the first tag from content, separated by whitespace
         // Tags can contain '/' for nested hierarchy
-        var firstMatch = System.Text.RegularExpressions.Regex.Match(content, @"#([^#\s]+)");
+        // Use negative lookbehind to ensure we don't match multiple consecutive #
+        var firstMatch = System.Text.RegularExpressions.Regex.Match(content, @"(?<!#)#([^#\s]+)");
         if (firstMatch.Success)
         {
             var tagString = firstMatch.Groups[1].Value;

@@ -41,6 +41,7 @@ public static class StringExtensions
         return !string.IsNullOrWhiteSpace(tag) &&
                tag.StartsWith('#') &&
                tag.Length > 1 &&
+               tag[1] != '#' && // Reject multiple consecutive # at the start
                !tag.Contains(' ') &&
                tag.All(c => char.IsLetterOrDigit(c) || c == '#' || c == '/' || c == '-' || c == '_');
     }

@@ -96,20 +96,7 @@ public class DeckRepository : IDeckRepository
         // Process each card - update existing ones, add new ones
         foreach (var card in deck.Cards)
         {
-            long? noteId = null;
-
-            // Try to find an existing card with the same content
-            var query = BuildFindQuery(card, ankiDeckName);
-            if (!string.IsNullOrEmpty(query))
-            {
-                var findRequest = new FindNotesRequestDto(query);
-                var findResponse = await _ankiService.FindNotesAsync(findRequest, cancellationToken);
-                
-                if (findResponse.Result != null && findResponse.Result.Any())
-                {
-                    noteId = findResponse.Result.First();
-                }
-            }
+            long? noteId = GetAnkiCardId(card);
 
             if (noteId.HasValue)
             {
@@ -124,11 +111,23 @@ public class DeckRepository : IDeckRepository
                 var ankiNote = ConvertCardToAnkiNote(card, ankiDeckName);
                 var addNoteRequest = new AddNoteRequestDto(ankiNote);
                 var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest, cancellationToken);
-
-                // Note: We don't store the Anki note ID back on the domain card
-                // The synchronization logic will find cards by content
             }
         }
+    }
+
+    private long? GetAnkiCardId(Card card)
+    {
+        if (card is AnkiClozeCard ankiCloze)
+        {
+            return ankiCloze.Id;
+        }
+
+        if (card is AnkiQuestionAnswerCard ankiQuestionAnswer)
+        {
+            return ankiQuestionAnswer.Id;
+        }
+
+        return null;
     }
 
     private string BuildFindQuery(Card card, string deckName)
@@ -138,10 +137,10 @@ public class DeckRepository : IDeckRepository
 
         return card switch
         {
-            AnkiQuestionAnswerCard ankiQaCard => $"deck:\"{deckName}\" \"Front:{Escape(ankiQaCard.Question)}\"",
-            QuestionAnswerCard qaCard => $"deck:\"{deckName}\" \"Front:{Escape(qaCard.Question)}\"",
-            AnkiClozeCard ankiClozeCard => $"deck:\"{deckName}\" \"Text:{Escape(ankiClozeCard.Text)}\"",
-            ClozeCard clozeCard => $"deck:\"{deckName}\" \"Text:{Escape(clozeCard.Text)}\"",
+            AnkiQuestionAnswerCard ankiQaCard => $"deck:\"{Escape(deckName)}\" \"Front:{Escape(ankiQaCard.Question)}\"",
+            QuestionAnswerCard qaCard => $"deck:\"{Escape(deckName)}\" \"Front:{Escape(qaCard.Question)}\"",
+            AnkiClozeCard ankiClozeCard => $"deck:\"{Escape(deckName)}\" \"Text:{Escape(ankiClozeCard.Text)}\"",
+            ClozeCard clozeCard => $"deck:\"{Escape(deckName)}\" \"Text:{Escape(clozeCard.Text)}\"",
             _ => string.Empty
         };
     }

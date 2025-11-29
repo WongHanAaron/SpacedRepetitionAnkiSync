@@ -127,6 +127,36 @@ Content with tags on separate lines.";
     }
 
     [Fact]
+    public async Task ParseContentAsync_WithSpaceAfterHash_ShouldNotExtractTag()
+    {
+        // Arrange
+        var content = @"# test #valid  Content with space after hash that should not be extracted.";
+        var filePath = "test.md";
+        var lastModified = DateTimeOffset.UtcNow;
+
+        // Act
+        var document = await _fileParser.ParseContentAsync(filePath, content, lastModified);
+
+        // Assert
+        document.Tags.NestedTags.Should().BeEquivalentTo(new[] { "valid" });
+    }
+
+    [Fact]
+    public async Task ParseContentAsync_WithMultipleHashes_ShouldNotExtractTag()
+    {
+        // Arrange
+        var content = @"##invalid ###alsoinvalid #valid  Content with multiple hashes that should not be extracted.";
+        var filePath = "test.md";
+        var lastModified = DateTimeOffset.UtcNow;
+
+        // Act
+        var document = await _fileParser.ParseContentAsync(filePath, content, lastModified);
+
+        // Assert
+        document.Tags.NestedTags.Should().BeEquivalentTo(new[] { "valid" });
+    }
+
+    [Fact]
     public async Task ParseContentAsync_WithDeeplyNestedTag_ShouldSplitBySlashes()
     {
         // Arrange
@@ -139,5 +169,20 @@ Content with tags on separate lines.";
 
         // Assert
         document.Tags.NestedTags.Should().BeEquivalentTo(new[] { "aws", "compute", "ec2" });
+    }
+
+    [Fact]
+    public async Task ParseContentAsync_WithTagContainingHyphens_ShouldTreatAsSingleTag()
+    {
+        // Arrange
+        var content = @"#test-okthen-then  Content with tag containing hyphens.";
+        var filePath = "test.md";
+        var lastModified = DateTimeOffset.UtcNow;
+
+        // Act
+        var document = await _fileParser.ParseContentAsync(filePath, content, lastModified);
+
+        // Assert
+        document.Tags.NestedTags.Should().BeEquivalentTo(new[] { "test-okthen-then" });
     }
 }
