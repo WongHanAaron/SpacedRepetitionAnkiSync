@@ -115,10 +115,6 @@ Test Question 2?::This is the answer to question 2.
             .Setup(x => x.UpsertDeck(It.IsAny<Deck>(), It.IsAny<CancellationToken>()))
             .Callback<Deck, CancellationToken>((deck, _) => 
             {
-                if (string.IsNullOrEmpty(deck.Id))
-                {
-                    deck.Id = Guid.NewGuid().ToString();
-                }
                 capturedDecks.Add(deck);
             });
 
@@ -158,7 +154,7 @@ Test Question 2?::This is the answer to question 2.
         card2?.Answer.Should().Be("This is the answer to question 2.");
     }
 
-    [Fact(Skip = "Not functional for now")]
+    [Fact]
     public async Task SynchronizeCards_WithExistingDeck_AddsNewCards()
     {
         // Arrange - Set up mock file system with markdown file
@@ -181,8 +177,7 @@ New Question?::New Answer.
         // Mock existing deck with one card
         var existingDeck = new Deck
         {
-            Id = "existing-id",
-            DeckId = DeckId.FromPath(["existing_deck"]),
+            DeckId = DeckId.FromPath(["test"]),
             Cards = new List<Card>
             {
                 new QuestionAnswerCard
@@ -216,10 +211,12 @@ New Question?::New Answer.
         capturedDeck.Should().NotBeNull();
         if (capturedDeck != null)
         {
-            capturedDeck.Id.Should().Be("existing-id"); // Keep existing ID
             capturedDeck.Cards.Should().NotBeNull();
             capturedDeck.Cards.Should().HaveCount(2);
-            capturedDeck.Cards.Should().Contain(c => c.Id == "existing-card-id"); // Existing card preserved
+            
+            // Check that existing card is preserved
+            var existingCard = capturedDeck.Cards.FirstOrDefault(c => c is QuestionAnswerCard qa && qa.Question == "Existing Question?" && qa.Answer == "Existing Answer.");
+            existingCard.Should().NotBeNull();
             
             var qaCards = capturedDeck.Cards.OfType<QuestionAnswerCard>().ToList();
             qaCards.Should().Contain(c => c.Question == "New Question?" && c.Answer == "New Answer."); // New card added
@@ -248,7 +245,6 @@ Question?::Updated Answer.
         // Mock existing deck with outdated card
         var existingDeck = new Deck
         {
-            Id = "existing-id",
             DeckId = DeckId.FromPath(["update_deck"]),
             Cards = new List<Card>
             {
@@ -348,7 +344,7 @@ Q2?::A2.
         capturedDecks.Should().Contain(d => d.DeckId.Name == "deck2");
     }
 
-    [Fact(Skip = "Not functional for now")]
+    [Fact]
     public async Task SynchronizeCards_WithClozeCards_ParsesClozeFormatCorrectly()
     {
         // Arrange - Set up mock file system with cloze cards
@@ -392,16 +388,18 @@ The {{c3::Nile}} is the longest {{c4::river}} in the world.
         if (capturedDeck != null)
         {
             capturedDeck.DeckId.Should().NotBeNull();
-            capturedDeck.DeckId.Name.Should().Be("cloze_deck");
+            capturedDeck.DeckId.Name.Should().Be("cloze");
             capturedDeck.Cards.Should().NotBeNull();
             capturedDeck.Cards.Should().HaveCount(2);
             capturedDeck.Cards.Should().AllBeOfType<ClozeCard>();
             
             var clozeCards = capturedDeck.Cards.Cast<ClozeCard>().ToList();
             clozeCards.Should().Contain(c => 
-                c.Text != null && c.Text.Contains("The capital of {{c1::France}} is {{c2::Paris}}."));
+                c.Text != null && c.Text.Contains("The capital of {c1} is {c2}.") 
+                && c.Answers.ContainsKey("c1") && c.Answers.ContainsKey("c2"));
             clozeCards.Should().Contain(c => 
-                c.Text != null && c.Text.Contains("The {{c3::Nile}} is the longest {{c4::river}} in the world."));
+                c.Text != null && c.Text.Contains("The {c3} is the longest {c4} in the world.")
+                && c.Answers.ContainsKey("c3") && c.Answers.ContainsKey("c4"));
         }
     }
 }

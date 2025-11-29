@@ -6,11 +6,6 @@ namespace AnkiSync.Domain;
 public class Deck
 {
     /// <summary>
-    /// Unique identifier for the deck
-    /// </summary>
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-
-    /// <summary>
     /// The deck identifier with hierarchical path support
     /// </summary>
     public required DeckId DeckId { get; set; }

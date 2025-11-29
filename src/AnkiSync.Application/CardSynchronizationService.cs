@@ -93,7 +93,6 @@ public class CardSynchronizationService
         {
             return new Deck
             {
-                Id = sourceDeck.Id,
                 DeckId = sourceDeck.DeckId,
                 Cards = new List<Card>(sourceDeck.Cards ?? new List<Card>())
             };
@@ -104,7 +103,6 @@ public class CardSynchronizationService
         {
             return new Deck
             {
-                Id = existingDeck.Id,
                 DeckId = existingDeck.DeckId,
                 Cards = new List<Card>(existingDeck.Cards)
             };
@@ -174,7 +172,6 @@ public class CardSynchronizationService
 
         return new Deck
         {
-            Id = existingDeck.Id,
             DeckId = sourceDeck.DeckId,
             Cards = mergedCards
         };

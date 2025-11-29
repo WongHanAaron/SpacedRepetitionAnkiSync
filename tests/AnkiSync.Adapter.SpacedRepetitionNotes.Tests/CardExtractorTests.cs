@@ -236,11 +236,11 @@ Answer: Berlin
         cards[0].Should().BeOfType<ParsedClozeCard>();
 
         var clozeCard = (ParsedClozeCard)cards[0];
-        clozeCard.Text.Should().Be("The {answer1} of {country} is {answer2}.");
+        clozeCard.Text.Should().Be("The {c1} of {country} is {c2}.");
         clozeCard.Answers.Should().HaveCount(3); // 3 actual answers
-        clozeCard.Answers["answer1"].Should().Be("capital");
+        clozeCard.Answers["c1"].Should().Be("capital");
         clozeCard.Answers["country"].Should().Be("France");
-        clozeCard.Answers["answer2"].Should().Be("Paris");
+        clozeCard.Answers["c2"].Should().Be("Paris");
     }
 
     [Fact]
@@ -341,7 +341,8 @@ Answer: Berlin
         cards[0].Should().BeOfType<ParsedClozeCard>();
 
         var clozeCard = (ParsedClozeCard)cards[0];
-        clozeCard.Answers.Should().HaveCount(2); // 2 actual answers due to keyword conflict
+        clozeCard.Answers.Should().HaveCount(3); // 3 actual answers: c1, answer1 (France), answer2 (Paris)
+        clozeCard.Answers.Should().ContainValue("capital");
         clozeCard.Answers.Should().ContainValue("France");
         clozeCard.Answers.Should().ContainValue("Paris");
     }
@@ -428,7 +429,8 @@ The {{c1::cell}} contains **organelles** and ==chromosomes==.
 
         // Cloze card should have the expected answers
         var clozeCard = clozeCards[0];
-        clozeCard.Answers.Should().HaveCount(2);
+        clozeCard.Answers.Should().HaveCount(3);
+        clozeCard.Answers.Should().ContainValue("cell");
         clozeCard.Answers.Should().ContainValue("organelles");
         clozeCard.Answers.Should().ContainValue("chromosomes");
     }

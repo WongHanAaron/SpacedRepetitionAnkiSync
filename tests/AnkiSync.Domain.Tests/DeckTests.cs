@@ -13,8 +13,6 @@ public class DeckTests
         var deck = new Deck { DeckId = deckId };
 
         // Assert
-        deck.Id.Should().NotBeNull();
-        deck.Id.Should().NotBe(Guid.Empty.ToString());
         deck.Name.Should().Be("TestDeck");
         deck.Cards.Should().BeEmpty();
     }
