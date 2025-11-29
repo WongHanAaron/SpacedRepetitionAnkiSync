@@ -154,7 +154,7 @@ public class SynchronizationIntegrationTests
         card2?.Answer.Should().Be("This is the answer to question 2.");
     }
 
-    [Fact(Skip = "Not functional for now")]
+    [Fact]
     public async Task SynchronizeCards_WithExistingDeck_AddsNewCards()
     {
         // Arrange - Set up mock file system with markdown file
@@ -176,7 +176,7 @@ New Question?::New Answer.");
         var existingDeck = new Deck
         {
             Id = "existing-id",
-            DeckId = DeckId.FromPath(["existing_deck"]),
+            DeckId = DeckId.FromPath(["test"]),
             Cards = new List<Card>
             {
                 new QuestionAnswerCard
@@ -190,7 +190,7 @@ New Question?::New Answer.");
         };
 
         deckRepositoryMock
-            .Setup(x => x.GetDeck(It.Is<DeckId>(id => id.Name == "existing_deck"), default))
+            .Setup(x => x.GetDeck(It.Is<DeckId>(id => id.Name == "test"), default))
             .ReturnsAsync(existingDeck);
 
         // Create services manually
@@ -220,7 +220,7 @@ New Question?::New Answer.");
         }
     }
 
-    [Fact(Skip = "Not functional for now")]
+    [Fact]
     public async Task SynchronizeCards_WithUpdatedCard_UpdatesExistingCard()
     {
         // Arrange - Set up mock file system with markdown file
@@ -241,7 +241,7 @@ Question?::Updated Answer.");
         var existingDeck = new Deck
         {
             Id = "existing-id",
-            DeckId = DeckId.FromPath(["update_deck"]),
+            DeckId = DeckId.FromPath(["test"]),
             Cards = new List<Card>
             {
                 new QuestionAnswerCard
@@ -255,7 +255,7 @@ Question?::Updated Answer.");
         };
 
         deckRepositoryMock
-            .Setup(x => x.GetDeck(It.Is<DeckId>(id => id.Name == "update_deck"), default))
+            .Setup(x => x.GetDeck(It.Is<DeckId>(id => id.Name == "test"), default))
             .ReturnsAsync(existingDeck);
 
         // Create services manually
@@ -292,7 +292,7 @@ Question?::Updated Answer.");
         }
     }
 
-    [Fact(Skip = "Not functional for now")]
+    [Fact]
     public async Task SynchronizeCards_WithNestedDirectories_CreatesMultipleDecks()
     {
         // Arrange - Set up mock file system with nested directories
@@ -301,9 +301,9 @@ Question?::Updated Answer.");
         var subDir = $"{testDir}/subdir";
         mockFileSystem.AddDirectory(testDir);
         mockFileSystem.AddDirectory(subDir);
-        mockFileSystem.AddFile($"{testDir}/deck1.md", @"#test
+        mockFileSystem.AddFile($"{testDir}/deck1.md", @"#deck1
 Q1?::A1.");
-        mockFileSystem.AddFile($"{subDir}/deck2.md", @"#test
+        mockFileSystem.AddFile($"{subDir}/deck2.md", @"#deck2
 Q2?::A2.");
 
         var deckRepositoryMock = new Mock<IDeckRepository>();
@@ -315,7 +315,7 @@ Q2?::A2.");
         // Mock deck repository - decks don't exist
         deckRepositoryMock
             .Setup(x => x.GetDeck(It.IsAny<DeckId>(), default))
-            .ThrowsAsync(new Exception("Deck not found"));
+            .ReturnsAsync(() => null!);
 
         // Create services manually
         var fileParser = new FileParser();
@@ -336,7 +336,7 @@ Q2?::A2.");
         capturedDecks.Should().Contain(d => d.DeckId.Name == "deck2");
     }
 
-    [Fact(Skip = "Not functional for now")]
+    [Fact]
     public async Task SynchronizeCards_WithClozeCards_ParsesClozeFormatCorrectly()
     {
         // Arrange - Set up mock file system with cloze cards
@@ -359,7 +359,7 @@ The {{c3::Nile}} is the longest {{c4::river}} in the world.");
         // Mock deck repository - deck doesn't exist
         deckRepositoryMock
             .Setup(x => x.GetDeck(It.IsAny<DeckId>(), default))
-            .ThrowsAsync(new Exception("Deck not found"));
+            .ReturnsAsync(() => null!);
 
         // Create services manually
         var fileParser = new FileParser();
@@ -379,16 +379,16 @@ The {{c3::Nile}} is the longest {{c4::river}} in the world.");
         if (capturedDeck != null)
         {
             capturedDeck.DeckId.Should().NotBeNull();
-            capturedDeck.DeckId.Name.Should().Be("cloze_deck");
+            capturedDeck.DeckId.Name.Should().Be("cloze");
             capturedDeck.Cards.Should().NotBeNull();
             capturedDeck.Cards.Should().HaveCount(2);
             capturedDeck.Cards.Should().AllBeOfType<ClozeCard>();
             
             var clozeCards = capturedDeck.Cards.Cast<ClozeCard>().ToList();
             clozeCards.Should().Contain(c => 
-                c.Text != null && c.Text.Contains("The capital of {{c1::France}} is {{c2::Paris}}."));
+                c.Text != null && c.Text.Contains("The capital of {answer1} is {answer2}."));
             clozeCards.Should().Contain(c => 
-                c.Text != null && c.Text.Contains("The {{c3::Nile}} is the longest {{c4::river}} in the world."));
+                c.Text != null && c.Text.Contains("The {answer3} is the longest {answer4} in the world."));
         }
     }
 }

@@ -237,7 +237,7 @@ public class CardSynchronizationService
         return card1 switch
         {
             QuestionAnswerCard qa1 when card2 is QuestionAnswerCard qa2 =>
-                qa1.Question == qa2.Question && qa1.Answer == qa2.Answer,
+                qa1.Question == qa2.Question,
             ClozeCard cloze1 when card2 is ClozeCard cloze2 =>
                 cloze1.Text == cloze2.Text,
             _ => false

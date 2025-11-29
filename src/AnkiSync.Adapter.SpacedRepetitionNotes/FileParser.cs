@@ -55,9 +55,14 @@ public class FileParser : IFileParser
 
     private static IEnumerable<string> ExtractTags(string content)
     {
-        // Extract tags from content - handle multiple tags on same line separated by whitespace
-        // Tags can contain '/' for nested hierarchy and should be separated by whitespace followed by #
-        var tagMatches = System.Text.RegularExpressions.Regex.Matches(content, @"#([^#\s]+)");
-        return tagMatches.Select(m => m.Groups[1].Value).Distinct();
+        // Extract only the first tag from content, separated by whitespace
+        // Tags can contain '/' for nested hierarchy
+        var firstMatch = System.Text.RegularExpressions.Regex.Match(content, @"#([^#\s]+)");
+        if (firstMatch.Success)
+        {
+            var tagString = firstMatch.Groups[1].Value;
+            return tagString.Split('/');
+        }
+        return Enumerable.Empty<string>();
     }
 }

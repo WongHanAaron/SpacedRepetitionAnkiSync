@@ -239,7 +239,7 @@ Answer: Berlin";
 
         var clozeCard = (ParsedClozeCard)cards[0];
         clozeCard.Text.Should().Be("The {answer1} of {country} is {answer2}.");
-        clozeCard.Answers.Should().HaveCount(6); // 3 actual answers + 3 full cloze syntax
+        clozeCard.Answers.Should().HaveCount(3); // 3 actual answers
         clozeCard.Answers["answer1"].Should().Be("capital");
         clozeCard.Answers["country"].Should().Be("France");
         clozeCard.Answers["answer2"].Should().Be("Paris");
@@ -351,7 +351,7 @@ Answer: Berlin";
         cards[0].Should().BeOfType<ParsedClozeCard>();
 
         var clozeCard = (ParsedClozeCard)cards[0];
-        clozeCard.Answers.Should().HaveCount(4); // 3 actual answers + 1 full cloze syntax
+        clozeCard.Answers.Should().HaveCount(3); // 3 actual answers
         clozeCard.Answers.Should().ContainValue("capital");
         clozeCard.Answers.Should().ContainValue("France");
         clozeCard.Answers.Should().ContainValue("Paris");
@@ -392,12 +392,7 @@ Answer: Berlin";
         var cards = _cardExtractor.ExtractCards(document).ToList();
 
         // Assert
-        cards.Should().HaveCount(1);
-        cards[0].Should().BeOfType<ParsedQuestionAnswerCard>();
-
-        var card = (ParsedQuestionAnswerCard)cards[0];
-        card.Question.Should().Be("#math #algebra");
-        card.Answer.Should().Be("Some content without explicit cards.");
+        cards.Should().HaveCount(0); // No explicit cards, just tags
     }
 
     [Fact]

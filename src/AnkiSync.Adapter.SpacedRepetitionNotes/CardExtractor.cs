@@ -235,7 +235,7 @@ public class CardExtractor : ICardExtractor
                     currentCard.Clear();
                 }
             }
-            else if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.Contains("{{") && !trimmed.Contains("==") && !trimmed.Contains("**"))
+            else if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("#") && !trimmed.Contains("{{") && !trimmed.Contains("==") && !trimmed.Contains("**"))
             {
                 currentCard.Add(line); // Keep original formatting
             }
@@ -319,101 +319,118 @@ public class CardExtractor : ICardExtractor
 
     private IEnumerable<ParsedCardBase> ExtractClozeCards(Document document)
     {
-        var answers = new Dictionary<string, string>();
-        var placeholderText = document.Content;
-        var clozeFound = false;
+        var lines = document.Content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
-        // Handle Anki-style cloze: {{c1::text}} or {{keyword::text}}
-        var ankiClozePattern = @"{{(?:c(\d+)|([^:]+))::([^}]+)}}";
-        var ankiMatches = System.Text.RegularExpressions.Regex.Matches(document.Content, ankiClozePattern);
-
-        foreach (System.Text.RegularExpressions.Match match in ankiMatches)
+        foreach (var line in lines)
         {
-            clozeFound = true;
-            var answer = match.Groups[3].Value;
-            string keyword;
-
-            if (match.Groups[1].Success)
+            var trimmed = line.Trim();
+            
+            // Skip lines that are just tags or comments
+            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#"))
             {
-                // This is a numbered cloze like {{c1::text}}, convert to named keyword
-                keyword = $"answer{match.Groups[1].Value}";
-            }
-            else if (match.Groups[2].Success)
-            {
-                // This is a named keyword like {{country::France}}
-                keyword = match.Groups[2].Value;
-            }
-            else
-            {
-                // Fallback for unexpected format
-                keyword = $"answer{Guid.NewGuid().ToString().Substring(0, 8)}";
+                continue;
             }
 
-            answers[keyword] = answer;
-
-            // Replace the cloze with a named placeholder
-            var placeholder = $"{{{keyword}}}";
-            placeholderText = placeholderText.Replace(match.Value, placeholder);
-        }
-
-        // Handle Obsidian-style cloze deletions
-        // ==highlight== format
-        var highlightPattern = @"==(.*?)==(?!\s*=)"; // Avoid matching === or more
-        var highlightMatches = System.Text.RegularExpressions.Regex.Matches(document.Content, highlightPattern);
-
-        foreach (System.Text.RegularExpressions.Match match in highlightMatches)
-        {
-            clozeFound = true;
-            var answer = match.Groups[1].Value;
-            var keyword = $"cloze{Guid.NewGuid().ToString().Substring(0, 8)}";
-            answers[keyword] = answer;
-
-            // Replace with named placeholder
-            var placeholder = $"{{{keyword}}}";
-            placeholderText = placeholderText.Replace(match.Value, placeholder);
-        }
-
-        // **bolded text** format
-        var boldPattern = @"\*\*(.*?)\*\*(?!\s*\*)"; // Avoid matching *** or more
-        var boldMatches = System.Text.RegularExpressions.Regex.Matches(document.Content, boldPattern);
-
-        foreach (System.Text.RegularExpressions.Match match in boldMatches)
-        {
-            clozeFound = true;
-            var answer = match.Groups[1].Value;
-            var keyword = $"cloze{Guid.NewGuid().ToString().Substring(0, 8)}";
-            answers[keyword] = answer;
-
-            // Replace with named placeholder
-            var placeholder = $"{{{keyword}}}";
-            placeholderText = placeholderText.Replace(match.Value, placeholder);
-        }
-
-        // {{text in curly braces}} format (different from Anki {{c1::text}})
-        var curlyPattern = @"{{([^}]+?)}}(?!:)"; // Match {{text}} but not {{c1::text}}
-        var curlyMatches = System.Text.RegularExpressions.Regex.Matches(document.Content, curlyPattern);
-
-        foreach (System.Text.RegularExpressions.Match match in curlyMatches)
-        {
-            clozeFound = true;
-            var answer = match.Groups[1].Value;
-            var keyword = $"cloze{Guid.NewGuid().ToString().Substring(0, 8)}";
-            answers[keyword] = answer;
-
-            // Replace with named placeholder
-            var placeholder = $"{{{keyword}}}";
-            placeholderText = placeholderText.Replace(match.Value, placeholder);
-        }
-
-        if (clozeFound && answers.Count > 0)
-        {
-            yield return new ParsedClozeCard
+            // Check if this line has cloze markers
+            if (trimmed.Contains("{{") || trimmed.Contains("==") || trimmed.Contains("**"))
             {
-                Text = placeholderText,
-                Answers = answers,
-                Tags = document.Tags,
-                SourceFilePath = document.FilePath
-            };
+                var answers = new Dictionary<string, string>();
+                var placeholderText = trimmed;
+                var clozeFound = false;
+
+                // Handle Anki-style cloze: {{c1::text}} or {{keyword::text}}
+                var ankiClozePattern = @"{{(?:c(\d+)|([^:]+))::([^}]+)}}";
+                var ankiMatches = System.Text.RegularExpressions.Regex.Matches(trimmed, ankiClozePattern);
+
+                foreach (System.Text.RegularExpressions.Match match in ankiMatches)
+                {
+                    clozeFound = true;
+                    var answer = match.Groups[3].Value;
+                    string keyword;
+
+                    if (match.Groups[1].Success)
+                    {
+                        // This is a numbered cloze like {{c1::text}}, convert to named keyword
+                        keyword = $"answer{match.Groups[1].Value}";
+                    }
+                    else if (match.Groups[2].Success)
+                    {
+                        // This is a named keyword like {{country::France}}
+                        keyword = match.Groups[2].Value;
+                    }
+                    else
+                    {
+                        // Fallback for unexpected format
+                        keyword = $"answer{Guid.NewGuid().ToString().Substring(0, 8)}";
+                    }
+
+                    answers[keyword] = answer;
+
+                    // Replace the cloze with a named placeholder
+                    var placeholder = $"{{{keyword}}}";
+                    placeholderText = placeholderText.Replace(match.Value, placeholder);
+                }
+
+                // Handle Obsidian-style cloze deletions
+                // ==highlight== format
+                var highlightPattern = @"==(.*?)==(?!\s*=)"; // Avoid matching === or more
+                var highlightMatches = System.Text.RegularExpressions.Regex.Matches(trimmed, highlightPattern);
+
+                foreach (System.Text.RegularExpressions.Match match in highlightMatches)
+                {
+                    clozeFound = true;
+                    var answer = match.Groups[1].Value;
+                    var keyword = $"cloze{Guid.NewGuid().ToString().Substring(0, 8)}";
+                    answers[keyword] = answer;
+
+                    // Replace with named placeholder
+                    var placeholder = $"{{{keyword}}}";
+                    placeholderText = placeholderText.Replace(match.Value, placeholder);
+                }
+
+                // **bolded text** format
+                var boldPattern = @"\*\*(.*?)\*\*(?!\s*\*)"; // Avoid matching *** or more
+                var boldMatches = System.Text.RegularExpressions.Regex.Matches(trimmed, boldPattern);
+
+                foreach (System.Text.RegularExpressions.Match match in boldMatches)
+                {
+                    clozeFound = true;
+                    var answer = match.Groups[1].Value;
+                    var keyword = $"cloze{Guid.NewGuid().ToString().Substring(0, 8)}";
+                    answers[keyword] = answer;
+
+                    // Replace with named placeholder
+                    var placeholder = $"{{{keyword}}}";
+                    placeholderText = placeholderText.Replace(match.Value, placeholder);
+                }
+
+                // {{text in curly braces}} format (different from Anki {{c1::text}})
+                var curlyPattern = @"{{(?!.*::)([^}]+?)}}"; // Match {{text}} but not {{c1::text}}
+                var curlyMatches = System.Text.RegularExpressions.Regex.Matches(trimmed, curlyPattern);
+
+                foreach (System.Text.RegularExpressions.Match match in curlyMatches)
+                {
+                    clozeFound = true;
+                    var answer = match.Groups[1].Value;
+                    var keyword = $"cloze{Guid.NewGuid().ToString().Substring(0, 8)}";
+                    answers[keyword] = answer;
+
+                    // Replace with named placeholder
+                    var placeholder = $"{{{keyword}}}";
+                    placeholderText = placeholderText.Replace(match.Value, placeholder);
+                }
+
+                if (clozeFound && answers.Count > 0)
+                {
+                    yield return new ParsedClozeCard
+                    {
+                        Text = placeholderText,
+                        Answers = answers,
+                        Tags = document.Tags,
+                        SourceFilePath = document.FilePath
+                    };
+                }
+            }
         }
     }
 }
