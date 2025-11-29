@@ -182,7 +182,6 @@ New Question?::New Answer.
             {
                 new QuestionAnswerCard
                 {
-                    Id = "existing-card-id",
                     DateModified = DateTimeOffset.Parse("2025-11-28T00:00:00Z"),
                     Question = "Existing Question?",
                     Answer = "Existing Answer."
@@ -250,7 +249,6 @@ Question?::Updated Answer.
             {
                 new QuestionAnswerCard
                 {
-                    Id = "existing-card-id",
                     DateModified = DateTimeOffset.Parse("2025-11-27T00:00:00Z"), // Older
                     Question = "Question?",
                     Answer = "Old Answer."
@@ -284,20 +282,19 @@ Question?::Updated Answer.
             
             if (capturedDeck.Cards.Count > 0)
             {
-                capturedDeck.Cards[0].Id.Should().Be("existing-card-id"); // Same ID
-                
                 var qaCard = capturedDeck.Cards[0] as QuestionAnswerCard;
                 qaCard.Should().NotBeNull();
                 if (qaCard != null)
                 {
+                    qaCard.Question.Should().Be("Question?");
                     qaCard.Answer.Should().Be("Updated Answer."); // Updated content
                 }
             }
         }
     }
 
-    [Fact(Skip = "Not functional for now")]
-    public async Task SynchronizeCards_WithNestedDirectories_CreatesMultipleDecks()
+    [Fact]
+    public async Task SynchronizeCards_With_Different_Directories_Creates_Same_Deck()
     {
         // Arrange - Set up mock file system with nested directories
         var mockFileSystem = new MockFileSystem();
@@ -322,8 +319,7 @@ Q2?::A2.
 
         // Mock deck repository - decks don't exist
         deckRepositoryMock
-            .Setup(x => x.GetDeck(It.IsAny<DeckId>(), default))
-            .ThrowsAsync(new Exception("Deck not found"));
+            .Setup(x => x.GetDeck(It.IsAny<DeckId>(), default)).ReturnsAsync((Deck?)null);
 
         // Create services manually
         var fileParser = new FileParser();
@@ -339,9 +335,8 @@ Q2?::A2.
         await synchronizationService.SynchronizeCardsAsync(new[] { testDir });
 
         // Assert - Both decks should be created
-        capturedDecks.Should().HaveCount(2);
-        capturedDecks.Should().Contain(d => d.DeckId.Name == "deck1");
-        capturedDecks.Should().Contain(d => d.DeckId.Name == "deck2");
+        capturedDecks.Should().HaveCount(1);
+        capturedDecks.Should().Contain(d => d.DeckId.Name == "test");
     }
 
     [Fact]

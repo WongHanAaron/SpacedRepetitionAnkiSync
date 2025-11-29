@@ -206,15 +206,11 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
 
     private Card ConvertToDomainCard(ParsedCardBase parsedCard)
     {
-        // Generate a unique ID for the card
-        var cardId = Guid.NewGuid().ToString();
-
         // Determine card type and create appropriate domain card
         if (parsedCard is ParsedClozeCard clozeCard)
         {
             return new ClozeCard
             {
-                Id = cardId,
                 DateModified = DateTimeOffset.UtcNow,
                 Text = clozeCard.Text,
                 Answers = clozeCard.Answers
@@ -225,7 +221,6 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
         {
             return new QuestionAnswerCard
             {
-                Id = cardId,
                 DateModified = DateTimeOffset.UtcNow,
                 Question = qaCard.Question,
                 Answer = qaCard.Answer

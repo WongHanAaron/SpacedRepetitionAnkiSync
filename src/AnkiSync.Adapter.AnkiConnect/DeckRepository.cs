@@ -98,24 +98,16 @@ public class DeckRepository : IDeckRepository
         {
             long? noteId = null;
 
-            if (!string.IsNullOrEmpty(card.Id) && long.TryParse(card.Id, out var parsedId))
+            // Try to find an existing card with the same content
+            var query = BuildFindQuery(card, ankiDeckName);
+            if (!string.IsNullOrEmpty(query))
             {
-                noteId = parsedId;
-            }
-            else
-            {
-                // Card ID is missing, try to find an existing card with the same content
-                var query = BuildFindQuery(card, ankiDeckName);
-                if (!string.IsNullOrEmpty(query))
+                var findRequest = new FindNotesRequestDto(query);
+                var findResponse = await _ankiService.FindNotesAsync(findRequest, cancellationToken);
+                
+                if (findResponse.Result != null && findResponse.Result.Any())
                 {
-                    var findRequest = new FindNotesRequestDto(query);
-                    var findResponse = await _ankiService.FindNotesAsync(findRequest, cancellationToken);
-                    
-                    if (findResponse.Result != null && findResponse.Result.Any())
-                    {
-                        noteId = findResponse.Result.First();
-                        card.Id = noteId.Value.ToString(); // Update the card object with the found ID
-                    }
+                    noteId = findResponse.Result.First();
                 }
             }
 
@@ -133,11 +125,8 @@ public class DeckRepository : IDeckRepository
                 var addNoteRequest = new AddNoteRequestDto(ankiNote);
                 var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest, cancellationToken);
 
-                // Update the card's Id with the newly created note ID
-                if (addNoteResponse.Result.HasValue)
-                {
-                    card.Id = addNoteResponse.Result.Value.ToString();
-                }
+                // Note: We don't store the Anki note ID back on the domain card
+                // The synchronization logic will find cards by content
             }
         }
     }
@@ -179,7 +168,6 @@ public class DeckRepository : IDeckRepository
 
         return new QuestionAnswerCard
         {
-            Id = note.NoteId.ToString(),
             DateModified = note.DateModified,
             Question = frontField.Value,
             Answer = backField.Value
@@ -198,7 +186,6 @@ public class DeckRepository : IDeckRepository
 
         return new ClozeCard
         {
-            Id = note.NoteId.ToString(),
             DateModified = note.DateModified,
             Text = text,
             Answers = answers

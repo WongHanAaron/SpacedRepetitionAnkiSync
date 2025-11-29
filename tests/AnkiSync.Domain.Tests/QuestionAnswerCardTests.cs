@@ -13,13 +13,10 @@ public class QuestionAnswerCardTests
         // Arrange & Act
         var card = new QuestionAnswerCard
         {
-            Id = Guid.NewGuid().ToString(),
             DateModified = DateTimeOffset.Now
         };
 
         // Assert
-        card.Id.Should().NotBeNull();
-        card.Id.Should().NotBe(Guid.Empty.ToString());
         card.DateModified.Should().BeCloseTo(DateTimeOffset.Now, TimeSpan.FromSeconds(1));
         card.Question.Should().BeEmpty();
         card.Answer.Should().BeEmpty();
@@ -32,7 +29,6 @@ public class QuestionAnswerCardTests
         // Arrange
         var card = new QuestionAnswerCard
         {
-            Id = Guid.NewGuid().ToString(),
             DateModified = DateTimeOffset.Now,
             Question = string.Empty,
             Answer = "Answer"
@@ -50,7 +46,6 @@ public class QuestionAnswerCardTests
         // Arrange
         var card = new QuestionAnswerCard
         {
-            Id = Guid.NewGuid().ToString(),
             DateModified = DateTimeOffset.Now,
             Question = "Question",
             Answer = string.Empty
@@ -68,7 +63,6 @@ public class QuestionAnswerCardTests
         // Arrange
         var card = new QuestionAnswerCard
         {
-            Id = Guid.NewGuid().ToString(),
             DateModified = DateTimeOffset.Now,
             Question = "What is the capital of France?",
             Answer = "Paris"

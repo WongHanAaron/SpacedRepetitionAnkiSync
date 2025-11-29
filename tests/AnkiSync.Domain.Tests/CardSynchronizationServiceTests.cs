@@ -107,7 +107,6 @@ public class CardSynchronizationServiceTests
             {
                 new QuestionAnswerCard
                 {
-                    Id = Guid.NewGuid().ToString(),
                     DateModified = DateTimeOffset.UtcNow,
                     Question = question,
                     Answer = answer

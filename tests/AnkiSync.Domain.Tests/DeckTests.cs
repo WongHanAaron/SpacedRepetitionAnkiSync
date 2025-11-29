@@ -23,8 +23,8 @@ public class DeckTests
         // Arrange
         var deckId = DeckId.FromPath("TestDeck");
         var deck = new Deck { DeckId = deckId };
-        var qaCard = new QuestionAnswerCard { Id = Guid.NewGuid().ToString(), DateModified = DateTimeOffset.Now, Question = "Q", Answer = "A" };
-        var clozeCard = new ClozeCard { Id = Guid.NewGuid().ToString(), DateModified = DateTimeOffset.Now, Text = """Test {keyword}""", Answers = new Dictionary<string, string> { ["keyword"] = "value" } };
+        var qaCard = new QuestionAnswerCard { DateModified = DateTimeOffset.Now, Question = "Q", Answer = "A" };
+        var clozeCard = new ClozeCard { DateModified = DateTimeOffset.Now, Text = """Test {keyword}""", Answers = new Dictionary<string, string> { ["keyword"] = "value" } };
 
         // Act
         deck.Cards.Add(qaCard);

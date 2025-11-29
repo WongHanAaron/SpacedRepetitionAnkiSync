@@ -6,12 +6,22 @@ namespace AnkiSync.Domain.Extensions;
 public static class CollectionExtensions
 {
     /// <summary>
-    /// Gets distinct cards by ID
+    /// Gets distinct cards by content (question for QA cards, text for cloze cards)
     /// </summary>
     /// <param name="cards">The cards collection</param>
     /// <returns>Distinct cards</returns>
-    public static IEnumerable<Card> DistinctById(this IEnumerable<Card> cards)
+    public static IEnumerable<Card> DistinctByContent(this IEnumerable<Card> cards)
     {
-        return cards.GroupBy(c => c.Id).Select(g => g.First());
+        return cards.GroupBy(c => GetCardContentKey(c)).Select(g => g.First());
+    }
+
+    private static string GetCardContentKey(Card card)
+    {
+        return card switch
+        {
+            QuestionAnswerCard qa => $"QA:{qa.Question}",
+            ClozeCard cloze => $"Cloze:{cloze.Text}",
+            _ => card.GetHashCode().ToString()
+        };
     }
 }

@@ -7,16 +7,16 @@ namespace AnkiSync.Domain.Tests;
 public class CollectionExtensionsTests
 {
     [Fact]
-    public void DistinctById_ReturnsDistinctCards()
+    public void DistinctByContent_ReturnsDistinctCards()
     {
         // Arrange
-        var card1 = new QuestionAnswerCard { Id = "1", DateModified = DateTimeOffset.Now, Question = "Q1", Answer = "A1" };
-        var card2 = new QuestionAnswerCard { Id = "2", DateModified = DateTimeOffset.Now, Question = "Q2", Answer = "A2" };
-        var card3 = new QuestionAnswerCard { Id = "1", DateModified = DateTimeOffset.Now, Question = "Q3", Answer = "A3" }; // Duplicate ID
+        var card1 = new QuestionAnswerCard { DateModified = DateTimeOffset.Now, Question = "Q1", Answer = "A1" };
+        var card2 = new QuestionAnswerCard { DateModified = DateTimeOffset.Now, Question = "Q2", Answer = "A2" };
+        var card3 = new QuestionAnswerCard { DateModified = DateTimeOffset.Now, Question = "Q1", Answer = "A1" }; // Duplicate content
         var cards = new List<Card> { card1, card2, card3 };
 
         // Act
-        var distinctCards = cards.DistinctById().ToList();
+        var distinctCards = cards.DistinctByContent().ToList();
 
         // Assert
         distinctCards.Should().HaveCount(2);
@@ -26,29 +26,29 @@ public class CollectionExtensionsTests
     }
 
     [Fact]
-    public void DistinctById_HandlesEmptyCollection()
+    public void DistinctByContent_HandlesEmptyCollection()
     {
         // Arrange
         var cards = new List<Card>();
 
         // Act
-        var distinctCards = cards.DistinctById().ToList();
+        var distinctCards = cards.DistinctByContent().ToList();
 
         // Assert
         distinctCards.Should().BeEmpty();
     }
 
     [Fact]
-    public void DistinctById_HandlesMixedCardTypes()
+    public void DistinctByContent_HandlesMixedCardTypes()
     {
         // Arrange
-        var qaCard = new QuestionAnswerCard { Id = "1", DateModified = DateTimeOffset.Now, Question = "Q", Answer = "A" };
-        var clozeCard = new ClozeCard { Id = "2", DateModified = DateTimeOffset.Now, Text = """Test {keyword}""", Answers = new Dictionary<string, string> { ["keyword"] = "value" } };
-        var duplicateQaCard = new QuestionAnswerCard { Id = "1", DateModified = DateTimeOffset.Now, Question = "Q2", Answer = "A2" };
+        var qaCard = new QuestionAnswerCard { DateModified = DateTimeOffset.Now, Question = "Q", Answer = "A" };
+        var clozeCard = new ClozeCard { DateModified = DateTimeOffset.Now, Text = """Test {keyword}""", Answers = new Dictionary<string, string> { ["keyword"] = "value" } };
+        var duplicateQaCard = new QuestionAnswerCard { DateModified = DateTimeOffset.Now, Question = "Q", Answer = "A" }; // Duplicate content
         var cards = new List<Card> { qaCard, clozeCard, duplicateQaCard };
 
         // Act
-        var distinctCards = cards.DistinctById().ToList();
+        var distinctCards = cards.DistinctByContent().ToList();
 
         // Assert
         distinctCards.Should().HaveCount(2);

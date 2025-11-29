@@ -5,11 +5,6 @@ namespace AnkiSync.Domain;
 /// </summary>
 public abstract class Card
 {
-    /// <summary>
-    /// Unique identifier for the card
-    /// </summary>
-    public required string Id { get; set; }
-
     public required DateTimeOffset DateModified { get; set; }
 
     /// <summary>

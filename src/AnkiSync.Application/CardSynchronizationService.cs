@@ -130,19 +130,17 @@ public class CardSynchronizationService
             }
             else if (HasCardChanged(existingCard, sourceCard))
             {
-                // Card changed, update it but preserve the existing ID
+                // Card changed, update it
                 Card updatedCard = sourceCard switch
                 {
                     QuestionAnswerCard qa => new QuestionAnswerCard
                     {
-                        Id = existingCard.Id,
                         Question = qa.Question,
                         Answer = qa.Answer,
                         DateModified = qa.DateModified
                     },
                     ClozeCard cloze => new ClozeCard
                     {
-                        Id = existingCard.Id,
                         Text = cloze.Text,
                         Answers = cloze.Answers,
                         DateModified = cloze.DateModified
@@ -163,7 +161,7 @@ public class CardSynchronizationService
         {
             foreach (var existingCard in existingDeck.Cards)
             {
-                if (!mergedCards.Any(c => c.Id == existingCard.Id))
+                if (!mergedCards.Any(c => CardsMatchForUpdate(c, existingCard)))
                 {
                     mergedCards.Add(existingCard);
                 }
@@ -192,19 +190,17 @@ public class CardSynchronizationService
             }
             else if (HasCardChanged(existingCard, sourceCard))
             {
-                // Card changed, update it but preserve the existing ID
+                // Card changed, update it
                 Card updatedCard = sourceCard switch
                 {
                     QuestionAnswerCard qa => new QuestionAnswerCard
                     {
-                        Id = existingCard.Id,
                         Question = qa.Question,
                         Answer = qa.Answer,
                         DateModified = qa.DateModified
                     },
                     ClozeCard cloze => new ClozeCard
                     {
-                        Id = existingCard.Id,
                         Text = cloze.Text,
                         Answers = cloze.Answers,
                         DateModified = cloze.DateModified

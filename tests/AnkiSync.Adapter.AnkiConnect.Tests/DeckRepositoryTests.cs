@@ -132,8 +132,7 @@ public class DeckRepositoryTests
 
         var firstCard = result.Cards[0] as QuestionAnswerCard;
         firstCard.Should().NotBeNull();
-        firstCard!.Id.Should().Be("123");
-        firstCard.Question.Should().Be("Question 1?");
+        firstCard!.Question.Should().Be("Question 1?");
         firstCard.Answer.Should().Be("Answer 1!");
     }
 
@@ -181,8 +180,7 @@ public class DeckRepositoryTests
 
         var clozeCard = result.Cards[0] as ClozeCard;
         clozeCard.Should().NotBeNull();
-        clozeCard!.Id.Should().Be("789");
-        clozeCard.Text.Should().Be("This is a {answer1} test.");
+        clozeCard!.Text.Should().Be("This is a {answer1} test.");
         clozeCard.Answers.Should().ContainKey("answer1");
         clozeCard.Answers["answer1"].Should().Be("cloze");
     }
@@ -243,7 +241,8 @@ public class DeckRepositoryTests
 
         var card = result.Cards[0] as QuestionAnswerCard;
         card.Should().NotBeNull();
-        card!.Id.Should().Be("456");
+        card!.Question.Should().Be("Question 2?");
+        card!.Answer.Should().Be("Answer 2!");
     }
 
     [Fact]
@@ -264,14 +263,12 @@ public class DeckRepositoryTests
             {
                 new QuestionAnswerCard
                 {
-                    Id = "",
                     DateModified = DateTimeOffset.Now,
                     Question = "What is 2+2?",
                     Answer = "4"
                 },
                 new ClozeCard
                 {
-                    Id = "",
                     DateModified = DateTimeOffset.Now,
                     Text = "The capital of France is {{c1::Paris}}."
                 }
