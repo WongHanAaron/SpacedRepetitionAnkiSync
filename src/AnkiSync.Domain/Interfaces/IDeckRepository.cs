@@ -43,4 +43,10 @@ public interface IDeckRepository
     /// <param name="cardsToKeep">The cards that should remain in the deck</param>
     /// <param name="cancellationToken">Cancellation token</param>
     Task DeleteObsoleteCardsAsync(DeckId deckId, IEnumerable<Card> cardsToKeep, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Syncs the Anki collection with AnkiWeb
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task SyncWithAnkiWebAsync(CancellationToken cancellationToken = default);
 }

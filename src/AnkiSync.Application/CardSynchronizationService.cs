@@ -41,32 +41,9 @@ public class CardSynchronizationService
 
         // Get all decks from the source repository
         var sourceDecks = await _cardSourceRepository.GetCardsFromDirectories(directories, cancellationToken);
-        var sourceDeckIds = sourceDecks.Select(d => d.DeckId).ToHashSet();
 
         _logger.LogDebug("Retrieved {Count} source decks", sourceDecks.Count());
 
-        // Get all existing deck IDs from Anki
-        var existingDeckIds = await _deckRepository.GetAllDeckIdsAsync(cancellationToken);
-        var existingDeckIdsSet = existingDeckIds.ToHashSet();
-
-        _logger.LogDebug("Retrieved {Count} existing decks from Anki", existingDeckIds.Count());
-
-        // Delete decks that no longer exist in source
-        var decksToDelete = existingDeckIds.Where(id => !sourceDeckIds.Contains(id)).ToList();
-        foreach (var deckId in decksToDelete)
-        {
-            try
-            {
-                _logger.LogInformation("Deleting deck {DeckId} as it no longer exists in source", deckId);
-                await _deckRepository.DeleteDeckAsync(deckId, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting deck {DeckId}", deckId);
-            }
-        }
-
-        // Synchronize each source deck
         foreach (var sourceDeck in sourceDecks)
         {
             try
@@ -77,6 +54,17 @@ public class CardSynchronizationService
             {
                 _logger.LogError(ex, "Error synchronizing deck {DeckId}", sourceDeck.DeckId);
             }
+        }
+
+        // Sync with AnkiWeb after all decks have been synchronized
+        try
+        {
+            _logger.LogInformation("Syncing with AnkiWeb after synchronization");
+            await _deckRepository.SyncWithAnkiWebAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error syncing with AnkiWeb");
         }
     }
 
@@ -108,9 +96,6 @@ public class CardSynchronizationService
         else
         {
             _logger.LogDebug("Updating existing deck {DeckId}", sourceDeck.DeckId);
-            // Delete cards that no longer exist in source
-            await _deckRepository.DeleteObsoleteCardsAsync(sourceDeck.DeckId, sourceDeck.Cards, cancellationToken);
-            
             // Merge source deck with existing deck
             var mergedDeck = MergeDecks(existingDeck, sourceDeck);
             

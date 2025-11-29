@@ -388,4 +388,13 @@ public class DeckRepository : IDeckRepository
             _ => false
         };
     }
+
+    /// <inheritdoc />
+    public async Task SyncWithAnkiWebAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Syncing Anki collection with AnkiWeb");
+
+        var syncRequest = new SyncRequestDto();
+        await _ankiService.SyncAsync(syncRequest, cancellationToken);
+    }
 }

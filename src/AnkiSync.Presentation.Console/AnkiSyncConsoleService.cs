@@ -87,7 +87,7 @@ public class AnkiSyncConsoleService
         _logger.LogInformation("Usage: AnkiSync <command>");
         _logger.LogInformation("Commands:");
         _logger.LogInformation("  sync <directory>       Synchronize flashcards from directory to Anki");
-        _logger.LogInformation("  sync-loop <directory>  Continuously sync flashcards from directory to Anki on file changes");
+        _logger.LogInformation("  sync-loop <directory>  Continuously sync flashcards from directory to Anki on file changes and every 5 minutes");
         _logger.LogInformation("  status                 Check Anki connection status");
         _logger.LogInformation("  decks                  List available Anki decks");
         _logger.LogInformation("  test                   Test Anki connection");
@@ -134,6 +134,7 @@ public class AnkiSyncConsoleService
         }
 
         _logger.LogInformation("Starting sync loop for directory: {Directory}", directory);
+        _logger.LogInformation("Sync will occur on file changes and every 5 minutes");
         _logger.LogInformation("Press Ctrl+C to stop the sync loop");
 
         var syncInProgress = false;
@@ -166,6 +167,13 @@ public class AnkiSyncConsoleService
             _logger.LogInformation("Stopping sync loop...");
         };
 
+        // Set up periodic sync timer (every 5 minutes)
+        var periodicSyncTimer = new Timer(
+            callback: _ => OnPeriodicSync(ref syncRequested),
+            state: null,
+            dueTime: TimeSpan.FromMinutes(5), // First sync after 5 minutes
+            period: TimeSpan.FromMinutes(5)); // Then every 5 minutes
+
         try
         {
             // Main sync loop
@@ -196,6 +204,11 @@ public class AnkiSyncConsoleService
         catch (TaskCanceledException)
         {
             // Expected when cancellation is requested
+        }
+        finally
+        {
+            // Clean up timer
+            await periodicSyncTimer.DisposeAsync();
         }
 
         _logger.LogInformation("Sync loop stopped");
@@ -231,6 +244,15 @@ public class AnkiSyncConsoleService
         {
             syncRequested = true;
             _logger.LogInformation("File change detected, scheduling sync...");
+        }
+    }
+
+    private void OnPeriodicSync(ref bool syncRequested)
+    {
+        if (!syncRequested)
+        {
+            syncRequested = true;
+            _logger.LogInformation("Periodic sync triggered (every 5 minutes), scheduling sync...");
         }
     }
 

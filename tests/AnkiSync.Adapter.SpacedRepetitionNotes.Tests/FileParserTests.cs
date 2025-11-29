@@ -18,7 +18,8 @@ public class FileParserTests
     public async Task ParseContentAsync_WithMultipleTagsOnSameLine_ShouldExtractFirstTag()
     {
         // Arrange
-        var content = @"#cloud #aws #compute  This is content with multiple tags on the same line.";
+        var content = @"#cloud #aws #compute
+This is content with multiple tags on the same line.";
         var filePath = "test.md";
         var lastModified = DateTimeOffset.UtcNow;
 
@@ -33,10 +34,11 @@ public class FileParserTests
     }
 
     [Fact]
-    public async Task ParseContentAsync_WithNestedTags_ShouldExtractFirstTagSplitBySlashes()
+    public async Task ParseContentAsync_WithNestedTags_ShouldExtractAllTagParts()
     {
         // Arrange
-        var content = @"#algorithms/datastructures #aws/compute/ec2  Content with nested tags.";
+        var content = @"#algorithms/datastructures #aws/compute/ec2
+Content with nested tags.";
         var filePath = "test.md";
         var lastModified = DateTimeOffset.UtcNow;
 
@@ -66,11 +68,12 @@ Content with tags on separate lines.";
     }
 
     [Fact]
-    public async Task ParseContentAsync_WithMixedTagFormats_ShouldExtractFirstValidTag()
+    public async Task ParseContentAsync_WithMixedTagFormats_ShouldExtractFromFirstLine()
     {
         // Arrange
-        var content = @"#cloud #aws/compute #simple-tag  Some content here.
-#another/tag #final  More content.";
+        var content = @"#cloud #aws/compute #simple-tag
+#another/tag #final
+Some content here.";
         var filePath = "test.md";
         var lastModified = DateTimeOffset.UtcNow;
 
@@ -85,7 +88,8 @@ Content with tags on separate lines.";
     public async Task ParseContentAsync_WithDuplicateTags_ShouldReturnFirstTag()
     {
         // Arrange
-        var content = @"#cloud #aws #cloud  Content with duplicate tags.";
+        var content = @"#cloud #aws #cloud
+Content with duplicate tags.";
         var filePath = "test.md";
         var lastModified = DateTimeOffset.UtcNow;
 
@@ -115,7 +119,8 @@ Content with tags on separate lines.";
     public async Task ParseContentAsync_WithInvalidTagFormats_ShouldExtractFirstValidTag()
     {
         // Arrange
-        var content = @"#valid #another-valid  Content with invalid tag formats like invalid tag and invalidhtag that should be skipped.";
+        var content = @"#valid #another-valid
+Content with invalid tag formats like invalid tag and invalidhtag that should be skipped.";
         var filePath = "test.md";
         var lastModified = DateTimeOffset.UtcNow;
 
@@ -130,7 +135,8 @@ Content with tags on separate lines.";
     public async Task ParseContentAsync_WithSpaceAfterHash_ShouldNotExtractTag()
     {
         // Arrange
-        var content = @"# test #valid  Content with space after hash that should not be extracted.";
+        var content = @"# test #valid
+Content with space after hash that should not be extracted.";
         var filePath = "test.md";
         var lastModified = DateTimeOffset.UtcNow;
 
@@ -157,10 +163,11 @@ Content with tags on separate lines.";
     }
 
     [Fact]
-    public async Task ParseContentAsync_WithDeeplyNestedTag_ShouldSplitBySlashes()
+    public async Task ParseContentAsync_WithDeeplyNestedTag_ShouldExtractAllParts()
     {
         // Arrange
-        var content = @"#aws/compute/ec2  Content with deeply nested tag.";
+        var content = @"#aws/compute/ec2
+Content with deeply nested tag.";
         var filePath = "test.md";
         var lastModified = DateTimeOffset.UtcNow;
 

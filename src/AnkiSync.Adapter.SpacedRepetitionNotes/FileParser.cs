@@ -55,15 +55,38 @@ public class FileParser : IFileParser
 
     private static IEnumerable<string> ExtractTags(string content)
     {
-        // Extract only the first tag from content, separated by whitespace
-        // Tags can contain '/' for nested hierarchy
-        // Use negative lookbehind to ensure we don't match multiple consecutive #
-        var firstMatch = System.Text.RegularExpressions.Regex.Match(content, @"(?<!#)#([^#\s]+)");
-        if (firstMatch.Success)
+        // Split content into lines
+        var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        
+        // Only check the first 2 lines
+        for (int i = 0; i < Math.Min(2, lines.Length); i++)
         {
-            var tagString = firstMatch.Groups[1].Value;
-            return tagString.Split('/');
+            var line = lines[i].Trim();
+            
+            // Check if line starts with # (after trimming whitespace)
+            if (line.StartsWith("#"))
+            {
+                // Use regex to find the first valid tag on this line
+                // Same logic as original: (?<!#)#([^#\s]+)
+                var match = System.Text.RegularExpressions.Regex.Match(line, @"(?<!#)#([^#\s]+)");
+                if (match.Success)
+                {
+                    var tagString = match.Groups[1].Value;
+                    
+                    // Split by '/' for nested tags and return all parts
+                    var tagParts = tagString.Split('/', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(part => part.Trim())
+                        .Where(part => !string.IsNullOrEmpty(part))
+                        .ToArray();
+                    
+                    if (tagParts.Length > 0)
+                    {
+                        return tagParts;
+                    }
+                }
+            }
         }
+        
         return Enumerable.Empty<string>();
     }
 }
