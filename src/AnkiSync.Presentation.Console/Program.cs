@@ -1,12 +1,17 @@
-// using AnkiSync.Adapter.AnkiConnect;
-// using AnkiSync.Adapter.AnkiConnect.Configuration;
 using AnkiSync.Adapter.AnkiConnect;
 using AnkiSync.Adapter.SpacedRepetitionNotes;
 using AnkiSync.Application;
 using AnkiSync.Domain;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Console;
+using Microsoft.Extensions.Options;
 using System;
+using System.IO;
+using System.IO.Abstractions;
+using System.Linq;
+using System.Threading;
 
 namespace AnkiSync.Presentation.Cli;
 
@@ -17,85 +22,15 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        var logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<Program>();
+        // Set up dependency injection
+        var services = new ServiceCollection();
+        ConfigureServices(services);
+        var serviceProvider = services.BuildServiceProvider();
 
-        if (args.Length == 0)
-        {
-            ShowHelp(logger);
-            return;
-        }
-
-        var command = args[0].ToLower();
-
-        try
-        {
-            // Set up dependency injection
-            var services = new ServiceCollection();
-            ConfigureServices(services);
-            var serviceProvider = services.BuildServiceProvider();
-
-            switch (command)
-            {
-                case "sync":
-                    await HandleSyncCommand(serviceProvider, args, logger);
-                    break;
-                case "status":
-                    // TODO: Implement status command
-                    logger.LogWarning("Status command not yet implemented.");
-                    break;
-                case "decks":
-                    // TODO: Implement decks command
-                    logger.LogWarning("Decks command not yet implemented.");
-                    break;
-                case "test":
-                    // TODO: Implement test command
-                    logger.LogWarning("Test command not yet implemented.");
-                    break;
-                default:
-                    logger.LogWarning("Unknown command: {Command}", command);
-                    ShowHelp(logger);
-                    break;
-            }
-
-            await Task.CompletedTask; // Keep method async for future use
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "An error occurred");
-        }
+        var consoleService = serviceProvider.GetRequiredService<AnkiSyncConsoleService>();
+        await consoleService.ExecuteAsync(args);
     }
 
-    private static void ShowHelp(ILogger logger)
-    {
-        logger.LogInformation("Usage: AnkiSync <command>");
-        logger.LogInformation("Commands:");
-        logger.LogInformation("  sync <directory>    Synchronize flashcards from directory to Anki");
-        logger.LogInformation("  status              Check Anki connection status");
-        logger.LogInformation("  decks               List available Anki decks");
-        logger.LogInformation("  test                Test Anki connection");
-        logger.LogInformation("Examples:");
-        logger.LogInformation("  AnkiSync sync C:\\MyNotes");
-    }
-
-    // TODO: Implement command handlers with new interface
-    // private static async Task HandleStatusCommand(AnkiConnectClient client)
-    // {
-    //     logger.LogInformation("Checking Anki connection status...");
-    //
-    //     var status = await client.GetSyncStatusAsync();
-    //
-    //     logger.LogInformation("AnkiSync Status:");
-    //     logger.LogInformation("  Anki Connection: {Status}", status.AnkiConnectionStatus);
-    //     logger.LogInformation("  Sync Running: {Running}", status.IsRunning);
-    //
-    //     if (status.AnkiConnectionStatus == AnkiConnectionStatus.Connected)
-    //     {
-    //         logger.LogInformation("✓ Connected to Anki");
-    //     }
-    //     else
-    //     {
-    //         logger.LogError("✗ Not connected to Anki");
-    //     }
     private static void ConfigureServices(IServiceCollection services)
     {
         // Register application services
@@ -104,31 +39,115 @@ public class Program
         // Register adapters
         services.AddSpacedRepetitionNotesAdapter();
         services.AddAnkiConnectAdapter();
+
+        // Register file system abstraction
+        services.AddSingleton<IFileSystem, FileSystem>();
+
+        // Register console service
+        services.AddSingleton<AnkiSyncConsoleService>();
+    }
+}
+
+/// <summary>
+/// Custom console formatter for AnkiSync with colors and categories
+/// </summary>
+public class AnkiSyncConsoleFormatter : ConsoleFormatter
+{
+    public AnkiSyncConsoleFormatter()
+        : base("AnkiSyncFormatter")
+    {
     }
 
-    private static async Task HandleSyncCommand(IServiceProvider serviceProvider, string[] args, ILogger logger)
+    public override void Write<TState>(in LogEntry<TState> logEntry, IExternalScopeProvider? scopeProvider, TextWriter textWriter)
     {
-        if (args.Length < 2)
+        if (logEntry.Exception == null)
         {
-            logger.LogError("Usage: ankisync sync <directory>");
-            logger.LogInformation("Example: ankisync sync C:\\MyNotes");
-            return;
+            WriteLogEntry(logEntry, textWriter);
         }
+        else
+        {
+            WriteLogEntryWithException(logEntry, textWriter);
+        }
+    }
 
-        var directory = args[1];
-        
-        logger.LogInformation("Synchronizing flashcards from directory: {Directory}", directory);
-        
+    private void WriteLogEntry<TState>(in LogEntry<TState> logEntry, TextWriter textWriter)
+    {
+        // Get the original console color
+        var originalColor = Console.ForegroundColor;
+
         try
         {
-            var synchronizationService = serviceProvider.GetRequiredService<CardSynchronizationService>();
-            await synchronizationService.SynchronizeCardsAsync(new[] { directory });
-            
-            logger.LogInformation("Synchronization completed successfully!");
+            // Set color based on log level
+            Console.ForegroundColor = GetColorForLogLevel(logEntry.LogLevel);
+
+            // Format: [HH:mm:ss] [LEVEL] [CATEGORY] Message
+            var timestamp = DateTime.Now.ToString("HH:mm:ss");
+            var level = GetShortLogLevel(logEntry.LogLevel);
+            var category = GetCategoryName(logEntry.Category);
+
+            textWriter.Write($"[{timestamp}] [{level}] [{category}] ");
+            textWriter.Write(logEntry.Formatter?.Invoke(logEntry.State, logEntry.Exception));
+            textWriter.WriteLine();
         }
-        catch (Exception ex)
+        finally
         {
-            logger.LogError(ex, "Synchronization failed");
+            // Restore original color
+            Console.ForegroundColor = originalColor;
         }
+    }
+
+    private void WriteLogEntryWithException<TState>(in LogEntry<TState> logEntry, TextWriter textWriter)
+    {
+        WriteLogEntry(logEntry, textWriter);
+
+        // Write exception details
+        var originalColor = Console.ForegroundColor;
+        try
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            if (logEntry.Exception != null)
+            {
+                textWriter.WriteLine(logEntry.Exception.ToString());
+            }
+        }
+        finally
+        {
+            Console.ForegroundColor = originalColor;
+        }
+    }
+
+    private static ConsoleColor GetColorForLogLevel(LogLevel logLevel)
+    {
+        return logLevel switch
+        {
+            LogLevel.Trace => ConsoleColor.Gray,
+            LogLevel.Debug => ConsoleColor.Gray,
+            LogLevel.Information => ConsoleColor.White,
+            LogLevel.Warning => ConsoleColor.Yellow,
+            LogLevel.Error => ConsoleColor.Red,
+            LogLevel.Critical => ConsoleColor.Red,
+            _ => ConsoleColor.White
+        };
+    }
+
+    private static string GetShortLogLevel(LogLevel logLevel)
+    {
+        return logLevel switch
+        {
+            LogLevel.Trace => "TRC",
+            LogLevel.Debug => "DBG",
+            LogLevel.Information => "INF",
+            LogLevel.Warning => "WRN",
+            LogLevel.Error => "ERR",
+            LogLevel.Critical => "CRT",
+            _ => "UNK"
+        };
+    }
+
+    private static string GetCategoryName(string fullCategoryName)
+    {
+        // Extract just the class name from the full namespace + class name
+        var lastDotIndex = fullCategoryName.LastIndexOf('.');
+        return lastDotIndex >= 0 ? fullCategoryName.Substring(lastDotIndex + 1) : fullCategoryName;
     }
 }

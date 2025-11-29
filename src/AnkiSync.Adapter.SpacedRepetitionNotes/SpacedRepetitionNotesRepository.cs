@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Abstractions;
 
 namespace AnkiSync.Adapter.SpacedRepetitionNotes;
 
@@ -18,7 +19,7 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
     private readonly IDeckInferencer _deckInferencer;
     private readonly IFileSystem _fileSystem;
     private readonly ILogger<SpacedRepetitionNotesRepository> _logger;
-    private FileSystemWatcher? _fileSystemWatcher;
+    private IFileSystemWatcher? _fileSystemWatcher;
 
     /// <summary>
     /// Initializes a new instance of SpacedRepetitionNotesRepository
@@ -54,8 +55,8 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
             try
             {
                 // Read file content and metadata
-                var fileInfo = _fileSystem.GetFileInfo(filePath);
-                var content = await _fileSystem.ReadAllTextAsync(filePath);
+                var fileInfo = _fileSystem.FileInfo.New(filePath);
+                var content = await _fileSystem.File.ReadAllTextAsync(filePath);
                 
                 if (content == null)
                 {
@@ -129,10 +130,10 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
 
         foreach (var directory in directories)
         {
-            if (_fileSystem.DirectoryExists(directory))
+            if (_fileSystem.Directory.Exists(directory))
             {
                 // Find all markdown files
-                var markdownFiles = _fileSystem.GetFiles(directory, "*.md", SearchOption.AllDirectories);
+                var markdownFiles = _fileSystem.Directory.GetFiles(directory, "*.md", SearchOption.AllDirectories);
                 filePaths.AddRange(markdownFiles);
             }
         }
@@ -151,13 +152,11 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
             _fileSystemWatcher.Dispose();
         }
 
-        _fileSystemWatcher = new FileSystemWatcher(directoryPath)
-        {
-            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
-            Filter = "*.md",
-            IncludeSubdirectories = true,
-            EnableRaisingEvents = true
-        };
+        _fileSystemWatcher = _fileSystem.FileSystemWatcher.New(directoryPath);
+        _fileSystemWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
+        _fileSystemWatcher.Filter = "*.md";
+        _fileSystemWatcher.IncludeSubdirectories = true;
+        _fileSystemWatcher.EnableRaisingEvents = true;
 
         _fileSystemWatcher.Changed += OnFileChanged;
         _fileSystemWatcher.Created += OnFileChanged;
@@ -214,7 +213,6 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
                 DateModified = DateTimeOffset.UtcNow,
                 Text = clozeCard.Text,
                 Answers = clozeCard.Answers
-                // Tags are not part of the domain model yet
             };
         }
         else if (parsedCard is ParsedQuestionAnswerCard qaCard)
@@ -224,7 +222,6 @@ public class SpacedRepetitionNotesRepository : ICardSourceRepository, IDisposabl
                 DateModified = DateTimeOffset.UtcNow,
                 Question = qaCard.Question,
                 Answer = qaCard.Answer
-                // Tags are not part of the domain model yet
             };
         }
         else

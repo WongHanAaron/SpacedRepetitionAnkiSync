@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "AnkiSync.Presentation.Console": {
+      "commandName": "Project",
+      "commandLineArgs": "sync-loop \"H:\\My Drive\\Learning\\Aaron's Notes\\Learn\""
+    }
+  }
+}

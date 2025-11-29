@@ -1,6 +1,7 @@
 using AnkiSync.Adapter.SpacedRepetitionNotes.Models;
 using AnkiSync.Domain.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
+using System.IO.Abstractions;
 
 namespace AnkiSync.Adapter.SpacedRepetitionNotes;
 

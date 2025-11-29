@@ -138,7 +138,9 @@ public class DeckRepository : IDeckRepository
 
         return card switch
         {
+            AnkiQuestionAnswerCard ankiQaCard => $"deck:\"{deckName}\" \"Front:{Escape(ankiQaCard.Question)}\"",
             QuestionAnswerCard qaCard => $"deck:\"{deckName}\" \"Front:{Escape(qaCard.Question)}\"",
+            AnkiClozeCard ankiClozeCard => $"deck:\"{deckName}\" \"Text:{Escape(ankiClozeCard.Text)}\"",
             ClozeCard clozeCard => $"deck:\"{deckName}\" \"Text:{Escape(clozeCard.Text)}\"",
             _ => string.Empty
         };
@@ -149,15 +151,15 @@ public class DeckRepository : IDeckRepository
         // Determine card type based on model name
         if (note.ModelName.Contains("Cloze", StringComparison.OrdinalIgnoreCase))
         {
-            return ConvertToClozeCard(note);
+            return ConvertToAnkiClozeCard(note);
         }
         else
         {
-            return ConvertToQuestionAnswerCard(note);
+            return ConvertToAnkiQuestionAnswerCard(note);
         }
     }
 
-    private QuestionAnswerCard? ConvertToQuestionAnswerCard(NoteInfo note)
+    private AnkiQuestionAnswerCard? ConvertToAnkiQuestionAnswerCard(NoteInfo note)
     {
         // Basic model typically has Front and Back fields
         if (!note.Fields.TryGetValue("Front", out var frontField) ||
@@ -166,15 +168,16 @@ public class DeckRepository : IDeckRepository
             return null; // Skip notes that don't have the expected fields
         }
 
-        return new QuestionAnswerCard
+        return new AnkiQuestionAnswerCard
         {
+            Id = note.NoteId,
             DateModified = note.DateModified,
             Question = frontField.Value,
             Answer = backField.Value
         };
     }
 
-    private ClozeCard? ConvertToClozeCard(NoteInfo note)
+    private AnkiClozeCard? ConvertToAnkiClozeCard(NoteInfo note)
     {
         // Cloze model typically has Text field
         if (!note.Fields.TryGetValue("Text", out var textField))
@@ -184,8 +187,9 @@ public class DeckRepository : IDeckRepository
 
         var (text, answers) = ConvertClozeFormatToPlaceholders(textField.Value);
 
-        return new ClozeCard
+        return new AnkiClozeCard
         {
+            Id = note.NoteId,
             DateModified = note.DateModified,
             Text = text,
             Answers = answers

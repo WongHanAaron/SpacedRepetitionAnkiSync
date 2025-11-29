@@ -17,69 +17,6 @@ using Xunit;
 namespace AnkiSync.IntegrationTests;
 
 /// <summary>
-/// Wrapper to adapt MockFileSystem to the custom IFileSystem interface
-/// </summary>
-internal class MockFileSystemAdapter : AnkiSync.Adapter.SpacedRepetitionNotes.Models.IFileSystem
-{
-    private readonly MockFileSystem _mockFileSystem;
-
-    public MockFileSystemAdapter(MockFileSystem mockFileSystem)
-    {
-        _mockFileSystem = mockFileSystem;
-    }
-
-    public bool FileExists(string path) => _mockFileSystem.File.Exists(path);
-
-    public Task<string> ReadAllTextAsync(string path) => Task.FromResult(_mockFileSystem.File.ReadAllText(path));
-
-    public AnkiSync.Adapter.SpacedRepetitionNotes.Models.IFileInfo GetFileInfo(string path) =>
-        new MockFileInfoAdapter(new MockFileInfo(_mockFileSystem, path));
-
-    public bool DirectoryExists(string path) => _mockFileSystem.Directory.Exists(path);
-
-    public string[] GetFiles(string path, string searchPattern, SearchOption searchOption) =>
-        _mockFileSystem.Directory.GetFiles(path, searchPattern, searchOption);
-
-    public string GetFileNameWithoutExtension(string path) => _mockFileSystem.Path.GetFileNameWithoutExtension(path);
-}
-
-/// <summary>
-/// Wrapper for MockFileInfo
-/// </summary>
-internal class MockFileInfoAdapter : AnkiSync.Adapter.SpacedRepetitionNotes.Models.IFileInfo
-{
-    private readonly MockFileInfo _mockFileInfo;
-
-    public MockFileInfoAdapter(MockFileInfo mockFileInfo)
-    {
-        _mockFileInfo = mockFileInfo;
-    }
-
-    public AnkiSync.Adapter.SpacedRepetitionNotes.Models.IDirectoryInfo? Directory =>
-        _mockFileInfo.Directory != null ? new MockDirectoryInfoAdapter((MockDirectoryInfo)_mockFileInfo.Directory) : null;
-
-    public DateTimeOffset LastWriteTimeUtc => _mockFileInfo.LastWriteTimeUtc;
-}
-
-/// <summary>
-/// Wrapper for MockDirectoryInfo
-/// </summary>
-internal class MockDirectoryInfoAdapter : AnkiSync.Adapter.SpacedRepetitionNotes.Models.IDirectoryInfo
-{
-    private readonly MockDirectoryInfo _mockDirectoryInfo;
-
-    public MockDirectoryInfoAdapter(MockDirectoryInfo mockDirectoryInfo)
-    {
-        _mockDirectoryInfo = mockDirectoryInfo;
-    }
-
-    public string Name => _mockDirectoryInfo.Name;
-
-    public AnkiSync.Adapter.SpacedRepetitionNotes.Models.IDirectoryInfo? Parent =>
-        _mockDirectoryInfo.Parent != null ? new MockDirectoryInfoAdapter((MockDirectoryInfo)_mockDirectoryInfo.Parent) : null;
-}
-
-/// <summary>
 /// Integration tests for card synchronization that mock AnkiConnect and file system.
 /// Tests the complete flow from file parsing to deck synchronization.
 /// </summary>
@@ -121,10 +58,9 @@ Test Question 2?::This is the answer to question 2.
         // Create services
         var fileParser = new FileParser();
         var cardExtractor = new CardExtractor();
-        var fileSystemAdapter = new MockFileSystemAdapter(mockFileSystem);
-        var deckInferencer = new DeckInferencer(fileSystemAdapter);
+        var deckInferencer = new DeckInferencer(mockFileSystem);
         var logger = NullLogger<SpacedRepetitionNotesRepository>.Instance;
-        var cardSourceRepository = new SpacedRepetitionNotesRepository(fileParser, cardExtractor, deckInferencer, fileSystemAdapter, logger);
+        var cardSourceRepository = new SpacedRepetitionNotesRepository(fileParser, cardExtractor, deckInferencer, mockFileSystem, logger);
         var syncLogger = NullLogger<CardSynchronizationService>.Instance;
         var synchronizationService = new CardSynchronizationService(cardSourceRepository, deckRepositoryMock.Object, syncLogger);
 
@@ -196,10 +132,10 @@ New Question?::New Answer.
         // Create services manually
         var fileParser = new FileParser();
         var cardExtractor = new CardExtractor();
-        var fileSystemAdapter = new MockFileSystemAdapter(mockFileSystem);
-        var deckInferencer = new DeckInferencer(fileSystemAdapter);
+        
+        var deckInferencer = new DeckInferencer(mockFileSystem);
         var logger = NullLogger<SpacedRepetitionNotesRepository>.Instance;
-        var cardSourceRepository = new SpacedRepetitionNotesRepository(fileParser, cardExtractor, deckInferencer, fileSystemAdapter, logger);
+        var cardSourceRepository = new SpacedRepetitionNotesRepository(fileParser, cardExtractor, deckInferencer, mockFileSystem, logger);
         var syncLogger = NullLogger<CardSynchronizationService>.Instance;
         var synchronizationService = new CardSynchronizationService(cardSourceRepository, deckRepositoryMock.Object, syncLogger);
 
@@ -263,10 +199,10 @@ Question?::Updated Answer.
         // Create services manually
         var fileParser = new FileParser();
         var cardExtractor = new CardExtractor();
-        var fileSystemAdapter = new MockFileSystemAdapter(mockFileSystem);
-        var deckInferencer = new DeckInferencer(fileSystemAdapter);
+        
+        var deckInferencer = new DeckInferencer(mockFileSystem);
         var logger = NullLogger<SpacedRepetitionNotesRepository>.Instance;
-        var cardSourceRepository = new SpacedRepetitionNotesRepository(fileParser, cardExtractor, deckInferencer, fileSystemAdapter, logger);
+        var cardSourceRepository = new SpacedRepetitionNotesRepository(fileParser, cardExtractor, deckInferencer, mockFileSystem, logger);
         var syncLogger = NullLogger<CardSynchronizationService>.Instance;
         var synchronizationService = new CardSynchronizationService(cardSourceRepository, deckRepositoryMock.Object, syncLogger);
 
@@ -324,10 +260,10 @@ Q2?::A2.
         // Create services manually
         var fileParser = new FileParser();
         var cardExtractor = new CardExtractor();
-        var fileSystemAdapter = new MockFileSystemAdapter(mockFileSystem);
-        var deckInferencer = new DeckInferencer(fileSystemAdapter);
+        
+        var deckInferencer = new DeckInferencer(mockFileSystem);
         var logger = NullLogger<SpacedRepetitionNotesRepository>.Instance;
-        var cardSourceRepository = new SpacedRepetitionNotesRepository(fileParser, cardExtractor, deckInferencer, fileSystemAdapter, logger);
+        var cardSourceRepository = new SpacedRepetitionNotesRepository(fileParser, cardExtractor, deckInferencer, mockFileSystem, logger);
         var syncLogger = NullLogger<CardSynchronizationService>.Instance;
         var synchronizationService = new CardSynchronizationService(cardSourceRepository, deckRepositoryMock.Object, syncLogger);
 
@@ -368,10 +304,10 @@ The {{c3::Nile}} is the longest {{c4::river}} in the world.
         // Create services manually
         var fileParser = new FileParser();
         var cardExtractor = new CardExtractor();
-        var fileSystemAdapter = new MockFileSystemAdapter(mockFileSystem);
-        var deckInferencer = new DeckInferencer(fileSystemAdapter);
+        
+        var deckInferencer = new DeckInferencer(mockFileSystem);
         var logger = NullLogger<SpacedRepetitionNotesRepository>.Instance;
-        var cardSourceRepository = new SpacedRepetitionNotesRepository(fileParser, cardExtractor, deckInferencer, fileSystemAdapter, logger);
+        var cardSourceRepository = new SpacedRepetitionNotesRepository(fileParser, cardExtractor, deckInferencer, mockFileSystem, logger);
         var syncLogger = NullLogger<CardSynchronizationService>.Instance;
         var synchronizationService = new CardSynchronizationService(cardSourceRepository, deckRepositoryMock.Object, syncLogger);
 

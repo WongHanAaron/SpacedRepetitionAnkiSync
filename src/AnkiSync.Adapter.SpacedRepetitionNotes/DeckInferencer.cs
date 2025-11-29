@@ -1,4 +1,5 @@
 using AnkiSync.Adapter.SpacedRepetitionNotes.Models;
+using System.IO.Abstractions;
 
 namespace AnkiSync.Adapter.SpacedRepetitionNotes;
 
@@ -73,12 +74,12 @@ public class DeckInferencer : IDeckInferencer
     private Tag InferDeckTag(ParsedCardBase card)
     {
         // Use the directory structure to infer deck hierarchy
-        var fileInfo = _fileSystem.GetFileInfo(card.SourceFilePath);
+        var fileInfo = _fileSystem.FileInfo.New(card.SourceFilePath);
         var directory = fileInfo.Directory;
 
         if (directory == null)
         {
-            return new Tag { NestedTags = new List<string> { _fileSystem.GetFileNameWithoutExtension(card.SourceFilePath) } };
+            return new Tag { NestedTags = new List<string> { _fileSystem.Path.GetFileNameWithoutExtension(card.SourceFilePath) } };
         }
 
         // Build hierarchy from directory names
