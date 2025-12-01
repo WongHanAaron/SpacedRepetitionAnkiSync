@@ -44,51 +44,74 @@ Results in tags: `["cloud", "aws", "compute"]`
 
 ### Supported Card Formats
 
-#### 1. Obsidian Format
-- **Question-Answer**: `Question:::Answer`
-- **Cloze Deletion**: `{{c1::text}}` format with incremental cloze numbers
-- **Highlights**: `==highlighted text==`
-- **Bold**: `**bold text**`
-- **Curly Braces**: `{{curly text}}`
+#### 1. Obsidian Spaced Repetition Plugin Formats
 
-#### 2. Basic Q&A Format
-- **Question Line**: `Q: What is the capital of France?`
-- **Answer Line**: `A: Paris`
+AnkiSync supports all flashcard formats from the official [Obsidian Spaced Repetition Plugin](https://github.com/st3v3nmw/obsidian-spaced-repetition).
 
-#### 3. Multi-line Format
-- **Question Block**: Any text before separator
-- **Separator**: `?` (forward) or `??` (reversed)
-- **Answer Block**: Any text after separator
+##### Question-Answer Cards
+
+###### Single-line Basic
+- **Format**: `Question::Answer`
+- **Creates**: 1 card (forward direction)
+- **Example**: `What is the capital of France?::Paris`
+
+###### Single-line Bidirectional  
+- **Format**: `Question:::Answer`
+- **Creates**: 2 cards (forward and reverse directions)
+- **Example**: `Capital of France:::Paris`
+- **Result**: Card 1: "Capital of France" → "Paris", Card 2: "Paris" → "Capital of France"
+
+
+##### Cloze Cards
+
+###### Named Clozes
+- **Format**: `{{named::answer}}` with incremental numbers
+- **Creates**: 1 card per numbered cloze
+- **Example**: `The {{keyword1::capital}} of {{country::France}} is {{capital::Paris}}.`
+- **Result**: 3 separate cards, each hiding one cloze deletion
+
+###### Anki-Style Clozes
+- **Format**: `{{c1::answer}}` with incremental numbers
+- **Creates**: 1 card per numbered cloze
+- **Example**: `The {{c1::capital}} of {{c2::France}} is {{c3::Paris}}.`
+- **Result**: 3 separate cards, each hiding one cloze deletion
+
+#### 2. Basic Q&A Format (Legacy Support)
+- **Format**: `Q: Question` followed by `A: Answer` on separate lines
+- **Creates**: 1 card per Q&A pair
+- **Example**:
+```
+Q: What is the capital of France?
+A: Paris
+```
+
+#### 3. Multi-line Format (Legacy Support)
+- **Format**: Question text separated from answer text by `?` or `??`
+- **Creates**: 1 card (`?`) or 2 cards (`??`) per separator
+- **Note**: This is similar to the plugin's multi-line format but without requiring flashcard patterns
 
 ### Card Content Rules
 
-#### Multi-line Cards
-- **Separator Required**: Must have `?` or `??` separator to create cards
-- **Content Filtering**: Lines starting with `#` are excluded from card content
-- **Flashcard Patterns**: Cards are only created if content contains `::`, `Q:`, or `A:` patterns
-- **Exception**: Separator-based cards (`?`/`??`) don't require flashcard patterns
-
 #### Single-line Cards
-- **Obsidian Format**: `Question:::Answer` creates Q&A cards
-- **Cloze Format**: Text with `{{c1::answer}}` creates cloze cards
-- **Basic Format**: `Q:` and `A:` lines create Q&A cards
+- **Plugin Formats**: `Question::Answer` and `Question:::Answer` create Q&A cards
+- **Cloze Formats**: Text with `==highlight==`, `**bold**`, `{{curly}}`, or `{{c1::text}}` patterns create cloze cards
+- **Basic Format**: `Q:` and `A:` lines create Q&A cards (legacy support)
+
+#### Cloze Card Behavior
+- **Multiple Deletions**: Multiple cloze deletions in one text create multiple cards
+- **Sibling Cards**: Cards from the same source text are considered siblings
+- **Incremental Numbers**: Anki-style `{{c1::}}`, `{{c2::}}`, etc. create separate cards for each number
+- **Mixed Types**: Cannot mix different cloze types in the same text block
 
 ### Card Type Detection
-
 #### Question-Answer Cards
-- Created from: `Question:::Answer` format
-- Created from: `Q:` and `A:` format
-- Created from: Multi-line with `?` separator
+- **Created from**: `Question::Answer` format (single card)
+- **Created from**: `Question:::Answer` format (two cards - forward and reverse)
+- **Created from**: `Q:` and `A:` format (legacy support)
 
 #### Cloze Cards
-- Created from: Text containing `{{c1::answer}}` patterns
-- Created from: `==highlighted text==`
-- Created from: `**bold text**`
-- Created from: `{{curly text}}`
-
-#### Reversed Cards
-- Created when using `??` separator in multi-line format
-- Creates both forward and reverse versions of the card
+- **Created from**: Text containing `{{c1::answer}}` patterns with incremental numbers
+- **Multiple Cards**: Each cloze deletion creates a separate card
 
 ## Synchronization Rules
 
