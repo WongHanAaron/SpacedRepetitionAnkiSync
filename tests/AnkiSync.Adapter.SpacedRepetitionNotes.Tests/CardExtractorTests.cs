@@ -113,7 +113,7 @@ Largest planet:::Jupiter
         var cards = _cardExtractor.ExtractCards(document).ToList();
 
         // Assert
-        cards.Should().HaveCount(5); // 4 reversed cards + 1 multi-line card
+        cards.Should().HaveCount(4); // 4 reversed cards
         cards.Should().AllBeOfType<ParsedQuestionAnswerCard>();
 
         // First card: Capital of France -> Paris
@@ -135,11 +135,6 @@ Largest planet:::Jupiter
         var fourthCard = (ParsedQuestionAnswerCard)cards[3];
         fourthCard.Question.Should().Be("Jupiter");
         fourthCard.Answer.Should().Be("Largest planet");
-
-        // Fifth card: multi-line card from tags
-        var fifthCard = (ParsedQuestionAnswerCard)cards[4];
-        fifthCard.Question.Should().Be("Capital of France:::Paris");
-        fifthCard.Answer.Should().Be("Largest planet:::Jupiter");
     }
 
     [Fact]
@@ -251,32 +246,6 @@ Answer: Berlin
         clozeCard.Answers["c2"].Should().Be("Paris");
     }
 
-    [Fact]
-    public void ExtractCards_WithObsidianHighlightCloze_ShouldExtractClozeCard()
-    {
-        // Arrange
-        var document = new Document
-        {
-            FilePath = "biology.md",
-            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
-            Tags = new Tag { NestedTags = ["biology"] },
-            Content = @"Photosynthesis is the process where plants convert ==sunlight== into ==chemical energy==."
-        };
-
-        // Act
-        var cards = _cardExtractor.ExtractCards(document).ToList();
-
-        // Assert
-        cards.Should().HaveCount(1);
-        cards[0].Should().BeOfType<ParsedClozeCard>();
-
-        var clozeCard = (ParsedClozeCard)cards[0];
-        clozeCard.Text.Should().Contain("{answer");
-        clozeCard.Answers.Should().HaveCount(2);
-        clozeCard.Answers.Should().ContainValue("sunlight");
-        clozeCard.Answers.Should().ContainValue("chemical energy");
-    }
-
     [Theory]
     [InlineData("#computervision\n\nImage Segmentation is that task of taking an image and assigning every pixel in the image to a specific group. The group might indicate a specific label that the pixel represents.\n\n[[An Adaptive Clustering Algorithm for Image Segmentation|Clustering]] is a common method used for image segmentation. Additionally, [[Max Flow Problem]] is a method that is often used for splitting an image by a specific transition criteria. \n")]
     public void Should_not_extract_any_cards(string contentWithoutCards)
@@ -298,58 +267,6 @@ Answer: Berlin
     }
 
     [Fact]
-    public void ExtractCards_WithBoldCloze_ShouldExtractClozeCard()
-    {
-        // Arrange
-        var document = new Document
-        {
-            FilePath = "programming.md",
-            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
-            Tags = new Tag { NestedTags = ["programming"] },
-            Content = @"In programming, a **variable** stores **data** that can be changed."
-        };
-
-        // Act
-        var cards = _cardExtractor.ExtractCards(document).ToList();
-
-        // Assert
-        cards.Should().HaveCount(1);
-        cards[0].Should().BeOfType<ParsedClozeCard>();
-
-        var clozeCard = (ParsedClozeCard)cards[0];
-        clozeCard.Text.Should().Contain("{answer");
-        clozeCard.Answers.Should().HaveCount(2);
-        clozeCard.Answers.Should().ContainValue("variable");
-        clozeCard.Answers.Should().ContainValue("data");
-    }
-
-    [Fact]
-    public void ExtractCards_WithCurlyBraceCloze_ShouldExtractClozeCard()
-    {
-        // Arrange
-        var document = new Document
-        {
-            FilePath = "biology.md",
-            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
-            Tags = new Tag { NestedTags = ["biology"] },
-            Content = @"The {{mitochondria}} is the {{powerhouse}} of the cell."
-        };
-
-        // Act
-        var cards = _cardExtractor.ExtractCards(document).ToList();
-
-        // Assert
-        cards.Should().HaveCount(1);
-        cards[0].Should().BeOfType<ParsedClozeCard>();
-
-        var clozeCard = (ParsedClozeCard)cards[0];
-        clozeCard.Text.Should().Contain("{answer");
-        clozeCard.Answers.Should().HaveCount(2);
-        clozeCard.Answers.Should().ContainValue("mitochondria");
-        clozeCard.Answers.Should().ContainValue("powerhouse");
-    }
-
-    [Fact]
     public void ExtractCards_WithMultipleClozeTypes_ShouldExtractSingleClozeCard()
     {
         // Arrange
@@ -358,7 +275,7 @@ Answer: Berlin
             FilePath = "geography.md",
             LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
             Tags = new Tag { NestedTags = ["geography"] },
-            Content = @"The {{c1::capital}} of **France** is ==Paris==."
+            Content = @"The {{c1::capital}} of {{country::France}} is {{c2::Paris}}."
         };
 
         // Act
@@ -369,10 +286,11 @@ Answer: Berlin
         cards[0].Should().BeOfType<ParsedClozeCard>();
 
         var clozeCard = (ParsedClozeCard)cards[0];
-        clozeCard.Answers.Should().HaveCount(3); // 3 actual answers: c1, answer1 (France), answer2 (Paris)
-        clozeCard.Answers.Should().ContainValue("capital");
-        clozeCard.Answers.Should().ContainValue("France");
-        clozeCard.Answers.Should().ContainValue("Paris");
+        clozeCard.Text.Should().Be("The {c1} of {country} is {c2}.");
+        clozeCard.Answers.Should().HaveCount(3);
+        clozeCard.Answers["c1"].Should().Be("capital");
+        clozeCard.Answers["country"].Should().Be("France");
+        clozeCard.Answers["c2"].Should().Be("Paris");
     }
 
     [Fact]
@@ -442,25 +360,25 @@ The {{c1::cell}} contains **organelles** and ==chromosomes==.
         var cards = _cardExtractor.ExtractCards(document).ToList();
 
         // Assert
-        cards.Should().HaveCount(3); // 2 Q&A +1 cloze
+        cards.Should().HaveCount(5); // 4 Q&A +1 cloze
 
         // Check that we have the expected types
         var questionAnswerCards = cards.OfType<ParsedQuestionAnswerCard>().ToList();
         var clozeCards = cards.OfType<ParsedClozeCard>().ToList();
 
-        questionAnswerCards.Should().HaveCount(2);
+        questionAnswerCards.Should().HaveCount(4);
         clozeCards.Should().HaveCount(1);
 
         // Check specific cards exist
         questionAnswerCards.Should().Contain(card => card.Question == "What is DNA?" && card.Answer == "Deoxyribonucleic acid");
+        questionAnswerCards.Should().Contain(card => card.Question == "Photosynthesis explained?" && card.Answer == "Plants convert sunlight into energy using chlorophyll");
         questionAnswerCards.Should().Contain(card => card.Question == "What is mitosis?" && card.Answer == "Cell division process");
 
         // Cloze card should have the expected answers
         var clozeCard = clozeCards[0];
-        clozeCard.Answers.Should().HaveCount(3);
+        clozeCard.Text.Should().Be("The {c1} contains **organelles** and ==chromosomes==.");
+        clozeCard.Answers.Should().HaveCount(1);
         clozeCard.Answers.Should().ContainValue("cell");
-        clozeCard.Answers.Should().ContainValue("organelles");
-        clozeCard.Answers.Should().ContainValue("chromosomes");
     }
 
     [Fact]
@@ -486,7 +404,7 @@ Q: Question without answer
         var cards = _cardExtractor.ExtractCards(document).ToList();
 
         // Assert
-        cards.Should().HaveCount(2); // 1 malformed card + 1 valid card
+        cards.Should().HaveCount(3); // 2 malformed cards + 1 valid card
 
         var firstCard = (ParsedQuestionAnswerCard)cards[0];
         firstCard.Question.Should().Be("Invalid::");

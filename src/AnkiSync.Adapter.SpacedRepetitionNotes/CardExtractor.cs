@@ -65,14 +65,12 @@ public class CardExtractor : ICardExtractor
             .ToArray();
 
         var cards = new List<ParsedCardBase>();
-        var singleCards = ExtractSingleLineFlashcards(nonEmptyLines, document).ToList();
-        cards.AddRange(singleCards);
-        if (!singleCards.Any())
-        {
-            var reversedCards = ExtractReversedFlashcards(nonEmptyLines, document).ToList();
-            cards.AddRange(reversedCards);
-            cards.AddRange(ExtractMultiLineFlashcards(lines, document));
-        }
+        
+        // Extract all types of cards - they can coexist
+        cards.AddRange(ExtractSingleLineFlashcards(nonEmptyLines, document));
+        cards.AddRange(ExtractReversedFlashcards(nonEmptyLines, document));
+        cards.AddRange(ExtractMultiLineFlashcards(lines, document));
+        
         return cards;
     }
 
@@ -245,18 +243,24 @@ public class CardExtractor : ICardExtractor
                     currentCard.Clear();
                 }
             }
-            else if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("#") && !trimmed.Contains("{{") && !trimmed.Contains("==") && !trimmed.Contains("**"))
+            else if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("#") && 
+                      !trimmed.Contains("::") && !trimmed.Contains("{{") && !trimmed.Contains("==") && !trimmed.Contains("**"))
             {
                 currentCard.Add(line); // Keep original formatting
             }
         }
 
-        // Handle card at end of file - only if it contains flashcard patterns
+        // Handle card at end of file - only if it contains flashcard patterns and has a separator
         if (currentCard.Count > 0)
         {
-            foreach (var card in CreateMultiLineCard(currentCard, false, document, true))
+            var combinedContent = string.Join("\n", currentCard);
+            // Only create end-of-file cards if they contain flashcard patterns
+            if (combinedContent.Contains("::") || combinedContent.Contains("Q:") || combinedContent.Contains("A:"))
             {
-                yield return card;
+                foreach (var card in CreateMultiLineCard(currentCard, false, document, false))
+                {
+                    yield return card;
+                }
             }
         }
     }
@@ -385,55 +389,6 @@ public class CardExtractor : ICardExtractor
                     answers[keyword] = answer;
 
                     // Replace the cloze with a named placeholder
-                    var placeholder = $"{{{keyword}}}";
-                    placeholderText = placeholderText.Replace(match.Value, placeholder);
-                }
-
-                // Handle Obsidian-style cloze deletions
-                // ==highlight== format
-                var highlightPattern = @"==(.*?)==(?!\s*=)"; // Avoid matching === or more
-                var highlightMatches = System.Text.RegularExpressions.Regex.Matches(trimmed, highlightPattern);
-
-                foreach (System.Text.RegularExpressions.Match match in highlightMatches)
-                {
-                    clozeFound = true;
-                    var answer = match.Groups[1].Value;
-                    var keyword = $"answer{unnamedClozeCounter++}";
-                    answers[keyword] = answer;
-
-                    // Replace with named placeholder
-                    var placeholder = $"{{{keyword}}}";
-                    placeholderText = placeholderText.Replace(match.Value, placeholder);
-                }
-
-                // **bolded text** format
-                var boldPattern = @"\*\*(.*?)\*\*(?!\s*\*)"; // Avoid matching *** or more
-                var boldMatches = System.Text.RegularExpressions.Regex.Matches(trimmed, boldPattern);
-
-                foreach (System.Text.RegularExpressions.Match match in boldMatches)
-                {
-                    clozeFound = true;
-                    var answer = match.Groups[1].Value;
-                    var keyword = $"answer{unnamedClozeCounter++}";
-                    answers[keyword] = answer;
-
-                    // Replace with named placeholder
-                    var placeholder = $"{{{keyword}}}";
-                    placeholderText = placeholderText.Replace(match.Value, placeholder);
-                }
-
-                // {{text in curly braces}} format (different from Anki {{c1::text}})
-                var curlyPattern = @"{{(?!.*::)([^}]+?)}}"; // Match {{text}} but not {{c1::text}}
-                var curlyMatches = System.Text.RegularExpressions.Regex.Matches(trimmed, curlyPattern);
-
-                foreach (System.Text.RegularExpressions.Match match in curlyMatches)
-                {
-                    clozeFound = true;
-                    var answer = match.Groups[1].Value;
-                    var keyword = $"answer{unnamedClozeCounter++}";
-                    answers[keyword] = answer;
-
-                    // Replace with named placeholder
                     var placeholder = $"{{{keyword}}}";
                     placeholderText = placeholderText.Replace(match.Value, placeholder);
                 }

@@ -46,8 +46,6 @@ Results in tags: `["cloud", "aws", "compute"]`
 
 #### 1. Obsidian Spaced Repetition Plugin Formats
 
-AnkiSync supports all flashcard formats from the official [Obsidian Spaced Repetition Plugin](https://github.com/st3v3nmw/obsidian-spaced-repetition).
-
 ##### Question-Answer Cards
 
 ###### Single-line Basic
@@ -65,10 +63,10 @@ AnkiSync supports all flashcard formats from the official [Obsidian Spaced Repet
 ##### Cloze Cards
 
 ###### Named Clozes
-- **Format**: `{{named::answer}}` with incremental numbers
-- **Creates**: 1 card per numbered cloze
-- **Example**: `The {{keyword1::capital}} of {{country::France}} is {{capital::Paris}}.`
-- **Result**: 3 separate cards, each hiding one cloze deletion
+- **Format**: `{{keyword::answer}}` with custom keywords
+- **Creates**: Multiple card versions from one text (one per cloze deletion)
+- **Example**: `The {{capital::Paris}} is the {{type::capital}} of {{country::France}}.`
+- **Result**: 3 card versions, each hiding one cloze while showing the others
 
 ###### Anki-Style Clozes
 - **Format**: `{{c1::answer}}` with incremental numbers
@@ -85,21 +83,15 @@ Q: What is the capital of France?
 A: Paris
 ```
 
-#### 3. Multi-line Format (Legacy Support)
-- **Format**: Question text separated from answer text by `?` or `??`
-- **Creates**: 1 card (`?`) or 2 cards (`??`) per separator
-- **Note**: This is similar to the plugin's multi-line format but without requiring flashcard patterns
-
 ### Card Content Rules
 
 #### Single-line Cards
 - **Plugin Formats**: `Question::Answer` and `Question:::Answer` create Q&A cards
-- **Cloze Formats**: Text with `==highlight==`, `**bold**`, `{{curly}}`, or `{{c1::text}}` patterns create cloze cards
+- **Cloze Formats**: Text with `{{c1::text}}` or `{{keyword::text}}` patterns create cloze cards
 - **Basic Format**: `Q:` and `A:` lines create Q&A cards (legacy support)
 
 #### Cloze Card Behavior
 - **Multiple Deletions**: Multiple cloze deletions in one text create multiple cards
-- **Sibling Cards**: Cards from the same source text are considered siblings
 - **Incremental Numbers**: Anki-style `{{c1::}}`, `{{c2::}}`, etc. create separate cards for each number
 - **Mixed Types**: Cannot mix different cloze types in the same text block
 
