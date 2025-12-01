@@ -192,4 +192,68 @@ Content with deeply nested tag.";
         // Assert
         document.Tags.NestedTags.Should().BeEquivalentTo(new[] { "test-okthen-then" });
     }
+
+    [Fact]
+    public async Task ParseContentAsync_WithTagContainingInvalidCharacters_ShouldSkipInvalidTags()
+    {
+        // Arrange
+        var content = @"#tag@invalid #valid-tag
+Content with invalid characters in tag.";
+        var filePath = "test.md";
+        var lastModified = DateTimeOffset.UtcNow;
+
+        // Act
+        var document = await _fileParser.ParseContentAsync(filePath, content, lastModified);
+
+        // Assert - #tag@invalid is ignored entirely, so #valid-tag is the first valid tag
+        document.Tags.NestedTags.Should().BeEquivalentTo(new[] { "valid-tag" });
+    }
+
+    [Fact]
+    public async Task ParseContentAsync_WithTagContainingUnderscores_ShouldAcceptUnderscores()
+    {
+        // Arrange
+        var content = @"#valid_tag #another_valid
+Content with underscores in tags.";
+        var filePath = "test.md";
+        var lastModified = DateTimeOffset.UtcNow;
+
+        // Act
+        var document = await _fileParser.ParseContentAsync(filePath, content, lastModified);
+
+        // Assert
+        document.Tags.NestedTags.Should().BeEquivalentTo(new[] { "valid_tag" });
+    }
+
+    [Fact]
+    public async Task ParseContentAsync_WithTagContainingNumbers_ShouldAcceptNumbers()
+    {
+        // Arrange
+        var content = @"#tag123 #test456
+Content with numbers in tags.";
+        var filePath = "test.md";
+        var lastModified = DateTimeOffset.UtcNow;
+
+        // Act
+        var document = await _fileParser.ParseContentAsync(filePath, content, lastModified);
+
+        // Assert
+        document.Tags.NestedTags.Should().BeEquivalentTo(new[] { "tag123" });
+    }
+
+    [Fact]
+    public async Task ParseContentAsync_WithTagContainingSpecialCharacters_ShouldSkipInvalidTags()
+    {
+        // Arrange
+        var content = @"#tag$invalid #tag#also#invalid #valid/tag
+Content with special characters in tags.";
+        var filePath = "test.md";
+        var lastModified = DateTimeOffset.UtcNow;
+
+        // Act
+        var document = await _fileParser.ParseContentAsync(filePath, content, lastModified);
+
+        // Assert - #tag$invalid and #tag#also#invalid are ignored, so #valid/tag is the first valid tag
+        document.Tags.NestedTags.Should().BeEquivalentTo(new[] { "valid", "tag" });
+    }
 }

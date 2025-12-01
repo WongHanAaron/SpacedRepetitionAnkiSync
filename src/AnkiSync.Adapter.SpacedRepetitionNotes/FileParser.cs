@@ -66,22 +66,31 @@ public class FileParser : IFileParser
             // Check if line starts with # (after trimming whitespace)
             if (line.StartsWith("#"))
             {
-                // Use regex to find the first valid tag on this line
-                // Same logic as original: (?<!#)#([^#\s]+)
-                var match = System.Text.RegularExpressions.Regex.Match(line, @"(?<!#)#([^#\s]+)");
-                if (match.Success)
+                // Split the line by spaces to get individual tag candidates
+                var tagCandidates = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                
+                foreach (var tagCandidate in tagCandidates)
                 {
-                    var tagString = match.Groups[1].Value;
-                    
-                    // Split by '/' for nested tags and return all parts
-                    var tagParts = tagString.Split('/', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(part => part.Trim())
-                        .Where(part => !string.IsNullOrEmpty(part))
-                        .ToArray();
-                    
-                    if (tagParts.Length > 0)
+                    // Check if this is a valid tag (starts with # and contains only valid characters)
+                    if (tagCandidate.StartsWith("#") && tagCandidate.Length > 1)
                     {
-                        return tagParts;
+                        var tagContent = tagCandidate.Substring(1); // Remove the #
+                        
+                        // Check if the entire tag content contains only valid characters
+                        if (System.Text.RegularExpressions.Regex.IsMatch(tagContent, @"^[a-zA-Z0-9\-_\/]+$"))
+                        {
+                            // Split by '/' for nested tags and return all parts
+                            var tagParts = tagContent.Split('/', StringSplitOptions.RemoveEmptyEntries)
+                                .Select(part => part.Trim())
+                                .Where(part => !string.IsNullOrEmpty(part))
+                                .ToArray();
+                            
+                            if (tagParts.Length > 0)
+                            {
+                                return tagParts;
+                            }
+                        }
+                        // If tag contains invalid characters, skip it entirely
                     }
                 }
             }
