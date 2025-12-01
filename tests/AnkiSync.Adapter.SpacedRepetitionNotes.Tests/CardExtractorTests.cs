@@ -406,11 +406,14 @@ Q: Question without answer
         // Assert
         cards.Should().HaveCount(3); // 2 malformed cards + 1 valid card
 
-        var firstCard = (ParsedQuestionAnswerCard)cards[0];
-        firstCard.Question.Should().Be("Invalid::");
+        var questionAnswerCards = cards.OfType<ParsedQuestionAnswerCard>().ToList();
+        questionAnswerCards.Should().HaveCount(3);
 
-        var secondCard = (ParsedQuestionAnswerCard)cards[1];
-        secondCard.Question.Should().Be("Valid question");
-        secondCard.Answer.Should().Be("Valid answer");
+        // Check for the valid card
+        questionAnswerCards.Should().Contain(card => card.Question == "Valid question" && card.Answer == "Valid answer");
+
+        // Check for malformed cards
+        questionAnswerCards.Should().Contain(card => card.Question == "Invalid::" && card.Answer == "");
+        questionAnswerCards.Should().Contain(card => card.Question == "???" && card.Answer.Contains("Q: Valid question"));
     }
 }
