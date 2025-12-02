@@ -107,10 +107,45 @@ public class DeckRepository : IDeckRepository
             }
             else
             {
-                // Card doesn't exist, add it
-                var ankiNote = ConvertCardToAnkiNote(card, ankiDeckName);
-                var addNoteRequest = new AddNoteRequestDto(ankiNote);
-                var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest, cancellationToken);
+                // First, try to find in the target deck
+                var findQueryTarget = BuildFindQuery(card, ankiDeckName);
+                var findNotesRequestTarget = new FindNotesRequestDto(findQueryTarget);
+                var findNotesResponseTarget = await _ankiService.FindNotesAsync(findNotesRequestTarget, cancellationToken);
+
+                if (findNotesResponseTarget.Result?.Count > 0)
+                {
+                    // Found in target deck, update
+                    var existingNoteId = findNotesResponseTarget.Result[0];
+                    var ankiNote = ConvertCardToAnkiNote(card, ankiDeckName);
+                    var updateNoteRequest = new UpdateNoteFieldsRequestDto(existingNoteId, ankiNote.Fields);
+                    await _ankiService.UpdateNoteFieldsAsync(updateNoteRequest, cancellationToken);
+                }
+                else
+                {
+                    // Not in target deck, check if exists elsewhere
+                    var findQueryGlobal = BuildFindQuery(card, null);
+                    var findNotesRequestGlobal = new FindNotesRequestDto(findQueryGlobal);
+                    var findNotesResponseGlobal = await _ankiService.FindNotesAsync(findNotesRequestGlobal, cancellationToken);
+
+                    if (findNotesResponseGlobal.Result?.Count > 0)
+                    {
+                        // Exists in different deck, delete old and add new
+                        var existingNoteId = findNotesResponseGlobal.Result[0];
+                        var deleteNotesRequest = new DeleteNotesRequestDto(new List<long> { existingNoteId });
+                        await _ankiService.DeleteNotesAsync(deleteNotesRequest, cancellationToken);
+
+                        var ankiNote = ConvertCardToAnkiNote(card, ankiDeckName);
+                        var addNoteRequest = new AddNoteRequestDto(ankiNote);
+                        await _ankiService.AddNoteAsync(addNoteRequest, cancellationToken);
+                    }
+                    else
+                    {
+                        // Doesn't exist, add new
+                        var ankiNote = ConvertCardToAnkiNote(card, ankiDeckName);
+                        var addNoteRequest = new AddNoteRequestDto(ankiNote);
+                        await _ankiService.AddNoteAsync(addNoteRequest, cancellationToken);
+                    }
+                }
             }
         }
     }
@@ -130,17 +165,19 @@ public class DeckRepository : IDeckRepository
         return null;
     }
 
-    private string BuildFindQuery(Card card, string deckName)
+    private string BuildFindQuery(Card card, string? deckName)
     {
         // Escape double quotes in the content
         string Escape(string s) => s.Replace("\"", "\\\"");
 
+        var deckFilter = deckName != null ? $"deck:\"{Escape(deckName)}\" " : string.Empty;
+
         return card switch
         {
-            AnkiQuestionAnswerCard ankiQaCard => $"deck:\"{Escape(deckName)}\" \"Front:{Escape(ankiQaCard.Question)}\"",
-            QuestionAnswerCard qaCard => $"deck:\"{Escape(deckName)}\" \"Front:{Escape(qaCard.Question)}\"",
-            AnkiClozeCard ankiClozeCard => $"deck:\"{Escape(deckName)}\" \"Text:{Escape(ankiClozeCard.Text)}\"",
-            ClozeCard clozeCard => $"deck:\"{Escape(deckName)}\" \"Text:{Escape(clozeCard.Text)}\"",
+            AnkiQuestionAnswerCard ankiQaCard => $"{deckFilter}\"Front:{Escape(ankiQaCard.Question)}\"",
+            QuestionAnswerCard qaCard => $"{deckFilter}\"Front:{Escape(qaCard.Question)}\"",
+            AnkiClozeCard ankiClozeCard => $"{deckFilter}\"Text:{Escape(ankiClozeCard.Text)}\"",
+            ClozeCard clozeCard => $"{deckFilter}\"Text:{Escape(clozeCard.Text)}\"",
             _ => string.Empty
         };
     }

@@ -130,6 +130,9 @@ A: Paris
 - **Deck Cleanup**: Entire decks removed from source are deleted from Anki
 - **Safe Deletion**: Only deletes cards that match exactly with source content
 
+#### Deck Change Rules
+- **Deck Mismatch**: If a card exists in Anki but in a different deck than specified by the source, first delete the original card, then add it back with the correct deck
+
 ### Conflict Resolution
 - **Source Priority**: Source files always take precedence over Anki content
 - **Merge Strategy**: Existing Anki cards are preserved unless they conflict with source
