@@ -8,5 +8,5 @@ public class AnkiQuestionAnswerCard : AnkiSync.Domain.QuestionAnswerCard
     /// <summary>
     /// The Anki-specific ID for this card
     /// </summary>
-    public long Id { get; set; }
+    public new long Id { get; set; }
 }
