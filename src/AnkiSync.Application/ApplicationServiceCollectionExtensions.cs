@@ -13,7 +13,6 @@ public static class ApplicationServiceCollectionExtensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddScoped<CardSynchronizationService>();
-        services.AddScoped<ISynchronizationInstructionExecutor, SynchronizationInstructionExecutor>();
         return services;
     }
 }

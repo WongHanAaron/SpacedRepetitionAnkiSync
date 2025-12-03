@@ -64,6 +64,11 @@ public interface IAnkiService
     Task<UpdateNoteFieldsResponse> UpdateNoteFieldsAsync(UpdateNoteFieldsRequestDto request, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Changes the deck of cards
+    /// </summary>
+    Task<ChangeDeckResponse> ChangeDeckAsync(ChangeDeckRequestDto request, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets detailed information about notes
     /// </summary>
     Task<NotesInfoResponse> NotesInfoAsync(NotesInfoRequestDto request, CancellationToken cancellationToken = default);
@@ -187,6 +192,19 @@ public class AnkiService : IAnkiService
         var paramsObj = (UpdateNoteFieldsParams)request.Params;
         _logger.LogInformation("Updating note {NoteId}", paramsObj.Note.Id);
         var response = await SendRequestAsync<UpdateNoteFieldsResponse>(request.Action, request, cancellationToken);
+        return response;
+    }
+
+    /// <inheritdoc />
+    public async Task<ChangeDeckResponse> ChangeDeckAsync(ChangeDeckRequestDto request, CancellationToken cancellationToken = default)
+    {
+        if (request.Params == null)
+        {
+            throw new ArgumentException("Request parameters cannot be null", nameof(request));
+        }
+        var paramsObj = (ChangeDeckParams)request.Params;
+        _logger.LogInformation("Changing {Count} cards to deck {DeckName}", paramsObj.Cards.Count(), paramsObj.Deck);
+        var response = await SendRequestAsync<ChangeDeckResponse>(request.Action, request, cancellationToken);
         return response;
     }
 

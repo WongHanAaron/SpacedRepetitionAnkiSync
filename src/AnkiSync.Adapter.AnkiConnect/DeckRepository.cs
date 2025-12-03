@@ -1,5 +1,6 @@
 using AnkiSync.Adapter.AnkiConnect.Models;
 using AnkiSync.Domain;
+using AnkiSync.Domain.Models;
 using AnkiSync.Adapter.AnkiConnect.Client;
 using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
@@ -424,6 +425,144 @@ public class DeckRepository : IDeckRepository
                 note.Fields.TryGetValue("Text", out var text) && text.Value == ConvertPlaceholdersToClozeFormat(clozeCard),
             _ => false
         };
+    }
+
+    /// <inheritdoc />
+    public async Task ExecuteInstructionsAsync(IEnumerable<SynchronizationInstruction> instructions, CancellationToken cancellationToken = default)
+    {
+        if (instructions == null)
+        {
+            throw new ArgumentNullException(nameof(instructions));
+        }
+
+        var instructionList = instructions.ToList();
+        _logger.LogInformation("Executing {Count} synchronization instructions", instructionList.Count);
+
+        foreach (var instruction in instructionList)
+        {
+            try
+            {
+                await ExecuteInstructionAsync(instruction, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error executing instruction {InstructionType}: {UniqueKey}",
+                    instruction.InstructionType, instruction.GetUniqueKey());
+                throw;
+            }
+        }
+
+        _logger.LogInformation("Successfully executed all synchronization instructions");
+    }
+
+    private async Task ExecuteInstructionAsync(SynchronizationInstruction instruction, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Executing instruction {InstructionType}: {UniqueKey}",
+            instruction.InstructionType, instruction.GetUniqueKey());
+
+        switch (instruction)
+        {
+            case CreateDeckInstruction createDeck:
+                await ExecuteCreateDeckAsync(createDeck, cancellationToken);
+                break;
+            case DeleteDeckInstruction deleteDeck:
+                await ExecuteDeleteDeckAsync(deleteDeck, cancellationToken);
+                break;
+            case CreateCardInstruction createCard:
+                await ExecuteCreateCardAsync(createCard, cancellationToken);
+                break;
+            case UpdateCardInstruction updateCard:
+                await ExecuteUpdateCardAsync(updateCard, cancellationToken);
+                break;
+            case DeleteCardInstruction deleteCard:
+                await ExecuteDeleteCardAsync(deleteCard, cancellationToken);
+                break;
+            case MoveCardInstruction moveCard:
+                await ExecuteMoveCardAsync(moveCard, cancellationToken);
+                break;
+            case SyncWithAnkiInstruction syncWithAnki:
+                await ExecuteSyncWithAnkiAsync(syncWithAnki, cancellationToken);
+                break;
+            default:
+                throw new NotSupportedException($"Instruction type {instruction.InstructionType} is not supported");
+        }
+    }
+
+    private async Task ExecuteCreateDeckAsync(CreateDeckInstruction instruction, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Creating deck {DeckId}", instruction.DeckId);
+
+        var createDeckRequest = new CreateDeckRequestDto(instruction.DeckId.ToAnkiDeckName());
+        await _ankiService.CreateDeckAsync(createDeckRequest, cancellationToken);
+    }
+
+    private async Task ExecuteDeleteDeckAsync(DeleteDeckInstruction instruction, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Deleting deck {DeckId}", instruction.DeckId);
+
+        var deleteDecksRequest = new DeleteDecksRequestDto(new[] { instruction.DeckId.ToAnkiDeckName() }, true);
+        await _ankiService.DeleteDecksAsync(deleteDecksRequest, cancellationToken);
+    }
+
+    private async Task ExecuteCreateCardAsync(CreateCardInstruction instruction, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Creating card in deck {DeckId}", instruction.DeckId);
+
+        var ankiNote = ConvertCardToAnkiNote(instruction.Card, instruction.DeckId.ToAnkiDeckName());
+        var addNoteRequest = new AddNoteRequestDto(ankiNote);
+        var response = await _ankiService.AddNoteAsync(addNoteRequest, cancellationToken);
+        
+        // Store the created note ID back on the card
+        instruction.Card.Id = response.Result;
+    }
+
+    private async Task ExecuteUpdateCardAsync(UpdateCardInstruction instruction, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Updating card {CardId}", instruction.CardId);
+
+        if (!instruction.Card.Id.HasValue)
+        {
+            throw new InvalidOperationException("Card must have an ID to be updated");
+        }
+
+        var fields = instruction.Card switch
+        {
+            QuestionAnswerCard qaCard => new Dictionary<string, string>
+            {
+                ["Front"] = qaCard.Question,
+                ["Back"] = qaCard.Answer
+            },
+            ClozeCard clozeCard => new Dictionary<string, string>
+            {
+                ["Text"] = ConvertPlaceholdersToClozeFormat(clozeCard)
+            },
+            _ => throw new NotSupportedException($"Card type {instruction.Card.Type} is not supported")
+        };
+
+        var updateRequest = new UpdateNoteFieldsRequestDto(instruction.Card.Id.Value, fields);
+        await _ankiService.UpdateNoteFieldsAsync(updateRequest, cancellationToken);
+    }
+
+    private async Task ExecuteDeleteCardAsync(DeleteCardInstruction instruction, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Deleting card {CardId}", instruction.CardId);
+
+        var deleteNotesRequest = new DeleteNotesRequestDto(new[] { instruction.CardId });
+        await _ankiService.DeleteNotesAsync(deleteNotesRequest, cancellationToken);
+    }
+
+    private async Task ExecuteMoveCardAsync(MoveCardInstruction instruction, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Moving card {CardId} to deck {TargetDeckId}", instruction.CardId, instruction.TargetDeckId);
+
+        var moveRequest = new ChangeDeckRequestDto(new[] { instruction.CardId }, instruction.TargetDeckId.ToAnkiDeckName());
+        await _ankiService.ChangeDeckAsync(moveRequest, cancellationToken);
+    }
+
+    private async Task ExecuteSyncWithAnkiAsync(SyncWithAnkiInstruction instruction, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Syncing with AnkiWeb");
+        await SyncWithAnkiWebAsync(cancellationToken);
     }
 
     /// <inheritdoc />

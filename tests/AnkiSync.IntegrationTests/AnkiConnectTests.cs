@@ -580,4 +580,213 @@ public class AnkiConnectTests : IAsyncLifetime
         cardInfo.Reps.Should().BeGreaterThanOrEqualTo(0); // Number of reviews
         cardInfo.Lapses.Should().BeGreaterThanOrEqualTo(0); // Number of lapses
     }
+
+    [Fact]
+    public async Task AnkiService_ChangeDeck_SingleCard_ShouldMoveCardToTargetDeck()
+    {
+        await EnsureAnkiConnectionAsync();
+        await CaptureInitialDeckStateAsync();
+
+        // Arrange - Create source and target decks
+        var sourceDeckName = $"{TestDeckName}_Source_{Guid.NewGuid():N}";
+        var targetDeckName = $"{TestDeckName}_Target_{Guid.NewGuid():N}";
+        _createdDecks.Add(sourceDeckName);
+        _createdDecks.Add(targetDeckName);
+
+        // Create both decks
+        await _ankiService.CreateDeckAsync(new CreateDeckRequestDto(sourceDeckName));
+        await _ankiService.CreateDeckAsync(new CreateDeckRequestDto(targetDeckName));
+
+        // Create a note in the source deck
+        var testNote = new AnkiNote
+        {
+            DeckName = sourceDeckName,
+            ModelName = "Basic",
+            Fields = new Dictionary<string, string>
+            {
+                ["Front"] = "Test Question for ChangeDeck?",
+                ["Back"] = "Test Answer for ChangeDeck!"
+            }
+        };
+
+        var addNoteRequest = new AddNoteRequestDto(testNote);
+        var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
+        addNoteResponse.Result.Should().NotBeNull();
+        var noteId = addNoteResponse.Result!.Value;
+        _createdNotes.Add(noteId);
+
+        // Get the card ID from the note
+        var notesInfoRequest = new NotesInfoRequestDto(new[] { noteId });
+        var notesInfoResponse = await _ankiService.NotesInfoAsync(notesInfoRequest);
+        notesInfoResponse.Result.Should().NotBeNull().And.HaveCount(1);
+        var cardIds = notesInfoResponse.Result!.First().Cards;
+        cardIds.Should().HaveCount(1);
+        var cardId = cardIds.First();
+
+        // Verify card is initially in source deck
+        var findNotesInSourceRequest = new FindNotesRequestDto($"deck:\"{sourceDeckName}\"");
+        var findNotesInSourceResponse = await _ankiService.FindNotesAsync(findNotesInSourceRequest);
+        findNotesInSourceResponse.Result.Should().NotBeNull().And.Contain(noteId);
+
+        // Act - Change the deck of the card
+        var changeDeckRequest = new ChangeDeckRequestDto(new[] { cardId }, targetDeckName);
+        var changeDeckResponse = await _ankiService.ChangeDeckAsync(changeDeckRequest);
+
+        // Assert - Verify the operation succeeded
+        changeDeckResponse.Error.Should().BeNull("ChangeDeck operation should succeed");
+
+        // Verify card is no longer in source deck
+        findNotesInSourceResponse = await _ankiService.FindNotesAsync(findNotesInSourceRequest);
+        findNotesInSourceResponse.Result.Should().NotBeNull().And.NotContain(noteId);
+
+        // Verify card is now in target deck
+        var findNotesInTargetRequest = new FindNotesRequestDto($"deck:\"{targetDeckName}\"");
+        var findNotesInTargetResponse = await _ankiService.FindNotesAsync(findNotesInTargetRequest);
+        findNotesInTargetResponse.Result.Should().NotBeNull().And.Contain(noteId);
+    }
+
+    [Fact]
+    public async Task AnkiService_ChangeDeck_MultipleCards_ShouldMoveAllCardsToTargetDeck()
+    {
+        await EnsureAnkiConnectionAsync();
+        await CaptureInitialDeckStateAsync();
+
+        // Arrange - Create source and target decks
+        var sourceDeckName = $"{TestDeckName}_Source_Multi_{Guid.NewGuid():N}";
+        var targetDeckName = $"{TestDeckName}_Target_Multi_{Guid.NewGuid():N}";
+        _createdDecks.Add(sourceDeckName);
+        _createdDecks.Add(targetDeckName);
+
+        // Create both decks
+        await _ankiService.CreateDeckAsync(new CreateDeckRequestDto(sourceDeckName));
+        await _ankiService.CreateDeckAsync(new CreateDeckRequestDto(targetDeckName));
+
+        // Create multiple notes in the source deck
+        var cardIds = new List<long>();
+        for (int i = 1; i <= 3; i++)
+        {
+            var testNote = new AnkiNote
+            {
+                DeckName = sourceDeckName,
+                ModelName = "Basic",
+                Fields = new Dictionary<string, string>
+                {
+                    ["Front"] = $"Test Question {i} for Multi ChangeDeck?",
+                    ["Back"] = $"Test Answer {i} for Multi ChangeDeck!"
+                }
+            };
+
+            var addNoteRequest = new AddNoteRequestDto(testNote);
+            var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
+            addNoteResponse.Result.Should().NotBeNull();
+            var noteId = addNoteResponse.Result!.Value;
+            _createdNotes.Add(noteId);
+
+            // Get the card ID from the note
+            var notesInfoRequest = new NotesInfoRequestDto(new[] { noteId });
+            var notesInfoResponse = await _ankiService.NotesInfoAsync(notesInfoRequest);
+            notesInfoResponse.Result.Should().NotBeNull().And.HaveCount(1);
+            var noteCardIds = notesInfoResponse.Result!.First().Cards;
+            noteCardIds.Should().HaveCount(1);
+            cardIds.Add(noteCardIds.First());
+        }
+
+        // Verify all cards are initially in source deck
+        var findNotesInSourceRequest = new FindNotesRequestDto($"deck:\"{sourceDeckName}\"");
+        var findNotesInSourceResponse = await _ankiService.FindNotesAsync(findNotesInSourceRequest);
+        findNotesInSourceResponse.Result.Should().NotBeNull();
+        foreach (var noteId in _createdNotes.Skip(_createdNotes.Count - 3)) // Last 3 notes we created
+        {
+            findNotesInSourceResponse.Result.Should().Contain(noteId);
+        }
+
+        // Act - Change the deck of all cards
+        var changeDeckRequest = new ChangeDeckRequestDto(cardIds, targetDeckName);
+        var changeDeckResponse = await _ankiService.ChangeDeckAsync(changeDeckRequest);
+
+        // Assert - Verify the operation succeeded
+        changeDeckResponse.Error.Should().BeNull("ChangeDeck operation should succeed");
+
+        // Verify all cards are no longer in source deck
+        findNotesInSourceResponse = await _ankiService.FindNotesAsync(findNotesInSourceRequest);
+        findNotesInSourceResponse.Result.Should().NotBeNull();
+        foreach (var noteId in _createdNotes.Skip(_createdNotes.Count - 3)) // Last 3 notes we created
+        {
+            findNotesInSourceResponse.Result.Should().NotContain(noteId);
+        }
+
+        // Verify all cards are now in target deck
+        var findNotesInTargetRequest = new FindNotesRequestDto($"deck:\"{targetDeckName}\"");
+        var findNotesInTargetResponse = await _ankiService.FindNotesAsync(findNotesInTargetRequest);
+        findNotesInTargetResponse.Result.Should().NotBeNull();
+        foreach (var noteId in _createdNotes.Skip(_createdNotes.Count - 3)) // Last 3 notes we created
+        {
+            findNotesInTargetResponse.Result.Should().Contain(noteId);
+        }
+    }
+
+    [Fact]
+    public async Task AnkiService_ChangeDeck_WithNonExistentDeck_ShouldCreateNewDeck()
+    {
+        await EnsureAnkiConnectionAsync();
+        await CaptureInitialDeckStateAsync();
+
+        // Arrange - Create a source deck and add a card
+        var sourceDeckName = $"{TestDeckName}_Source_AutoCreate_{Guid.NewGuid():N}";
+        _createdDecks.Add(sourceDeckName);
+
+        await _ankiService.CreateDeckAsync(new CreateDeckRequestDto(sourceDeckName));
+
+        // Create a note in the source deck
+        var testNote = new AnkiNote
+        {
+            DeckName = sourceDeckName,
+            ModelName = "Basic",
+            Fields = new Dictionary<string, string>
+            {
+                ["Front"] = "Test Question for Auto Create Deck?",
+                ["Back"] = "Test Answer for Auto Create Deck!"
+            }
+        };
+
+        var addNoteRequest = new AddNoteRequestDto(testNote);
+        var addNoteResponse = await _ankiService.AddNoteAsync(addNoteRequest);
+        addNoteResponse.Result.Should().NotBeNull();
+        var noteId = addNoteResponse.Result!.Value;
+        _createdNotes.Add(noteId);
+
+        // Get the card ID from the note
+        var notesInfoRequest = new NotesInfoRequestDto(new[] { noteId });
+        var notesInfoResponse = await _ankiService.NotesInfoAsync(notesInfoRequest);
+        notesInfoResponse.Result.Should().NotBeNull().And.HaveCount(1);
+        var cardIds = notesInfoResponse.Result!.First().Cards;
+        cardIds.Should().HaveCount(1);
+        var cardId = cardIds.First();
+
+        // Act - Change to a non-existent deck (AnkiConnect should create it automatically)
+        var newDeckName = $"AutoCreatedDeck_{Guid.NewGuid():N}";
+        var changeDeckRequest = new ChangeDeckRequestDto(new[] { cardId }, newDeckName);
+        var changeDeckResponse = await _ankiService.ChangeDeckAsync(changeDeckRequest);
+
+        // Assert - Verify the operation succeeded and created the new deck
+        changeDeckResponse.Error.Should().BeNull("ChangeDeck to non-existent deck should succeed and create the deck");
+
+        // Verify the new deck was created and contains the card
+        var findNotesInNewDeckRequest = new FindNotesRequestDto($"deck:\"{newDeckName}\"");
+        var findNotesInNewDeckResponse = await _ankiService.FindNotesAsync(findNotesInNewDeckRequest);
+        findNotesInNewDeckResponse.Result.Should().NotBeNull().And.Contain(noteId);
+
+        // Verify card is no longer in the original deck
+        var findNotesInSourceRequest = new FindNotesRequestDto($"deck:\"{sourceDeckName}\"");
+        var findNotesInSourceResponse = await _ankiService.FindNotesAsync(findNotesInSourceRequest);
+        findNotesInSourceResponse.Result.Should().NotBeNull().And.NotContain(noteId);
+
+        // Verify the new deck appears in the deck list
+        var getDecksRequest = new GetDecksRequestDto();
+        var getDecksResponse = await _ankiService.GetDecksAsync(getDecksRequest);
+        getDecksResponse.Result.Should().NotBeNull().And.Contain(newDeckName);
+
+        // Clean up the auto-created deck
+        _createdDecks.Add(newDeckName);
+    }
 }

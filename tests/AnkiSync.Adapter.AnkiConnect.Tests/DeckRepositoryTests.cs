@@ -1,6 +1,8 @@
+using AnkiSync.Adapter.AnkiConnect;
 using AnkiSync.Adapter.AnkiConnect.Client;
 using AnkiSync.Adapter.AnkiConnect.Models;
 using AnkiSync.Domain;
+using AnkiSync.Domain.Models;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -316,5 +318,183 @@ public class DeckRepositoryTests
         // Assert
         _ankiServiceMock.Verify(x => x.CreateDeckAsync(It.IsAny<CreateDeckRequestDto>(), default), Times.Once);
         _ankiServiceMock.Verify(x => x.AddNoteAsync(It.IsAny<AddNoteRequestDto>(), default), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteInstructionsAsync_ShouldThrowArgumentNullException_WhenInstructionsIsNull()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            _deckRepository.ExecuteInstructionsAsync(null!));
+    }
+
+    [Fact]
+    public async Task ExecuteInstructionsAsync_ShouldExecuteCreateDeckInstruction()
+    {
+        // Arrange
+        var deckId = DeckIdExtensions.FromAnkiDeckName("NewDeck");
+        var instruction = new CreateDeckInstruction(deckId);
+        var instructions = new[] { instruction };
+
+        _ankiServiceMock
+            .Setup(x => x.CreateDeckAsync(It.IsAny<CreateDeckRequestDto>(), default))
+            .ReturnsAsync(new CreateDeckResponse());
+
+        // Act
+        await _deckRepository.ExecuteInstructionsAsync(instructions);
+
+        // Assert
+        _ankiServiceMock.Verify(x => x.CreateDeckAsync(
+            It.Is<CreateDeckRequestDto>(r => r.Params != null && ((CreateDeckParams)r.Params).Deck == "NewDeck"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteInstructionsAsync_ShouldExecuteDeleteDeckInstruction()
+    {
+        // Arrange
+        var deckId = DeckIdExtensions.FromAnkiDeckName("DeckToDelete");
+        var instruction = new DeleteDeckInstruction(deckId);
+        var instructions = new[] { instruction };
+
+        _ankiServiceMock
+            .Setup(x => x.DeleteDecksAsync(It.IsAny<DeleteDecksRequestDto>(), default))
+            .ReturnsAsync(new DeleteDecksResponse());
+
+        // Act
+        await _deckRepository.ExecuteInstructionsAsync(instructions);
+
+        // Assert
+        _ankiServiceMock.Verify(x => x.DeleteDecksAsync(
+            It.Is<DeleteDecksRequestDto>(r => r.Params != null && ((DeleteDecksParams)r.Params).Decks.Contains("DeckToDelete")),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteInstructionsAsync_ShouldExecuteCreateCardInstruction()
+    {
+        // Arrange
+        var deckId = DeckIdExtensions.FromAnkiDeckName("TestDeck");
+        var card = new QuestionAnswerCard
+        {
+            DateModified = DateTimeOffset.UtcNow,
+            Question = "Test Question",
+            Answer = "Test Answer"
+        };
+        var instruction = new CreateCardInstruction(deckId, card);
+        var instructions = new[] { instruction };
+
+        _ankiServiceMock
+            .Setup(x => x.AddNoteAsync(It.IsAny<AddNoteRequestDto>(), default))
+            .ReturnsAsync(new AddNoteResponse { Result = 123 });
+
+        // Act
+        await _deckRepository.ExecuteInstructionsAsync(instructions);
+
+        // Assert
+        _ankiServiceMock.Verify(x => x.AddNoteAsync(It.IsAny<AddNoteRequestDto>(), default), Times.Once);
+        card.Id.Should().Be(123);
+    }
+
+    [Fact]
+    public async Task ExecuteInstructionsAsync_ShouldExecuteUpdateCardInstruction()
+    {
+        // Arrange
+        var card = new QuestionAnswerCard
+        {
+            Id = 456,
+            DateModified = DateTimeOffset.UtcNow,
+            Question = "Updated Question",
+            Answer = "Updated Answer"
+        };
+        var instruction = new UpdateCardInstruction(456, card);
+        var instructions = new[] { instruction };
+
+        _ankiServiceMock
+            .Setup(x => x.UpdateNoteFieldsAsync(It.IsAny<UpdateNoteFieldsRequestDto>(), default))
+            .ReturnsAsync(new UpdateNoteFieldsResponse());
+
+        // Act
+        await _deckRepository.ExecuteInstructionsAsync(instructions);
+
+        // Assert
+        _ankiServiceMock.Verify(x => x.UpdateNoteFieldsAsync(It.IsAny<UpdateNoteFieldsRequestDto>(), default), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteInstructionsAsync_ShouldExecuteDeleteCardInstruction()
+    {
+        // Arrange
+        var instruction = new DeleteCardInstruction(789);
+        var instructions = new[] { instruction };
+
+        _ankiServiceMock
+            .Setup(x => x.DeleteNotesAsync(It.IsAny<DeleteNotesRequestDto>(), default))
+            .ReturnsAsync(new DeleteNotesResponse());
+
+        // Act
+        await _deckRepository.ExecuteInstructionsAsync(instructions);
+
+        // Assert
+        _ankiServiceMock.Verify(x => x.DeleteNotesAsync(
+            It.Is<DeleteNotesRequestDto>(r => r.Params != null && ((DeleteNotesParams)r.Params).Notes.Contains(789)),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteInstructionsAsync_ShouldExecuteMoveCardInstruction()
+    {
+        // Arrange
+        var targetDeckId = DeckIdExtensions.FromAnkiDeckName("TargetDeck");
+        var instruction = new MoveCardInstruction(101, targetDeckId);
+        var instructions = new[] { instruction };
+
+        _ankiServiceMock
+            .Setup(x => x.ChangeDeckAsync(It.IsAny<ChangeDeckRequestDto>(), default))
+            .ReturnsAsync(new ChangeDeckResponse());
+
+        // Act
+        await _deckRepository.ExecuteInstructionsAsync(instructions);
+
+        // Assert
+        _ankiServiceMock.Verify(x => x.ChangeDeckAsync(
+            It.Is<ChangeDeckRequestDto>(r => r.Params != null && ((ChangeDeckParams)r.Params).Cards.Contains(101) && 
+                ((ChangeDeckParams)r.Params).Deck == "TargetDeck"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteInstructionsAsync_ShouldExecuteSyncWithAnkiInstruction()
+    {
+        // Arrange
+        var instruction = new SyncWithAnkiInstruction();
+        var instructions = new[] { instruction };
+
+        _ankiServiceMock
+            .Setup(x => x.SyncAsync(It.IsAny<SyncRequestDto>(), default))
+            .ReturnsAsync(new SyncResponse());
+
+        // Act
+        await _deckRepository.ExecuteInstructionsAsync(instructions);
+
+        // Assert
+        _ankiServiceMock.Verify(x => x.SyncAsync(It.IsAny<SyncRequestDto>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteInstructionsAsync_ShouldThrowNotSupportedException_ForUnsupportedInstructionType()
+    {
+        // Arrange
+        var instruction = new TestInstruction();
+        var instructions = new[] { instruction };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            _deckRepository.ExecuteInstructionsAsync(instructions));
+    }
+
+    private class TestInstruction : SynchronizationInstruction
+    {
+        public override SynchronizationInstructionType InstructionType => (SynchronizationInstructionType)999;
     }
 }

@@ -1,4 +1,5 @@
 using AnkiSync.Domain;
+using AnkiSync.Domain.Models;
 
 namespace AnkiSync.Domain;
 
@@ -43,6 +44,13 @@ public interface IDeckRepository
     /// <param name="cardsToKeep">The cards that should remain in the deck</param>
     /// <param name="cancellationToken">Cancellation token</param>
     Task DeleteObsoleteCardsAsync(DeckId deckId, IEnumerable<Card> cardsToKeep, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Executes a collection of synchronization instructions
+    /// </summary>
+    /// <param name="instructions">The instructions to execute</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task ExecuteInstructionsAsync(IEnumerable<SynchronizationInstruction> instructions, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Syncs the Anki collection with AnkiWeb
