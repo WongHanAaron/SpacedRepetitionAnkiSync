@@ -439,19 +439,29 @@ public class DeckRepository : IDeckRepository
         var ankiNote = ConvertCardToAnkiNote(instruction.Card, instruction.DeckId.ToAnkiDeckName());
         var addNoteRequest = new AddNoteRequestDto(ankiNote);
         var response = await _ankiService.AddNoteAsync(addNoteRequest, cancellationToken);
-        
-        // Store the created note ID back on the card
-        instruction.Card.Id = response.Result;
+
+        // Note: domain Card does not carry Anki IDs. If the instruction.Card is an Anki-specific
+        // implementation, set its Id as a best-effort convenience.
+        if (instruction.Card is AnkiQuestionAnswerCard qa)
+        {
+            qa.Id = response.Result ?? 0;
+        }
+        else if (instruction.Card is AnkiClozeCard cloze)
+        {
+            cloze.Id = response.Result ?? 0;
+        }
     }
 
     private async Task ExecuteUpdateCardAsync(UpdateCardInstruction instruction, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Updating card {CardId}", instruction.CardId);
-
-        if (!instruction.Card.Id.HasValue)
+        // Resolve the Anki note id from the existing card provided in the instruction
+        var ankiId = GetAnkiCardId(instruction.ExistingCard);
+        if (!ankiId.HasValue)
         {
-            throw new InvalidOperationException("Card must have an ID to be updated");
+            throw new InvalidOperationException("Unable to determine Anki card id for update operation");
         }
+
+        _logger.LogDebug("Updating card {CardId}", ankiId.Value);
 
         var fields = instruction.Card switch
         {
@@ -467,23 +477,37 @@ public class DeckRepository : IDeckRepository
             _ => throw new NotSupportedException($"Card type {instruction.Card.Type} is not supported")
         };
 
-        var updateRequest = new UpdateNoteFieldsRequestDto(instruction.Card.Id.Value, fields);
+        var updateRequest = new UpdateNoteFieldsRequestDto(ankiId.Value, fields);
         await _ankiService.UpdateNoteFieldsAsync(updateRequest, cancellationToken);
     }
 
     private async Task ExecuteDeleteCardAsync(DeleteCardInstruction instruction, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Deleting card {CardId}", instruction.CardId);
+        // Resolve the Anki note id from the card on the instruction
+        var ankiId = GetAnkiCardId(instruction.Card);
+        if (!ankiId.HasValue)
+        {
+            throw new InvalidOperationException("Unable to determine Anki card id for delete operation");
+        }
 
-        var deleteNotesRequest = new DeleteNotesRequestDto(new[] { instruction.CardId });
+        _logger.LogDebug("Deleting card {CardId}", ankiId.Value);
+
+        var deleteNotesRequest = new DeleteNotesRequestDto(new[] { ankiId.Value });
         await _ankiService.DeleteNotesAsync(deleteNotesRequest, cancellationToken);
     }
 
     private async Task ExecuteMoveCardAsync(MoveCardInstruction instruction, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Moving card {CardId} to deck {TargetDeckId}", instruction.CardId, instruction.TargetDeckId);
+        // Resolve the Anki note id from the card on the instruction
+        var ankiId = GetAnkiCardId(instruction.Card);
+        if (!ankiId.HasValue)
+        {
+            throw new InvalidOperationException("Unable to determine Anki card id for move operation");
+        }
 
-        var moveRequest = new ChangeDeckRequestDto(new[] { instruction.CardId }, instruction.TargetDeckId.ToAnkiDeckName());
+        _logger.LogDebug("Moving card {CardId} to deck {TargetDeckId}", ankiId.Value, instruction.TargetDeckId);
+
+        var moveRequest = new ChangeDeckRequestDto(new[] { ankiId.Value }, instruction.TargetDeckId.ToAnkiDeckName());
         await _ankiService.ChangeDeckAsync(moveRequest, cancellationToken);
     }
 

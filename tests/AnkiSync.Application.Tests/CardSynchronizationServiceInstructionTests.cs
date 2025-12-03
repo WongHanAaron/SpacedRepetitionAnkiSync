@@ -227,7 +227,6 @@ public class CardSynchronizationServiceInstructionTests
         
         var existingCard = new QuestionAnswerCard 
         { 
-            Id = 123,
             Question = "Test Question?", 
             Answer = "Test Answer",
             DateModified = DateTimeOffset.Now // Same content and date, so no update needed
@@ -261,7 +260,7 @@ public class CardSynchronizationServiceInstructionTests
         
         var moveInstructions = result.OfType<MoveCardInstruction>().ToList();
         moveInstructions.Should().HaveCount(1);
-        moveInstructions[0].CardId.Should().Be(123);
+        moveInstructions[0].Card.Should().Be(existingCard);
         moveInstructions[0].TargetDeckId.Name.Should().Be("NewDeck");
         moveInstructions[0].TargetDeckId.Parents.Should().BeEmpty();
         
@@ -290,7 +289,6 @@ public class CardSynchronizationServiceInstructionTests
         
         var existingCard = new QuestionAnswerCard 
         { 
-            Id = 123,
             Question = "Test Question?", 
             Answer = "Old Answer", // Different content
             DateModified = DateTimeOffset.Now.AddMinutes(-1) 
@@ -324,13 +322,13 @@ public class CardSynchronizationServiceInstructionTests
         
         var updateInstructions = result.OfType<UpdateCardInstruction>().ToList();
         updateInstructions.Should().HaveCount(1);
-        updateInstructions[0].CardId.Should().Be(123);
+        updateInstructions[0].ExistingCard.Should().Be(existingCard);
         updateInstructions[0].Card.Should().BeOfType<QuestionAnswerCard>();
         ((QuestionAnswerCard)updateInstructions[0].Card).Answer.Should().Be("Updated Answer");
         
         var moveInstructions = result.OfType<MoveCardInstruction>().ToList();
         moveInstructions.Should().HaveCount(1);
-        moveInstructions[0].CardId.Should().Be(123);
+        moveInstructions[0].Card.Should().Be(existingCard);
         moveInstructions[0].TargetDeckId.Name.Should().Be("NewDeck");
         moveInstructions[0].TargetDeckId.Parents.Should().BeEmpty();
         
@@ -359,7 +357,6 @@ public class CardSynchronizationServiceInstructionTests
         
         var existingCard = new QuestionAnswerCard 
         { 
-            Id = 456,
             Question = "Test Question?", 
             Answer = "Test Answer",
             DateModified = DateTimeOffset.Now // Same content, so no update needed
@@ -401,7 +398,7 @@ public class CardSynchronizationServiceInstructionTests
         
         var moveInstructions = result.OfType<MoveCardInstruction>().ToList();
         moveInstructions.Should().HaveCount(1);
-        moveInstructions[0].CardId.Should().Be(456);
+        moveInstructions[0].Card.Should().Be(existingCard);
         moveInstructions[0].TargetDeckId.Name.Should().Be("Parent");
         moveInstructions[0].TargetDeckId.Parents.Should().BeEmpty();
         

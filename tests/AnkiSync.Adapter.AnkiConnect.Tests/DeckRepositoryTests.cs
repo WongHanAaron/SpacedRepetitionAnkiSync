@@ -393,21 +393,29 @@ public class DeckRepositoryTests
 
         // Assert
         _ankiServiceMock.Verify(x => x.AddNoteAsync(It.IsAny<AddNoteRequestDto>(), default), Times.Once);
-        card.Id.Should().Be(123);
+        // When using domain card types, Id is not present. Adapter sets Id only for Anki-specific card types.
     }
 
     [Fact]
     public async Task ExecuteInstructionsAsync_ShouldExecuteUpdateCardInstruction()
     {
         // Arrange
-        var card = new QuestionAnswerCard
+        var existingCard = new AnkiQuestionAnswerCard
         {
             Id = 456,
+            DateModified = DateTimeOffset.UtcNow,
+            Question = "Existing Question",
+            Answer = "Existing Answer"
+        };
+
+        var updatedCard = new QuestionAnswerCard
+        {
             DateModified = DateTimeOffset.UtcNow,
             Question = "Updated Question",
             Answer = "Updated Answer"
         };
-        var instruction = new UpdateCardInstruction(456, card);
+
+        var instruction = new UpdateCardInstruction(existingCard, updatedCard);
         var instructions = new[] { instruction };
 
         _ankiServiceMock
@@ -425,7 +433,8 @@ public class DeckRepositoryTests
     public async Task ExecuteInstructionsAsync_ShouldExecuteDeleteCardInstruction()
     {
         // Arrange
-        var instruction = new DeleteCardInstruction(789);
+        var cardToDelete = new AnkiQuestionAnswerCard { Id = 789, DateModified = DateTimeOffset.UtcNow };
+        var instruction = new DeleteCardInstruction(cardToDelete);
         var instructions = new[] { instruction };
 
         _ankiServiceMock
@@ -446,7 +455,8 @@ public class DeckRepositoryTests
     {
         // Arrange
         var targetDeckId = DeckIdExtensions.FromAnkiDeckName("TargetDeck");
-        var instruction = new MoveCardInstruction(101, targetDeckId);
+        var cardToMove = new AnkiQuestionAnswerCard { Id = 101, DateModified = DateTimeOffset.UtcNow };
+        var instruction = new MoveCardInstruction(cardToMove, targetDeckId);
         var instructions = new[] { instruction };
 
         _ankiServiceMock

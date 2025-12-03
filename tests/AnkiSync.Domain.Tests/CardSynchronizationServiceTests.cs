@@ -69,7 +69,7 @@ public class CardSynchronizationServiceTests
         var deckId = DeckId.FromPath("TestDeck");
         var dateModified = DateTimeOffset.UtcNow;
         var existingDeck = CreateTestDeck(deckId, dateModified, "Existing Question?", "Existing Answer!");
-        existingDeck.Cards[0].Id = 1; // Simulate existing card with ID
+        // existingDeck already contains a domain card; no Anki-specific id simulation needed
         var sourceDeck = CreateTestDeck(deckId, dateModified, "Existing Question?", "Existing Answer!", "New Question?", "New Answer!");
         
         _cardSourceRepositoryMock
@@ -99,7 +99,7 @@ public class CardSynchronizationServiceTests
         var directories = new[] { "test/dir" };
         var deckId = DeckId.FromPath("TestDeck");
         var existingDeck = CreateTestDeck(deckId, "Question?", "Old Answer!");
-        existingDeck.Cards[0].Id = 1; // Simulate existing card with ID
+        // existingDeck already contains a domain card; no Anki-specific id simulation needed
         var sourceDeck = CreateTestDeck(deckId, "Question?", "New Answer!");
         
         _cardSourceRepositoryMock
@@ -118,7 +118,7 @@ public class CardSynchronizationServiceTests
             It.Is<IReadOnlyList<SynchronizationInstruction>>(instructions =>
                 instructions.Count == 2 &&
                 instructions[0].InstructionType == SynchronizationInstructionType.UpdateCard &&
-                ((UpdateCardInstruction)instructions[0]).CardId == 1 &&
+                ((UpdateCardInstruction)instructions[0]).ExistingCard == existingDeck.Cards[0] &&
                 instructions[1].InstructionType == SynchronizationInstructionType.SyncWithAnki), default), Times.Once);
     }
 

@@ -70,7 +70,13 @@ public class SynchronizationInstructionTests
     {
         // This test will fail until we create the UpdateCardInstruction class
         // Arrange
-        var cardId = 123L;
+        var existingCard = new QuestionAnswerCard
+        {
+            Question = "Existing Question",
+            Answer = "Existing Answer",
+            DateModified = DateTimeOffset.Now
+        };
+
         var card = new QuestionAnswerCard
         {
             Question = "Updated Question",
@@ -79,27 +85,31 @@ public class SynchronizationInstructionTests
         };
 
         // Act
-        var instruction = new UpdateCardInstruction(cardId, card);
+        var instruction = new UpdateCardInstruction(existingCard, card);
 
         // Assert
         Assert.NotNull(instruction);
-        Assert.Equal(123L, instruction.CardId);
+        Assert.Equal(existingCard, instruction.ExistingCard);
         Assert.Equal(card, instruction.Card);
     }
 
     [Fact]
     public void DeleteCardInstruction_CanBeCreated()
     {
-        // This test will fail until we create the DeleteCardInstruction class
         // Arrange
-        var cardId = 123L;
+        var card = new QuestionAnswerCard
+        {
+            Question = "Q",
+            Answer = "A",
+            DateModified = DateTimeOffset.Now
+        };
 
         // Act
-        var instruction = new DeleteCardInstruction(cardId);
+        var instruction = new DeleteCardInstruction(card);
 
         // Assert
         Assert.NotNull(instruction);
-        Assert.Equal(123L, instruction.CardId);
+        Assert.Equal(card, instruction.Card);
     }
 
     [Fact]
@@ -107,15 +117,20 @@ public class SynchronizationInstructionTests
     {
         // This test will fail until we create the MoveCardInstruction class
         // Arrange
-        var cardId = 123L;
+        var card = new QuestionAnswerCard
+        {
+            Question = "Q",
+            Answer = "A",
+            DateModified = DateTimeOffset.Now
+        };
         var targetDeckId = DeckId.FromPath("TargetDeck");
 
         // Act
-        var instruction = new MoveCardInstruction(cardId, targetDeckId);
+        var instruction = new MoveCardInstruction(card, targetDeckId);
 
         // Assert
         Assert.NotNull(instruction);
-        Assert.Equal(123L, instruction.CardId);
+        Assert.Equal(card, instruction.Card);
         Assert.Equal(targetDeckId, instruction.TargetDeckId);
     }
 
@@ -142,14 +157,22 @@ public class SynchronizationInstructionTests
             Answer = "A",
             DateModified = DateTimeOffset.Now
         });
-        var updateCard = new UpdateCardInstruction(123L, new QuestionAnswerCard
+        var existingForUpdate = new QuestionAnswerCard
         {
             Question = "Q",
             Answer = "A",
             DateModified = DateTimeOffset.Now
-        });
-        var deleteCard = new DeleteCardInstruction(123L);
-        var moveCard = new MoveCardInstruction(123L, DeckId.FromPath("TargetDeck"));
+        };
+        var newForUpdate = new QuestionAnswerCard
+        {
+            Question = "Q",
+            Answer = "A",
+            DateModified = DateTimeOffset.Now
+        };
+
+        var updateCard = new UpdateCardInstruction(existingForUpdate, newForUpdate);
+        var deleteCard = new DeleteCardInstruction(new QuestionAnswerCard { Question = "Q", Answer = "A", DateModified = DateTimeOffset.Now });
+        var moveCard = new MoveCardInstruction(new QuestionAnswerCard { Question = "Q", Answer = "A", DateModified = DateTimeOffset.Now }, DeckId.FromPath("TargetDeck"));
         var sync = new SyncWithAnkiInstruction();
 
         // Act & Assert - Each instruction should have a unique key
@@ -189,47 +212,25 @@ public class SynchronizationInstructionTests
     }
 
     [Fact]
-    public void UpdateCardInstruction_ThrowsForNullCard()
+    public void UpdateCardInstruction_ThrowsForNullArguments()
     {
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new UpdateCardInstruction(123L, null!));
+        var card = new QuestionAnswerCard { Question = "Q", Answer = "A", DateModified = DateTimeOffset.Now };
+
+        Assert.Throws<ArgumentNullException>(() => new UpdateCardInstruction(null!, card));
+        Assert.Throws<ArgumentNullException>(() => new UpdateCardInstruction(card, null!));
     }
 
-    [Theory]
-    [InlineData(0L)]
-    [InlineData(-1L)]
-    public void UpdateCardInstruction_ThrowsForInvalidCardId(long invalidCardId)
+    [Fact]
+    public void DeleteCardInstruction_ThrowsForNullArgument()
     {
-        // Arrange
-        var card = new QuestionAnswerCard
-        {
-            Question = "Q",
-            Answer = "A",
-            DateModified = DateTimeOffset.Now
-        };
-
-        // Act & Assert
-        Assert.Throws<ArgumentException>(() => new UpdateCardInstruction(invalidCardId, card));
+        Assert.Throws<ArgumentNullException>(() => new DeleteCardInstruction(null!));
     }
 
-    [Theory]
-    [InlineData(0L)]
-    [InlineData(-1L)]
-    public void DeleteCardInstruction_ThrowsForInvalidCardId(long invalidCardId)
+    [Fact]
+    public void MoveCardInstruction_ThrowsForNullArguments()
     {
-        // Act & Assert
-        Assert.Throws<ArgumentException>(() => new DeleteCardInstruction(invalidCardId));
-    }
-
-    [Theory]
-    [InlineData(0L)]
-    [InlineData(-1L)]
-    public void MoveCardInstruction_ThrowsForInvalidCardId(long invalidCardId)
-    {
-        // Arrange
-        var targetDeckId = DeckId.FromPath("TargetDeck");
-
-        // Act & Assert
-        Assert.Throws<ArgumentException>(() => new MoveCardInstruction(invalidCardId, targetDeckId));
+        var card = new QuestionAnswerCard { Question = "Q", Answer = "A", DateModified = DateTimeOffset.Now };
+        Assert.Throws<ArgumentNullException>(() => new MoveCardInstruction(null!, DeckId.FromPath("TargetDeck")));
+        Assert.Throws<ArgumentNullException>(() => new MoveCardInstruction(card, null!));
     }
 }

@@ -6,9 +6,9 @@ namespace AnkiSync.Domain.Models;
 public class MoveCardInstruction : SynchronizationInstruction
 {
     /// <summary>
-    /// Gets the ID of the card to move.
+    /// Gets the card to move.
     /// </summary>
-    public long CardId { get; }
+    public Card Card { get; }
 
     /// <summary>
     /// Gets the ID of the target deck.
@@ -18,16 +18,12 @@ public class MoveCardInstruction : SynchronizationInstruction
     /// <summary>
     /// Initializes a new instance of the <see cref="MoveCardInstruction"/> class.
     /// </summary>
-    /// <param name="cardId">The ID of the card to move.</param>
+    /// <param name="card">The card to move.</param>
     /// <param name="targetDeckId">The ID of the target deck.</param>
-    public MoveCardInstruction(long cardId, DeckId targetDeckId)
+    public MoveCardInstruction(Card card, DeckId targetDeckId)
     {
-        if (cardId <= 0)
-        {
-            throw new ArgumentException("Card ID must be greater than 0.", nameof(cardId));
-        }
+        Card = card ?? throw new ArgumentNullException(nameof(card));
 
-        CardId = cardId;
         TargetDeckId = targetDeckId ?? throw new ArgumentNullException(nameof(targetDeckId));
     }
 
@@ -35,7 +31,7 @@ public class MoveCardInstruction : SynchronizationInstruction
     public override SynchronizationInstructionType InstructionType => SynchronizationInstructionType.MoveCard;
 
     /// <inheritdoc />
-    public override string GetUniqueKey() => $"{InstructionType}:{CardId}:{TargetDeckId}";
+    public override string GetUniqueKey() => $"{InstructionType}:{System.Text.Json.JsonSerializer.Serialize(Card)}:{TargetDeckId}";
 
     /// <inheritdoc />
     public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);

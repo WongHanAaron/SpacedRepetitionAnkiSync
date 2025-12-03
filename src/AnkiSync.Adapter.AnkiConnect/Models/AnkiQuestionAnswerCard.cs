@@ -8,7 +8,7 @@ public class AnkiQuestionAnswerCard : AnkiSync.Domain.QuestionAnswerCard
     /// <summary>
     /// The Anki-specific ID for this card
     /// </summary>
-    public new long Id { get; set; }
+    public long Id { get; set; }
 
     /// <inheritdoc />
     public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);

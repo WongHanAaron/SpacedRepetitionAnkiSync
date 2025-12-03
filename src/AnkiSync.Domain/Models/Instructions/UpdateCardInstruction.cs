@@ -6,28 +6,23 @@ namespace AnkiSync.Domain.Models;
 public class UpdateCardInstruction : SynchronizationInstruction
 {
     /// <summary>
-    /// Gets the ID of the card to update.
+    /// Gets the existing card (from Anki) that will be updated.
     /// </summary>
-    public long CardId { get; }
+    public Card ExistingCard { get; }
 
     /// <summary>
-    /// Gets the updated card data.
+    /// Gets the updated card data (from source).
     /// </summary>
     public Card Card { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UpdateCardInstruction"/> class.
     /// </summary>
-    /// <param name="cardId">The ID of the card to update.</param>
-    /// <param name="card">The updated card data.</param>
-    public UpdateCardInstruction(long cardId, Card card)
+    /// <param name="existingCard">The existing card from Anki to update.</param>
+    /// <param name="card">The updated card data from source.</param>
+    public UpdateCardInstruction(Card existingCard, Card card)
     {
-        if (cardId <= 0)
-        {
-            throw new ArgumentException("Card ID must be greater than 0.", nameof(cardId));
-        }
-
-        CardId = cardId;
+        ExistingCard = existingCard ?? throw new ArgumentNullException(nameof(existingCard));
         Card = card ?? throw new ArgumentNullException(nameof(card));
     }
 
@@ -35,7 +30,7 @@ public class UpdateCardInstruction : SynchronizationInstruction
     public override SynchronizationInstructionType InstructionType => SynchronizationInstructionType.UpdateCard;
 
     /// <inheritdoc />
-    public override string GetUniqueKey() => $"{InstructionType}:{CardId}";
+    public override string GetUniqueKey() => $"{InstructionType}:{System.Text.Json.JsonSerializer.Serialize(ExistingCard)}";
 
     /// <inheritdoc />
     public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);

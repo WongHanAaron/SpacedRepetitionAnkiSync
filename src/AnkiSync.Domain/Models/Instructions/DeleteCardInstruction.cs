@@ -8,27 +8,22 @@ public class DeleteCardInstruction : SynchronizationInstruction
     /// <summary>
     /// Gets the ID of the card to delete.
     /// </summary>
-    public long CardId { get; }
+    public Card Card { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeleteCardInstruction"/> class.
     /// </summary>
     /// <param name="cardId">The ID of the card to delete.</param>
-    public DeleteCardInstruction(long cardId)
+    public DeleteCardInstruction(Card card)
     {
-        if (cardId <= 0)
-        {
-            throw new ArgumentException("Card ID must be greater than 0.", nameof(cardId));
-        }
-
-        CardId = cardId;
+        Card = card ?? throw new ArgumentNullException(nameof(card));
     }
 
     /// <inheritdoc />
     public override SynchronizationInstructionType InstructionType => SynchronizationInstructionType.DeleteCard;
 
     /// <inheritdoc />
-    public override string GetUniqueKey() => $"{InstructionType}:{CardId}";
+    public override string GetUniqueKey() => $"{InstructionType}:{Card}";
 
     /// <inheritdoc />
     public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
