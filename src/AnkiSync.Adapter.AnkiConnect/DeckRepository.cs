@@ -342,19 +342,6 @@ public class DeckRepository : IDeckRepository
         return text;
     }
 
-    private bool CardMatchesNote(Card card, NoteInfo note)
-    {
-        return card switch
-        {
-            QuestionAnswerCard qaCard =>
-                note.Fields.TryGetValue("Front", out var front) && front.Value == qaCard.Question &&
-                note.Fields.TryGetValue("Back", out var back) && back.Value == qaCard.Answer,
-            ClozeCard clozeCard =>
-                note.Fields.TryGetValue("Text", out var text) && text.Value == ConvertPlaceholdersToClozeFormat(clozeCard),
-            _ => false
-        };
-    }
-
     /// <inheritdoc />
     public async Task ExecuteInstructionsAsync(IEnumerable<SynchronizationInstruction> instructions, CancellationToken cancellationToken = default)
     {
@@ -376,7 +363,7 @@ public class DeckRepository : IDeckRepository
             {
                 _logger.LogError(ex, "Error executing instruction {InstructionType}: {UniqueKey}",
                     instruction.InstructionType, instruction.GetUniqueKey());
-                throw;
+                continue;
             }
         }
 

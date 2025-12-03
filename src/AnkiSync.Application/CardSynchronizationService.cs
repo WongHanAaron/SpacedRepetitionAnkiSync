@@ -61,7 +61,6 @@ public class CardSynchronizationService
 
         _logger.LogDebug("Accumulated {Count} synchronization instructions", instructions.Count);
 
-        // Execute instructions (to be implemented)
         await ExecuteInstructionsAsync(instructions, cancellationToken);
     }
 
@@ -95,7 +94,7 @@ public class CardSynchronizationService
         var existingDeckList = existingAnkiDecks.ToList();
 
         // Collect all existing cards across all decks for global duplicate checking
-        var allExistingCards = existingDeckList.SelectMany(d => d.Cards.Select(c => (d.DeckId, c)) ?? new List<(DeckId, Card)>()).ToList();
+        var allExistingCards = existingDeckList.SelectMany(d => d.Cards.Select(c =>((DeckId DeckId, Card Card))(d.DeckId, c)) ?? new List<(DeckId DeckId, Card Card)>()).ToList();
 
         // Find decks to delete (exist in Anki but not in source)
         // Exclude Default deck and decks with children
@@ -107,6 +106,16 @@ public class CardSynchronizationService
         foreach (var deckToDelete in decksToDelete)
         {
             instructions.Add(new DeleteDeckInstruction(deckToDelete.DeckId));
+        }
+        
+        var sourceCards = sourceDeckList.SelectMany(d => d.Cards).ToList();
+        // Find cards to delete (exist in Anki but not in source for this deck)
+        var cardsToDelete = allExistingCards.Where(existingCard =>
+            !sourceCards.Any(sourceCard => _cardEqualityChecker.AreEqual(sourceCard, existingCard.Card)));
+
+        foreach (var cardToDelete in cardsToDelete)
+        {
+            instructions.Add(new DeleteCardInstruction(cardToDelete.Card));
         }
 
         // Process source decks
@@ -148,15 +157,6 @@ public class CardSynchronizationService
     {
         var sourceCards = sourceDeck.Cards ?? new List<Card>();
         var existingCards = existingDeck.Cards ?? new List<Card>();
-
-        // Find cards to delete (exist in Anki but not in source for this deck)
-        var cardsToDelete = allExistingCards.Where(existingCard =>
-            !sourceCards.Any(sourceCard => _cardEqualityChecker.AreEqual(sourceCard, existingCard.Card)));
-
-        foreach (var cardToDelete in cardsToDelete)
-        {
-            instructions.Add(new DeleteCardInstruction(cardToDelete.Card));
-        }
 
         // Process source cards
         foreach (var sourceCard in sourceCards)

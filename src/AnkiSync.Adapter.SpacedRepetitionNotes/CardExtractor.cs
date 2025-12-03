@@ -59,6 +59,9 @@ public class CardExtractor : ICardExtractor
             .Replace("\r\n", "\n")  // Normalize Windows line endings
             .Split('\n', StringSplitOptions.None);
 
+        // Remove lines that are inside triple-backtick code fences (```)
+        lines = ExcludeCodeFenceLines(lines).ToArray();
+
         // First, try to extract single-line cards from all non-empty, non-comment lines
         var nonEmptyLines = lines
             .Where(line => !string.IsNullOrWhiteSpace(line) && !line.TrimStart().StartsWith("#"))
@@ -311,7 +314,8 @@ public class CardExtractor : ICardExtractor
 
     private IEnumerable<ParsedCardBase> ExtractBasicCards(Document document)
     {
-        var lines = document.Content.Split('\n');
+        var lines = document.Content.Replace("\r\n", "\n").Split('\n', StringSplitOptions.None);
+        lines = ExcludeCodeFenceLines(lines).ToArray();
         var cards = new List<ParsedCardBase>();
         string? currentQuestion = null;
 
@@ -341,7 +345,8 @@ public class CardExtractor : ICardExtractor
 
     private IEnumerable<ParsedCardBase> ExtractClozeCards(Document document)
     {
-        var lines = document.Content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var lines = document.Content.Replace("\r\n", "\n").Split('\n', StringSplitOptions.None);
+        lines = ExcludeCodeFenceLines(lines).Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
 
         foreach (var line in lines)
         {
@@ -404,6 +409,31 @@ public class CardExtractor : ICardExtractor
                     };
                 }
             }
+        }
+    }
+
+    private static IEnumerable<string> ExcludeCodeFenceLines(IEnumerable<string> lines)
+    {
+        bool inCodeFence = false;
+        foreach (var rawLine in lines)
+        {
+            var line = rawLine ?? string.Empty;
+            var trimmedStart = line.TrimStart();
+
+            if (trimmedStart.StartsWith("```"))
+            {
+                // Toggle code fence state. If entering a code fence, do not include the fence line.
+                inCodeFence = !inCodeFence;
+                continue;
+            }
+
+            if (inCodeFence)
+            {
+                // Skip any lines inside a code fence
+                continue;
+            }
+
+            yield return line;
         }
     }
 }

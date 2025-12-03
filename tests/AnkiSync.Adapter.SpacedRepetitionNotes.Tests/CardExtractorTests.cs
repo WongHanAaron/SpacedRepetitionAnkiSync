@@ -416,4 +416,35 @@ Q: Question without answer
         questionAnswerCards.Should().Contain(card => card.Question == "Invalid::" && card.Answer == "");
         questionAnswerCards.Should().Contain(card => card.Question == "???" && card.Answer.Contains("Q: Valid question"));
     }
+
+    [Fact]
+    public void ExtractCards_ShouldIgnoreCardsInsideCodeFences()
+    {
+        // Arrange - one valid card outside code fences, one card-like line inside a code fence
+        var document = new Document
+        {
+            FilePath = "codefence.md",
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = [] },
+            Content = """
+What is the meaning of life?::42
+
+```
+What should be ignored?::IgnoreMe
+on::click={ [$function-name$] }
+```
+
+What is the capital of France?::Paris
+"""
+        };
+
+        // Act
+        var cards = _cardExtractor.ExtractCards(document).ToList();
+
+        // Assert - only the two outside cards should be present
+        cards.Should().HaveCount(2);
+        var qa = cards.OfType<ParsedQuestionAnswerCard>().ToList();
+        qa.Should().Contain(c => c.Question == "What is the meaning of life?" && c.Answer == "42");
+        qa.Should().Contain(c => c.Question == "What is the capital of France?" && c.Answer == "Paris");
+    }
 }
