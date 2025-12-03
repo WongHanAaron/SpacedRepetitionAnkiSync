@@ -12,6 +12,9 @@ public record CreateNoteRequestDto : AnkiConnectRequest
         Action = "addNote";
         Params = new CreateNoteParams { Note = note };
     }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -21,6 +24,9 @@ public record CreateNoteParams
 {
     [JsonPropertyName("note")]
     public required AnkiNote Note { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -30,4 +36,7 @@ public record CreateNoteResponse : AnkiConnectResponse
 {
     [JsonPropertyName("result")]
     public long? Result { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }

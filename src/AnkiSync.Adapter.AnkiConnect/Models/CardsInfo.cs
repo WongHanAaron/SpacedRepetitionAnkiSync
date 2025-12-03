@@ -12,6 +12,9 @@ public record CardsInfoRequestDto : AnkiConnectRequest
         Action = "cardsInfo";
         Params = new CardsInfoParams { Cards = cards };
     }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -21,6 +24,9 @@ public record CardsInfoParams
 {
     [JsonPropertyName("cards")]
     public required IEnumerable<long> Cards { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -30,6 +36,9 @@ public record CardsInfoResponse : AnkiConnectResponse
 {
     [JsonPropertyName("result")]
     public List<CardInfo>? Result { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -81,4 +90,7 @@ public record CardInfo
 
     [JsonPropertyName("data")]
     public string Data { get; init; } = string.Empty;
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }

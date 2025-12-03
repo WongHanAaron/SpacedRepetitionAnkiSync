@@ -9,4 +9,7 @@ public class AnkiClozeCard : AnkiSync.Domain.ClozeCard
     /// The Anki-specific ID for this card
     /// </summary>
     public new long Id { get; set; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }

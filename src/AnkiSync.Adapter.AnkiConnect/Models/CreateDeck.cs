@@ -12,6 +12,9 @@ public record CreateDeckRequestDto : AnkiConnectRequest
         Action = "createDeck";
         Params = new CreateDeckParams { Deck = deck };
     }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -21,6 +24,9 @@ public record CreateDeckParams
 {
     [JsonPropertyName("deck")]
     public required string Deck { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -30,4 +36,7 @@ public record CreateDeckResponse : AnkiConnectResponse
 {
     [JsonPropertyName("result")]
     public long? Result { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }

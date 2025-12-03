@@ -9,6 +9,9 @@ public record GetDecksRequestDto : AnkiConnectRequest
     {
         Action = "deckNames";
     }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -18,4 +21,7 @@ public record DeckNamesResponse : AnkiConnectResponse
 {
     [System.Text.Json.Serialization.JsonPropertyName("result")]
     public List<string>? Result { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }

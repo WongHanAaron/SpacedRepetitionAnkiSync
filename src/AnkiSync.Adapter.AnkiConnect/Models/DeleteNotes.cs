@@ -12,6 +12,9 @@ public record DeleteNotesRequestDto : AnkiConnectRequest
         Action = "deleteNotes";
         Params = new DeleteNotesParams { Notes = notes };
     }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -21,6 +24,9 @@ public record DeleteNotesParams
 {
     [JsonPropertyName("notes")]
     public required IEnumerable<long> Notes { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -30,4 +36,7 @@ public record DeleteNotesResponse : AnkiConnectResponse
 {
     [JsonPropertyName("result")]
     public int? Result { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }

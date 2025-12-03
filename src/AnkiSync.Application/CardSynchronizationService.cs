@@ -63,17 +63,6 @@ public class CardSynchronizationService
 
         // Execute instructions (to be implemented)
         await ExecuteInstructionsAsync(instructions, cancellationToken);
-
-        // Sync with AnkiWeb after all instructions have been executed
-        try
-        {
-            _logger.LogInformation("Syncing with AnkiWeb after synchronization");
-            await _deckRepository.SyncWithAnkiWebAsync(cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error syncing with AnkiWeb");
-        }
     }
 
     /// <summary>
@@ -109,8 +98,11 @@ public class CardSynchronizationService
         var allExistingCards = existingDeckList.SelectMany(d => d.Cards ?? new List<Card>()).ToList();
 
         // Find decks to delete (exist in Anki but not in source)
+        // Exclude Default deck and decks with children
         var decksToDelete = existingDeckList.Where(existingDeck =>
-            !sourceDeckList.Any(sourceDeck => _deckIdEqualityChecker.AreEqual(sourceDeck.DeckId, existingDeck.DeckId)));
+            !sourceDeckList.Any(sourceDeck => _deckIdEqualityChecker.AreEqual(sourceDeck.DeckId, existingDeck.DeckId)) &&
+            !IsDefaultDeck(existingDeck.DeckId) &&
+            !HasChildDecks(existingDeck.DeckId, existingDeckList));
 
         foreach (var deckToDelete in decksToDelete)
         {
@@ -224,6 +216,27 @@ public class CardSynchronizationService
         CancellationToken cancellationToken = default)
     {
         await _deckRepository.ExecuteInstructionsAsync(instructions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Checks if the given deck ID represents the Default deck
+    /// </summary>
+    private static bool IsDefaultDeck(DeckId deckId)
+    {
+        return deckId.Name == "Default" && (deckId.Parents == null || deckId.Parents.Count == 0);
+    }
+
+    /// <summary>
+    /// Checks if the given deck ID has any child decks in the provided deck list
+    /// </summary>
+    private static bool HasChildDecks(DeckId deckId, IEnumerable<Deck> allDecks)
+    {
+        var parentPath = deckId.Parents.Concat(new[] { deckId.Name }).ToList();
+        
+        return allDecks.Any(deck => 
+            deck.DeckId.Parents != null && 
+            deck.DeckId.Parents.Count >= parentPath.Count && 
+            parentPath.SequenceEqual(deck.DeckId.Parents.Take(parentPath.Count)));
     }
 
     private bool AreCardsEqual(Card card1, Card card2)

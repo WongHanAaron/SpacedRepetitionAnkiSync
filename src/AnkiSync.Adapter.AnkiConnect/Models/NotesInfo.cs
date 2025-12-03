@@ -12,6 +12,9 @@ public record NotesInfoRequestDto : AnkiConnectRequest
         Action = "notesInfo";
         Params = new NotesInfoParams { Notes = notes };
     }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -21,6 +24,9 @@ public record NotesInfoParams
 {
     [JsonPropertyName("notes")]
     public required IEnumerable<long> Notes { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -30,6 +36,9 @@ public record NotesInfoResponse : AnkiConnectResponse
 {
     [JsonPropertyName("result")]
     public List<NoteInfo>? Result { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -59,6 +68,9 @@ public record NoteInfo
     /// Gets the modification date as a DateTimeOffset
     /// </summary>
     public DateTimeOffset DateModified => DateTimeOffset.FromUnixTimeSeconds(ModificationTimestamp);
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -71,4 +83,7 @@ public record NoteFieldInfo
 
     [JsonPropertyName("order")]
     public int Order { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }

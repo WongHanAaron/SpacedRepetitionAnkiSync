@@ -24,4 +24,7 @@ public class AnkiNote
     /// </summary>
     [JsonPropertyName("fields")]
     public Dictionary<string, string> Fields { get; set; } = new();
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }

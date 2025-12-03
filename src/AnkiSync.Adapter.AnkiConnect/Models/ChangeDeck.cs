@@ -12,6 +12,9 @@ public record ChangeDeckRequestDto : AnkiConnectRequest
         Action = "changeDeck";
         Params = new ChangeDeckParams { Cards = cards, Deck = deck };
     }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -24,9 +27,16 @@ public record ChangeDeckParams
 
     [JsonPropertyName("deck")]
     public required string Deck { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
 /// Response for changeDeck
 /// </summary>
-public record ChangeDeckResponse : AnkiConnectResponse;
+public record ChangeDeckResponse : AnkiConnectResponse
+{
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
+}

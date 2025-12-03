@@ -11,6 +11,9 @@ public record SyncRequestDto : AnkiConnectRequest
     {
         Action = "sync";
     }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -20,4 +23,7 @@ public record SyncResponse : AnkiConnectResponse
 {
     [JsonPropertyName("result")]
     public object? Result { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }

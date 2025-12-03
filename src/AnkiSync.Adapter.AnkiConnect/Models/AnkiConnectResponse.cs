@@ -9,4 +9,7 @@ public record AnkiConnectResponse
 {
     [JsonPropertyName("error")]
     public string? Error { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }

@@ -12,6 +12,9 @@ public record DeleteDecksRequestDto : AnkiConnectRequest
         Action = "deleteDecks";
         Params = new DeleteDecksParams { Decks = decks, CardsToo = cardsToo };
     }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -24,6 +27,9 @@ public record DeleteDecksParams
 
     [JsonPropertyName("cardsToo")]
     public bool CardsToo { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -33,4 +39,7 @@ public record DeleteDecksResponse : AnkiConnectResponse
 {
     [JsonPropertyName("result")]
     public object? Result { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }

@@ -122,4 +122,86 @@ public class CardSynchronizationServiceInstructionTests
         // Assert
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
+
+    [Fact]
+    public async Task AccumulateInstructionsAsync_WithDefaultDeckInExistingDecks_DoesNotDeleteDefaultDeck()
+    {
+        // Arrange
+        var sourceDecks = new List<Deck>();
+        var existingDecks = new List<Deck>
+        {
+            new Deck
+            {
+                DeckId = DeckId.FromPath("Default"),
+                Cards = new List<Card>()
+            }
+        };
+
+        // Act
+        var result = await _service.AccumulateInstructionsAsync(sourceDecks, existingDecks);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCount(1); // Only SyncWithAnki instruction, no DeleteDeck
+        result.Should().ContainSingle(instruction => instruction is SyncWithAnkiInstruction);
+    }
+
+    [Fact]
+    public async Task AccumulateInstructionsAsync_WithParentDeckHavingChildren_DoesNotDeleteParentDeck()
+    {
+        // Arrange
+        var sourceDecks = new List<Deck>
+        {
+            new Deck
+            {
+                DeckId = DeckId.FromPath("Parent", "Child"),
+                Cards = new List<Card>()
+            }
+        };
+        var existingDecks = new List<Deck>
+        {
+            new Deck
+            {
+                DeckId = DeckId.FromPath("Parent"),
+                Cards = new List<Card>()
+            },
+            new Deck
+            {
+                DeckId = DeckId.FromPath("Parent", "Child"),
+                Cards = new List<Card>()
+            }
+        };
+
+        // Act
+        var result = await _service.AccumulateInstructionsAsync(sourceDecks, existingDecks);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCount(1); // Only SyncWithAnki instruction, no DeleteDeck instructions
+        result.Should().ContainSingle(instruction => instruction is SyncWithAnkiInstruction);
+    }
+
+    [Fact]
+    public async Task AccumulateInstructionsAsync_WithUnrelatedExistingDecks_DeletesThem()
+    {
+        // Arrange
+        var sourceDecks = new List<Deck>();
+        var existingDecks = new List<Deck>
+        {
+            new Deck
+            {
+                DeckId = DeckId.FromPath("UnrelatedDeck"),
+                Cards = new List<Card>()
+            }
+        };
+
+        // Act
+        var result = await _service.AccumulateInstructionsAsync(sourceDecks, existingDecks);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCount(2); // DeleteDeck and SyncWithAnki
+        result.Should().Contain(instruction => instruction is DeleteDeckInstruction);
+        result.Should().Contain(instruction => instruction is SyncWithAnkiInstruction);
+    }
 }

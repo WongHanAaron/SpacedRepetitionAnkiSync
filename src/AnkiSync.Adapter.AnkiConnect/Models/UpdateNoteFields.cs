@@ -12,6 +12,9 @@ public record UpdateNoteFieldsRequestDto : AnkiConnectRequest
         Action = "updateNoteFields";
         Params = new UpdateNoteFieldsParams { Note = new UpdateNoteFieldsNote { Id = noteId, Fields = fields } };
     }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -21,6 +24,9 @@ public record UpdateNoteFieldsParams
 {
     [JsonPropertyName("note")]
     public required UpdateNoteFieldsNote Note { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -32,6 +38,9 @@ public record UpdateNoteFieldsNote
     public required long Id { get; init; }
     [JsonPropertyName("fields")]
     public required Dictionary<string, string> Fields { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
 
 /// <summary>
@@ -41,4 +50,7 @@ public record UpdateNoteFieldsResponse : AnkiConnectResponse
 {
     [JsonPropertyName("result")]
     public object? Result { get; init; }
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
