@@ -19,6 +19,21 @@ public record DeckId
     /// </summary>
     public string Name { get; init; } = string.Empty;
 
+    public int NameHierarchyDepth
+    {
+        get
+        {
+            if (Parents == null || Parents.Count == 0)
+            {
+                return 1;
+            }
+            else
+            {
+                return Parents.Count + 1;
+            }
+        }
+    }
+
     /// <summary>
     /// Creates a DeckId from path components
     /// </summary>
