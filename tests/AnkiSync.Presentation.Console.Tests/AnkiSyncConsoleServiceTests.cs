@@ -4,6 +4,7 @@ using AnkiSync.Domain.Interfaces;
 using AnkiSync.Presentation.Cli;
 using Microsoft.Extensions.Logging;
 using Moq;
+using AnkiSync.Domain.Extensions;
 using System.IO.Abstractions;
 using Xunit;
 
@@ -27,11 +28,12 @@ public class AnkiSyncConsoleServiceTests
         _mockSyncLogger = new Mock<ILogger<CardSynchronizationService>>();
         _mockConsoleLogger = new Mock<ILogger<AnkiSyncConsoleService>>();
         
-        _synchronizationService = new CardSynchronizationService(
+        _synchronization_service = new CardSynchronizationService(
             _mockCardSourceRepository.Object,
             _mockDeckRepository.Object,
+            new ExactMatchEqualityChecker(),
+            new ExactMatchDeckIdEqualityChecker(),
             _mockSyncLogger.Object);
-        
         _service = new AnkiSyncConsoleService(_synchronizationService, _mockFileSystem.Object, _mockConsoleLogger.Object);
     }
 

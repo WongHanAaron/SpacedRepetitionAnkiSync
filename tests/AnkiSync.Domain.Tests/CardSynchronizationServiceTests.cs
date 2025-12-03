@@ -1,6 +1,8 @@
 using AnkiSync.Application;
 using AnkiSync.Domain;
+using AnkiSync.Domain.Extensions;
 using AnkiSync.Domain.Interfaces;
+using AnkiSync.Domain.Models;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -13,6 +15,7 @@ public class CardSynchronizationServiceTests
     private readonly Mock<ICardSourceRepository> _cardSourceRepositoryMock;
     private readonly Mock<IDeckRepository> _deckRepositoryMock;
     private readonly Mock<ILogger<CardSynchronizationService>> _loggerMock;
+    private readonly ICardEqualityChecker _cardEqualityChecker;
     private readonly CardSynchronizationService _synchronizationService;
 
     public CardSynchronizationServiceTests()
@@ -20,9 +23,12 @@ public class CardSynchronizationServiceTests
         _cardSourceRepositoryMock = new Mock<ICardSourceRepository>();
         _deckRepositoryMock = new Mock<IDeckRepository>();
         _loggerMock = new Mock<ILogger<CardSynchronizationService>>();
+        _cardEqualityChecker = new ExactMatchEqualityChecker();
         _synchronizationService = new CardSynchronizationService(
             _cardSourceRepositoryMock.Object,
             _deckRepositoryMock.Object,
+            _cardEqualityChecker,
+            new ExactMatchDeckIdEqualityChecker(),
             _loggerMock.Object);
     }
 
@@ -38,16 +44,21 @@ public class CardSynchronizationServiceTests
             .ReturnsAsync(new[] { sourceDeck });
         
         _deckRepositoryMock
-            .Setup(x => x.GetDeck(sourceDeck.DeckId, default))
-            .ReturnsAsync((Deck?)null);
+            .Setup(x => x.GetAllDecksAsync(default))
+            .ReturnsAsync(Array.Empty<Deck>());
 
         // Act
         await _synchronizationService.SynchronizeCardsAsync(directories);
 
         // Assert
-        _deckRepositoryMock.Verify(x => x.UpsertDeck(It.Is<Deck>(d => 
-            d.DeckId == sourceDeck.DeckId && 
-            d.Cards.Count == 1), default), Times.Once);
+        _deckRepositoryMock.Verify(x => x.ExecuteInstructionsAsync(
+            It.Is<IReadOnlyList<SynchronizationInstruction>>(instructions =>
+                instructions.Count == 3 &&
+                instructions[0].InstructionType == SynchronizationInstructionType.CreateDeck &&
+                ((CreateDeckInstruction)instructions[0]).DeckId == sourceDeck.DeckId &&
+                instructions[1].InstructionType == SynchronizationInstructionType.CreateCard &&
+                ((CreateCardInstruction)instructions[1]).DeckId == sourceDeck.DeckId &&
+                instructions[2].InstructionType == SynchronizationInstructionType.SyncWithAnki), default), Times.Once);
     }
 
     [Fact]
@@ -55,24 +66,30 @@ public class CardSynchronizationServiceTests
     {
         // Arrange
         var directories = new[] { "test/dir" };
-        var existingDeck = CreateTestDeck("TestDeck", "Existing Question?", "Existing Answer!");
-        var sourceDeck = CreateTestDeck("TestDeck", "New Question?", "New Answer!");
+        var deckId = DeckId.FromPath("TestDeck");
+        var dateModified = DateTimeOffset.UtcNow;
+        var existingDeck = CreateTestDeck(deckId, dateModified, "Existing Question?", "Existing Answer!");
+        existingDeck.Cards[0].Id = 1; // Simulate existing card with ID
+        var sourceDeck = CreateTestDeck(deckId, dateModified, "Existing Question?", "Existing Answer!", "New Question?", "New Answer!");
         
         _cardSourceRepositoryMock
             .Setup(x => x.GetCardsFromDirectories(directories, default))
             .ReturnsAsync(new[] { sourceDeck });
         
         _deckRepositoryMock
-            .Setup(x => x.GetDeck(sourceDeck.DeckId, default))
-            .ReturnsAsync(existingDeck);
+            .Setup(x => x.GetAllDecksAsync(default))
+            .ReturnsAsync(new[] { existingDeck });
 
         // Act
         await _synchronizationService.SynchronizeCardsAsync(directories);
 
         // Assert
-        _deckRepositoryMock.Verify(x => x.UpsertDeck(It.Is<Deck>(d => 
-            d.DeckId == sourceDeck.DeckId && 
-            d.Cards.Count == 2), default), Times.Once);
+        _deckRepositoryMock.Verify(x => x.ExecuteInstructionsAsync(
+            It.Is<IReadOnlyList<SynchronizationInstruction>>(instructions =>
+                instructions.Count == 2 &&
+                instructions[0].InstructionType == SynchronizationInstructionType.CreateCard &&
+                ((CreateCardInstruction)instructions[0]).DeckId == sourceDeck.DeckId &&
+                instructions[1].InstructionType == SynchronizationInstructionType.SyncWithAnki), default), Times.Once);
     }
 
     [Fact]
@@ -80,38 +97,59 @@ public class CardSynchronizationServiceTests
     {
         // Arrange
         var directories = new[] { "test/dir" };
-        var existingDeck = CreateTestDeck("TestDeck", "Question?", "Old Answer!");
-        var sourceDeck = CreateTestDeck("TestDeck", "Question?", "New Answer!");
+        var deckId = DeckId.FromPath("TestDeck");
+        var existingDeck = CreateTestDeck(deckId, "Question?", "Old Answer!");
+        existingDeck.Cards[0].Id = 1; // Simulate existing card with ID
+        var sourceDeck = CreateTestDeck(deckId, "Question?", "New Answer!");
         
         _cardSourceRepositoryMock
             .Setup(x => x.GetCardsFromDirectories(directories, default))
             .ReturnsAsync(new[] { sourceDeck });
         
         _deckRepositoryMock
-            .Setup(x => x.GetDeck(sourceDeck.DeckId, default))
-            .ReturnsAsync(existingDeck);
+            .Setup(x => x.GetAllDecksAsync(default))
+            .ReturnsAsync(new[] { existingDeck });
 
         // Act
         await _synchronizationService.SynchronizeCardsAsync(directories);
 
         // Assert
-        _deckRepositoryMock.Verify(x => x.UpsertDeck(It.IsAny<Deck>(), default), Times.Once);
+        _deckRepositoryMock.Verify(x => x.ExecuteInstructionsAsync(
+            It.Is<IReadOnlyList<SynchronizationInstruction>>(instructions =>
+                instructions.Count == 2 &&
+                instructions[0].InstructionType == SynchronizationInstructionType.UpdateCard &&
+                ((UpdateCardInstruction)instructions[0]).CardId == 1 &&
+                instructions[1].InstructionType == SynchronizationInstructionType.SyncWithAnki), default), Times.Once);
     }
 
-    private static Deck CreateTestDeck(string deckName, string question, string answer)
+    private static Deck CreateTestDeck(string deckName, params string[] questionAnswerPairs)
     {
+        return CreateTestDeck(DeckId.FromPath(deckName), questionAnswerPairs);
+    }
+
+    private static Deck CreateTestDeck(DeckId deckId, params string[] questionAnswerPairs)
+    {
+        var dateModified = DateTimeOffset.UtcNow;
+        return CreateTestDeck(deckId, dateModified, questionAnswerPairs);
+    }
+
+    private static Deck CreateTestDeck(DeckId deckId, DateTimeOffset dateModified, params string[] questionAnswerPairs)
+    {
+        var cards = new List<Card>();
+        for (int i = 0; i < questionAnswerPairs.Length; i += 2)
+        {
+            cards.Add(new QuestionAnswerCard
+            {
+                DateModified = dateModified,
+                Question = questionAnswerPairs[i],
+                Answer = questionAnswerPairs[i + 1]
+            });
+        }
+
         return new Deck
         {
-            DeckId = DeckId.FromPath([deckName]),
-            Cards = new List<Card>
-            {
-                new QuestionAnswerCard
-                {
-                    DateModified = DateTimeOffset.UtcNow,
-                    Question = question,
-                    Answer = answer
-                }
-            }
+            DeckId = deckId,
+            Cards = cards
         };
     }
 }

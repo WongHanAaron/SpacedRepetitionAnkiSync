@@ -75,6 +75,35 @@ public class DeckRepository : IDeckRepository
     }
 
     /// <inheritdoc />
+    public async Task<IEnumerable<Deck>> GetAllDecksAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving all decks from Anki");
+
+        // Get all deck names from Anki
+        var decksResponse = await _ankiService.GetDecksAsync(new GetDecksRequestDto(), cancellationToken);
+        if (decksResponse.Result == null || !decksResponse.Result.Any())
+        {
+            _logger.LogDebug("No decks found in Anki");
+            return new List<Deck>();
+        }
+
+        var decks = new List<Deck>();
+
+        foreach (var ankiDeckName in decksResponse.Result)
+        {
+            var deckId = DeckIdExtensions.FromAnkiDeckName(ankiDeckName);
+            var deck = await GetDeck(deckId, cancellationToken);
+            if (deck != null)
+            {
+                decks.Add(deck);
+            }
+        }
+
+        _logger.LogInformation("Retrieved {Count} decks from Anki", decks.Count);
+        return decks;
+    }
+
+    /// <inheritdoc />
     public async Task UpsertDeck(Deck deck, CancellationToken cancellationToken = default)
     {
         if (deck == null)
@@ -311,107 +340,6 @@ public class DeckRepository : IDeckRepository
         }
 
         return text;
-    }
-
-    /// <inheritdoc />
-    public async Task<IEnumerable<DeckId>> GetAllDeckIdsAsync(CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Retrieving all deck IDs from Anki");
-
-        var decksResponse = await _ankiService.GetDecksAsync(new GetDecksRequestDto(), cancellationToken);
-        if (decksResponse.Result == null)
-        {
-            return new List<DeckId>();
-        }
-
-        var deckIds = new List<DeckId>();
-        foreach (var deckName in decksResponse.Result)
-        {
-            try
-            {
-                var deckId = DeckIdExtensions.FromAnkiDeckName(deckName);
-                deckIds.Add(deckId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to parse deck name '{DeckName}' as DeckId", deckName);
-            }
-        }
-
-        return deckIds;
-    }
-
-    /// <inheritdoc />
-    public async Task DeleteDeckAsync(DeckId deckId, CancellationToken cancellationToken = default)
-    {
-        if (deckId == null)
-        {
-            throw new ArgumentNullException(nameof(deckId));
-        }
-
-        _logger.LogInformation("Deleting deck {DeckId} from Anki", deckId.ToAnkiDeckName());
-
-        var ankiDeckName = deckId.ToAnkiDeckName();
-        var deleteDecksRequest = new DeleteDecksRequestDto(new List<string> { ankiDeckName }, true);
-        await _ankiService.DeleteDecksAsync(deleteDecksRequest, cancellationToken);
-    }
-
-    /// <inheritdoc />
-    public async Task DeleteObsoleteCardsAsync(DeckId deckId, IEnumerable<Card> cardsToKeep, CancellationToken cancellationToken = default)
-    {
-        if (deckId == null)
-        {
-            throw new ArgumentNullException(nameof(deckId));
-        }
-
-        _logger.LogInformation("Deleting obsolete cards from deck {DeckId}", deckId.ToAnkiDeckName());
-
-        var ankiDeckName = deckId.ToAnkiDeckName();
-
-        // Find all notes in the deck
-        var findNotesRequest = new FindNotesRequestDto($"deck:\"{ankiDeckName}\"");
-        var findNotesResponse = await _ankiService.FindNotesAsync(findNotesRequest, cancellationToken);
-        var existingNoteIds = findNotesResponse.Result ?? new List<long>();
-
-        if (!existingNoteIds.Any())
-        {
-            return; // No notes to delete
-        }
-
-        // Get details of existing notes
-        var notesInfoRequest = new NotesInfoRequestDto(existingNoteIds);
-        var notesInfoResponse = await _ankiService.NotesInfoAsync(notesInfoRequest, cancellationToken);
-        var existingNotes = notesInfoResponse.Result ?? new List<NoteInfo>();
-
-        // Find notes that should be deleted (exist in Anki but not in cardsToKeep)
-        var notesToDelete = new List<long>();
-        var cardsToKeepList = cardsToKeep.ToList();
-
-        foreach (var note in existingNotes)
-        {
-            var shouldKeep = false;
-
-            foreach (var cardToKeep in cardsToKeepList)
-            {
-                if (CardMatchesNote(cardToKeep, note))
-                {
-                    shouldKeep = true;
-                    break;
-                }
-            }
-
-            if (!shouldKeep)
-            {
-                notesToDelete.Add(note.NoteId);
-            }
-        }
-
-        if (notesToDelete.Any())
-        {
-            _logger.LogDebug("Deleting {Count} obsolete notes from deck {DeckId}", notesToDelete.Count, deckId.ToAnkiDeckName());
-            var deleteNotesRequest = new DeleteNotesRequestDto(notesToDelete);
-            await _ankiService.DeleteNotesAsync(deleteNotesRequest, cancellationToken);
-        }
     }
 
     private bool CardMatchesNote(Card card, NoteInfo note)

@@ -1,3 +1,5 @@
+using AnkiSync.Domain.Extensions;
+using AnkiSync.Domain.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AnkiSync.Application;
@@ -12,6 +14,8 @@ public static class ApplicationServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<ICardEqualityChecker, ExactMatchEqualityChecker>();
+        services.AddScoped<IDeckIdEqualityChecker, ExactMatchDeckIdEqualityChecker>();
         services.AddScoped<CardSynchronizationService>();
         return services;
     }

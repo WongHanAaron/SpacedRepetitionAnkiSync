@@ -24,26 +24,11 @@ public interface IDeckRepository
     Task UpsertDeck(Deck deck, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all deck IDs that exist in Anki
+    /// Gets all decks that exist in Anki with their cards
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A collection of all deck IDs in Anki</returns>
-    Task<IEnumerable<DeckId>> GetAllDeckIdsAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Deletes a deck from Anki
-    /// </summary>
-    /// <param name="deckId">The identifier of the deck to delete</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    Task DeleteDeckAsync(DeckId deckId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Deletes cards from a deck that are no longer in the source
-    /// </summary>
-    /// <param name="deckId">The deck identifier</param>
-    /// <param name="cardsToKeep">The cards that should remain in the deck</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    Task DeleteObsoleteCardsAsync(DeckId deckId, IEnumerable<Card> cardsToKeep, CancellationToken cancellationToken = default);
+    /// <returns>A collection of all decks in Anki with their cards</returns>
+    Task<IEnumerable<Deck>> GetAllDecksAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Executes a collection of synchronization instructions
