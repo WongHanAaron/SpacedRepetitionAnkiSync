@@ -105,6 +105,9 @@ public class CardSynchronizationService
         var sourceDeckList = sourceDecks.ToList();
         var existingDeckList = existingAnkiDecks.ToList();
 
+        // Collect all existing cards across all decks for global duplicate checking
+        var allExistingCards = existingDeckList.SelectMany(d => d.Cards ?? new List<Card>()).ToList();
+
         // Find decks to delete (exist in Anki but not in source)
         var decksToDelete = existingDeckList.Where(existingDeck =>
             !sourceDeckList.Any(sourceDeck => _deckIdEqualityChecker.AreEqual(sourceDeck.DeckId, existingDeck.DeckId)));
@@ -131,7 +134,7 @@ public class CardSynchronizationService
             else
             {
                 // Existing deck - compare cards
-                AccumulateCardInstructions(sourceDeck, existingDeck, instructions, cancellationToken);
+                AccumulateCardInstructions(sourceDeck, existingDeck, allExistingCards, instructions, cancellationToken);
             }
         }
 
@@ -147,13 +150,14 @@ public class CardSynchronizationService
     private void AccumulateCardInstructions(
         Deck sourceDeck,
         Deck existingDeck,
+        List<Card> allExistingCards,
         List<SynchronizationInstruction> instructions,
         CancellationToken cancellationToken)
     {
         var sourceCards = sourceDeck.Cards ?? new List<Card>();
         var existingCards = existingDeck.Cards ?? new List<Card>();
 
-        // Find cards to delete (exist in Anki but not in source)
+        // Find cards to delete (exist in Anki but not in source for this deck)
         var cardsToDelete = existingCards.Where(existingCard =>
             !sourceCards.Any(sourceCard => _cardEqualityChecker.AreEqual(sourceCard, existingCard)));
 
@@ -168,22 +172,47 @@ public class CardSynchronizationService
         // Process source cards
         foreach (var sourceCard in sourceCards)
         {
-            var existingCard = existingCards.FirstOrDefault(c => _cardEqualityChecker.AreEqual(c, sourceCard));
+            // Check for matching card across all existing decks
+            var matchingExistingCard = allExistingCards.FirstOrDefault(c => _cardEqualityChecker.AreEqual(c, sourceCard));
 
-            if (existingCard == null)
+            if (matchingExistingCard == null)
             {
-                // New card
+                // New card - create it
                 instructions.Add(new CreateCardInstruction(sourceDeck.DeckId, sourceCard));
             }
-            else if (HasCardChanged(existingCard, sourceCard))
+            else
             {
-                // Card changed - update using existing card's ID
-                if (existingCard.Id.HasValue)
+                // Card exists somewhere - check if it's in the correct deck
+                var isInCurrentDeck = existingCards.Any(c => _cardEqualityChecker.AreEqual(c, sourceCard));
+
+                if (isInCurrentDeck)
                 {
-                    instructions.Add(new UpdateCardInstruction(existingCard.Id.Value, sourceCard));
+                    // Card is already in the correct deck - check if it needs updating
+                    var existingCardInDeck = existingCards.First(c => _cardEqualityChecker.AreEqual(c, sourceCard));
+                    if (HasCardChanged(existingCardInDeck, sourceCard))
+                    {
+                        if (existingCardInDeck.Id.HasValue)
+                        {
+                            instructions.Add(new UpdateCardInstruction(existingCardInDeck.Id.Value, sourceCard));
+                        }
+                    }
+                    // If no change, do nothing
+                }
+                else
+                {
+                    // Card exists in a different deck - check if it needs updating and move it to this deck
+                    if (matchingExistingCard.Id.HasValue)
+                    {
+                        // Check if the card content has changed
+                        if (HasCardChanged(matchingExistingCard, sourceCard))
+                        {
+                            instructions.Add(new UpdateCardInstruction(matchingExistingCard.Id.Value, sourceCard));
+                        }
+                        // Move the card to the current deck
+                        instructions.Add(new MoveCardInstruction(matchingExistingCard.Id.Value, sourceDeck.DeckId));
+                    }
                 }
             }
-            // If card exists and hasn't changed, do nothing
         }
     }
 

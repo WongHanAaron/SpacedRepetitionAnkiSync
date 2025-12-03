@@ -10,4 +10,7 @@ public class SyncWithAnkiInstruction : SynchronizationInstruction
 
     /// <inheritdoc />
     public override string GetUniqueKey() => $"{InstructionType}";
+
+    /// <inheritdoc />
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }
