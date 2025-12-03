@@ -42,7 +42,7 @@ public class CardSynchronizationServiceInstructionTests
         var existingDecks = new List<Deck>();
 
         // Act
-        Func<Task> act = async () => await _service.AccumulateInstructionsAsync(null!, existingDecks);
+        Func<Task> act = async () => await _service.AccumulateSyncInstructionsAsync(null!, existingDecks);
 
         // Assert
         await act.Should().ThrowAsync<ArgumentNullException>()
@@ -56,7 +56,7 @@ public class CardSynchronizationServiceInstructionTests
         var sourceDecks = new List<Deck>();
 
         // Act
-        Func<Task> act = async () => await _service.AccumulateInstructionsAsync(sourceDecks, null!);
+        Func<Task> act = async () => await _service.AccumulateSyncInstructionsAsync(sourceDecks, null!);
 
         // Assert
         await act.Should().ThrowAsync<ArgumentNullException>()
@@ -71,7 +71,7 @@ public class CardSynchronizationServiceInstructionTests
         var existingDecks = new List<Deck>();
 
         // Act
-        var result = await _service.AccumulateInstructionsAsync(sourceDecks, existingDecks);
+        var result = await _service.AccumulateSyncInstructionsAsync(sourceDecks, existingDecks);
 
         // Assert
         result.Should().NotBeNull();
@@ -97,7 +97,7 @@ public class CardSynchronizationServiceInstructionTests
         var existingDecks = new List<Deck>();
 
         // Act
-        var result = await _service.AccumulateInstructionsAsync(sourceDecks, existingDecks);
+        var result = await _service.AccumulateSyncInstructionsAsync(sourceDecks, existingDecks);
 
         // Assert
         result.Should().NotBeNull();
@@ -117,7 +117,7 @@ public class CardSynchronizationServiceInstructionTests
         cts.Cancel();
 
         // Act
-        Func<Task> act = async () => await _service.AccumulateInstructionsAsync(sourceDecks, existingDecks, cts.Token);
+        Func<Task> act = async () => await _service.AccumulateSyncInstructionsAsync(sourceDecks, existingDecks, cts.Token);
 
         // Assert
         await act.Should().ThrowAsync<OperationCanceledException>();
@@ -138,7 +138,7 @@ public class CardSynchronizationServiceInstructionTests
         };
 
         // Act
-        var result = await _service.AccumulateInstructionsAsync(sourceDecks, existingDecks);
+        var result = await _service.AccumulateSyncInstructionsAsync(sourceDecks, existingDecks);
 
         // Assert
         result.Should().NotBeNull();
@@ -173,7 +173,7 @@ public class CardSynchronizationServiceInstructionTests
         };
 
         // Act
-        var result = await _service.AccumulateInstructionsAsync(sourceDecks, existingDecks);
+        var result = await _service.AccumulateSyncInstructionsAsync(sourceDecks, existingDecks);
 
         // Assert
         result.Should().NotBeNull();
@@ -196,7 +196,7 @@ public class CardSynchronizationServiceInstructionTests
         };
 
         // Act
-        var result = await _service.AccumulateInstructionsAsync(sourceDecks, existingDecks);
+        var result = await _service.AccumulateSyncInstructionsAsync(sourceDecks, existingDecks);
 
         // Assert
         result.Should().NotBeNull();
@@ -247,7 +247,7 @@ public class CardSynchronizationServiceInstructionTests
         };
 
         // Act
-        var result = await _service.AccumulateInstructionsAsync(sourceDecks, existingDecks);
+        var result = await _service.AccumulateSyncInstructionsAsync(sourceDecks, existingDecks);
 
         // Assert
         result.Should().NotBeNull();
@@ -309,7 +309,7 @@ public class CardSynchronizationServiceInstructionTests
         };
 
         // Act
-        var result = await _service.AccumulateInstructionsAsync(sourceDecks, existingDecks);
+        var result = await _service.AccumulateSyncInstructionsAsync(sourceDecks, existingDecks);
 
         // Assert
         result.Should().NotBeNull();
@@ -382,7 +382,7 @@ public class CardSynchronizationServiceInstructionTests
         };
 
         // Act
-        var result = await _service.AccumulateInstructionsAsync(sourceDecks, existingDecks);
+        var result = await _service.AccumulateSyncInstructionsAsync(sourceDecks, existingDecks);
 
         // Assert
         result.Should().NotBeNull();

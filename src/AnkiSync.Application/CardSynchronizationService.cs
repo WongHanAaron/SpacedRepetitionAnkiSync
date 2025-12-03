@@ -57,7 +57,7 @@ public class CardSynchronizationService
         _logger.LogDebug("Retrieved {Count} existing Anki decks", existingDecks.Count());
 
         // Accumulate synchronization instructions
-        var instructions = await AccumulateInstructionsAsync(sourceDecks, existingDecks, cancellationToken);
+        var instructions = await AccumulateSyncInstructionsAsync(sourceDecks, existingDecks, cancellationToken);
 
         _logger.LogDebug("Accumulated {Count} synchronization instructions", instructions.Count);
 
@@ -71,7 +71,7 @@ public class CardSynchronizationService
     /// <param name="existingAnkiDecks">The existing decks in Anki</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of synchronization instructions to execute</returns>
-    internal Task<IReadOnlyList<SynchronizationInstruction>> AccumulateInstructionsAsync(
+    internal Task<IReadOnlyList<SynchronizationInstruction>> AccumulateSyncInstructionsAsync(
         IEnumerable<Deck> sourceDecks,
         IEnumerable<Deck> existingAnkiDecks,
         CancellationToken cancellationToken = default)
