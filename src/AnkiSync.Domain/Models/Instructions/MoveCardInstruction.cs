@@ -34,5 +34,5 @@ public class MoveCardInstruction : SynchronizationInstruction
     public override string GetUniqueKey() => $"{InstructionType}:{System.Text.Json.JsonSerializer.Serialize(Card)}:{TargetDeckId}";
 
     /// <inheritdoc />
-    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
+    public override string ToString() => $"{InstructionType}: {System.Text.Json.JsonSerializer.Serialize(this)}";
 }

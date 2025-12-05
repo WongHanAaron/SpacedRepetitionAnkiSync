@@ -33,5 +33,5 @@ public class CreateCardInstruction : SynchronizationInstruction
     public override string GetUniqueKey() => $"{InstructionType}:{DeckId}:{Card.GetHashCode()}";
 
     /// <inheritdoc />
-    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
+    public override string ToString() => $"{InstructionType}: {System.Text.Json.JsonSerializer.Serialize(this)}";
 }
