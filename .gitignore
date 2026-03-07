@@ -225,3 +225,4 @@ cython_debug/
 *.bak
 *.swp
 *.swo
+publish/*
