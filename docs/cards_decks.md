@@ -59,6 +59,23 @@ Results in tags: `["cloud", "aws", "compute"]`
 - **Example**: `Capital of France:::Paris`
 - **Result**: Card 1: "Capital of France" → "Paris", Card 2: "Paris" → "Capital of France"
 
+###### Multi-line answer via fenced block
+- **Format**: `Question?::::` followed by a Markdown code fence containing the answer.
+- **Details**: The question line must end with `?::::` (question mark plus four colons). The subsequent code block (```…```) supplies the multi-line answer. Blank or commented lines may appear between the question and the fence. The opening fence line may include a language identifier or any additional text (e.g. ```bash or ```   json); this information is ignored and **not** included in the answer.
+- **Creates**: 1 card with the full multi-line answer preserved exactly (line breaks included).
+- **Example**:
+  ```markdown
+  This is a question?::::
+  ```
+  This
+  Is
+  The
+  Answer
+  ```
+  ```
+  
+  **Result**: Question = "This is a question?", Answer = "This\nIs\nThe\nAnswer".
+
 
 ##### Cloze Cards
 

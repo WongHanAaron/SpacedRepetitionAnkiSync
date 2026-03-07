@@ -180,6 +180,116 @@ Evaporation, condensation, precipitation
     }
 
     [Fact]
+    public void ExtractCards_WithQuestionFollowedByFencedAnswer_ShouldProduceSingleCard()
+    {
+        // Arrange - demonstration of the new syntax with ?::::
+        var document = new Document
+        {
+            FilePath = "multiline-code.md",
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["example"] },
+            Content = """
+This is a question?::::
+```
+This
+Is
+The
+Answer
+```
+"""
+        };
+
+        // Act
+        var cards = _cardExtractor.ExtractCards(document).ToList();
+
+        // Assert
+        cards.Should().HaveCount(1);
+        cards[0].Should().BeOfType<ParsedQuestionAnswerCard>();
+        var card = (ParsedQuestionAnswerCard)cards[0];
+        card.Question.Should().Be("This is a question?");
+        card.Answer.Should().Be("This\nIs\nThe\nAnswer");
+    }
+
+    [Fact]
+    public void ExtractCards_WithUnclosedFence_ShouldNotProduceCard()
+    {
+        // Arrange - missing trailing fence
+        var document = new Document
+        {
+            FilePath = "broken.md",
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = [] },
+            Content = """
+Broken question?::::
+```
+no closing fence here
+"""
+        };
+
+        // Act
+        var cards = _cardExtractor.ExtractCards(document).ToList();
+
+        // Assert
+        cards.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ExtractCards_WithLanguageSpecifierInFence_ShouldIgnoreSpecifier()
+    {
+        // Arrange - opening fence contains a language token which should be dropped
+        var document = new Document
+        {
+            FilePath = "lang.md",
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["example"] },
+            Content = """
+Question with lang?::::
+```bash
+echo out
+another
+```
+"""
+        };
+
+        // Act
+        var cards = _cardExtractor.ExtractCards(document).ToList();
+
+        // Assert
+        cards.Should().HaveCount(1);
+        var card = (ParsedQuestionAnswerCard)cards[0];
+        card.Question.Should().Be("Question with lang?");
+        card.Answer.Should().Be("echo out\nanother");
+    }
+
+    [Fact]
+    public void ExtractCards_WithFenceLineContainingExtraText_ShouldIgnoreExtra()
+    {
+        // Arrange - fence has stray text after the backticks
+        var document = new Document
+        {
+            FilePath = "extratext.md",
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["example"] },
+            Content = """
+Weird fence?::::
+```   some random text
+a
+b
+```
+"""
+        };
+
+        // Act
+        var cards = _cardExtractor.ExtractCards(document).ToList();
+
+        // Assert
+        cards.Should().HaveCount(1);
+        var card = (ParsedQuestionAnswerCard)cards[0];
+        card.Question.Should().Be("Weird fence?");
+        card.Answer.Should().Be("a\nb");
+    }
+
+    [Fact]
     public void ExtractCards_WithBasicCardFormat_ShouldExtractCorrectly()
     {
         // Arrange

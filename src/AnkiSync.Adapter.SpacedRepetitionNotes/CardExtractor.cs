@@ -73,7 +73,8 @@ public class CardExtractor : ICardExtractor
         cards.AddRange(ExtractSingleLineFlashcards(nonEmptyLines, document));
         cards.AddRange(ExtractReversedFlashcards(nonEmptyLines, document));
         cards.AddRange(ExtractMultiLineFlashcards(lines, document));
-        
+        cards.AddRange(ExtractQuestionWithCodeBlockAnswers(document));
+
         return cards;
     }
 
@@ -90,6 +91,13 @@ public class CardExtractor : ICardExtractor
             if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#"))
             {
                 _logger.LogTrace("Skipping empty line or comment");
+                continue;
+            }
+
+            // ignore the new multi-line answer syntax marker so it can be handled in a later pass
+            if (trimmed.Contains("?::::"))
+            {
+                _logger.LogTrace("Skipping line with multi-line answer marker");
                 continue;
             }
 
@@ -180,6 +188,10 @@ public class CardExtractor : ICardExtractor
         {
             var trimmed = line.Trim();
             if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#"))
+                continue;
+
+            // ignore lines that are part of the new multi-line answer syntax
+            if (trimmed.Contains("?::::"))
                 continue;
 
             // Split the line by triple colons to find reversed question-answer pairs
@@ -312,6 +324,103 @@ public class CardExtractor : ICardExtractor
         }
     }
 
+    /// <summary>
+    /// Second pass extractor for questions ending with '?::::' followed directly by a fenced code block.
+    /// </summary>
+    private IEnumerable<ParsedCardBase> ExtractQuestionWithCodeBlockAnswers(Document document)
+    {
+        var cards = new List<ParsedCardBase>();
+        var lines = document.Content.Replace("\r\n", "\n").Split('\n', StringSplitOptions.None);
+        bool inCodeFence = false;
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var raw = lines[i];
+            var trimmedStart = raw.TrimStart();
+
+            // maintain fence state so we ignore questions inside existing blocks
+            if (IsFenceStart(trimmedStart, out _))
+            {
+                inCodeFence = !inCodeFence;
+                continue;
+            }
+            if (inCodeFence)
+                continue;
+
+            var trimmed = raw.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#"))
+                continue;
+
+            if (!trimmed.Contains("?::::"))
+                continue;
+
+            // only consider marker at end of question text (could still appear elsewhere though unlikely)
+            var index = trimmed.IndexOf("?::::", StringComparison.Ordinal);
+            if (index < 0)
+                continue;
+
+            var questionText = trimmed.Substring(0, index).Trim();
+            if (!questionText.EndsWith("?"))
+            {
+                questionText += "?";
+                _logger.LogTrace("Added missing question mark for multi-line question");
+            }
+
+            // look ahead for answer code fence, skipping blank/comment lines
+            int j = i + 1;
+            while (j < lines.Length && (string.IsNullOrWhiteSpace(lines[j]) || lines[j].TrimStart().StartsWith("#")))
+                j++;
+            if (j >= lines.Length)
+                continue;
+
+            if (!IsFenceStart(lines[j].TrimStart(), out _))
+                continue; // not a fenced answer, so ignore
+
+            // skip the opening fence line; discard any language identifier
+            j++;
+            var answerLines = new List<string>();
+            while (j < lines.Length && !IsFenceStart(lines[j].TrimStart(), out _))
+            {
+                answerLines.Add(lines[j]);
+                j++;
+            }
+            if (j >= lines.Length)
+                continue; // unclosed fence, drop it
+
+            var answer = string.Join("\n", answerLines).TrimEnd('\r', '\n');
+            var card = new ParsedQuestionAnswerCard
+            {
+                Question = questionText,
+                Answer = answer,
+                Tags = document.Tags,
+                SourceFilePath = document.FilePath
+            };
+            _logger.LogDebug("Yielding multi-line card: Q: {Question}, A-lines: {AnswerLineCount}", card.Question, answerLines.Count);
+            cards.Add(card);
+
+            // advance outer loop past the closing fence so those lines aren't inspected again
+            i = j;
+        }
+
+        return cards;
+    }
+
+    private static bool IsFenceStart(string trimmedStart, out string? language)
+    {
+        // detects the beginning of a markdown code fence.  The caller must pass a string
+        // that has already been trimmed of leading whitespace.  The returned language is
+        // anything following the three backticks; it may be null or empty if there is no
+        // specifier.  The purpose of this helper is primarily clarity and consistency
+        // between the two locations that examine fence lines.
+        language = null;
+        if (!trimmedStart.StartsWith("```"))
+            return false;
+
+        if (trimmedStart.Length > 3)
+            language = trimmedStart.Substring(3).Trim();
+        return true;
+    }
+
     private IEnumerable<ParsedCardBase> ExtractBasicCards(Document document)
     {
         var lines = document.Content.Replace("\r\n", "\n").Split('\n', StringSplitOptions.None);
@@ -420,9 +529,10 @@ public class CardExtractor : ICardExtractor
             var line = rawLine ?? string.Empty;
             var trimmedStart = line.TrimStart();
 
-            if (trimmedStart.StartsWith("```"))
+            if (IsFenceStart(trimmedStart, out _))
             {
-                // Toggle code fence state. If entering a code fence, do not include the fence line.
+                // Toggle code fence state and never emit the fence line itself.  Any
+                // language identifier or extra text after the backticks is ignored.
                 inCodeFence = !inCodeFence;
                 continue;
             }
