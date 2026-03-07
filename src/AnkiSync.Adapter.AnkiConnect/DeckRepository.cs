@@ -301,6 +301,9 @@ public class DeckRepository : IDeckRepository
 
     private AnkiNote ConvertCardToAnkiNote(Card card, string deckName)
     {
+        // convert the deck name (Anki format using ::) into individual tags
+        List<string> tags = deckName.Split("::", StringSplitOptions.RemoveEmptyEntries).ToList();
+
         return card switch
         {
             QuestionAnswerCard qaCard => new AnkiNote
@@ -311,7 +314,8 @@ public class DeckRepository : IDeckRepository
                 {
                     ["Front"] = qaCard.Question,
                     ["Back"] = qaCard.Answer
-                }
+                },
+                Tags = tags
             },
             ClozeCard clozeCard => new AnkiNote
             {
@@ -320,7 +324,8 @@ public class DeckRepository : IDeckRepository
                 Fields = new Dictionary<string, string>
                 {
                     ["Text"] = ConvertPlaceholdersToClozeFormat(clozeCard)
-                }
+                },
+                Tags = tags
             },
             _ => throw new ArgumentException($"Unsupported card type: {card.GetType()}", nameof(card))
         };

@@ -104,7 +104,8 @@ public class AnkiServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Result.Should().Be(987654321L);
-        VerifyRequestSent("addNote", $"{{\"note\":{{\"deckName\":\"TestDeck\",\"modelName\":\"Basic\",\"fields\":{{\"Front\":\"Question?\",\"Back\":\"Answer!\"}}}}}}");
+        // tags property will be serialized as empty list by default
+        VerifyRequestSent("addNote", $"{{\"note\":{{\"deckName\":\"TestDeck\",\"modelName\":\"Basic\",\"fields\":{{\"Front\":\"Question?\",\"Back\":\"Answer!\"}},\"tags\":[]}}}}");
     }
 
     [Fact]
@@ -186,7 +187,7 @@ public class AnkiServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Result.Should().Be(true);
-        VerifyRequestSent("canAddNote", $"{{\"note\":{{\"deckName\":\"TestDeck\",\"modelName\":\"Basic\",\"fields\":{{\"Front\":\"Question?\",\"Back\":\"Answer!\"}}}}}}");
+        VerifyRequestSent("canAddNote", $"{{\"note\":{{\"deckName\":\"TestDeck\",\"modelName\":\"Basic\",\"fields\":{{\"Front\":\"Question?\",\"Back\":\"Answer!\"}},\"tags\":[]}}}}");
     }
 
     [Fact]
@@ -213,7 +214,7 @@ public class AnkiServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Result.Should().Be(987654321L);
-        VerifyRequestSent("addNote", $"{{\"note\":{{\"deckName\":\"TestDeck\",\"modelName\":\"Basic\",\"fields\":{{\"Front\":\"Question?\",\"Back\":\"Answer!\"}}}}}}");
+        VerifyRequestSent("addNote", $"{{\"note\":{{\"deckName\":\"TestDeck\",\"modelName\":\"Basic\",\"fields\":{{\"Front\":\"Question?\",\"Back\":\"Answer!\"}},\"tags\":[]}}}}");
     }
 
     [Fact]

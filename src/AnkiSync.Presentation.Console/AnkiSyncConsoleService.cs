@@ -121,6 +121,8 @@ public class AnkiSyncConsoleService
 
     private async Task HandleSyncLoopCommandAsync(string[] args)
     {
+        // args = [@"D:\Google Drive\My Drive\Learning\Aaron's Notes\Learn"];
+
         if (args.Length < 1)
         {
             throw new ArgumentException("Usage: ankisync sync-loop <directory>");

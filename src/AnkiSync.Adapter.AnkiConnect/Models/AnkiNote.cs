@@ -25,6 +25,12 @@ public class AnkiNote
     [JsonPropertyName("fields")]
     public Dictionary<string, string> Fields { get; set; } = new();
 
+    /// <summary>
+    /// Tags to assign to the note in Anki.  This mirrors the deck path components.
+    /// </summary>
+    [JsonPropertyName("tags")]
+    public List<string> Tags { get; set; } = new();
+
     /// <inheritdoc />
     public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this);
 }

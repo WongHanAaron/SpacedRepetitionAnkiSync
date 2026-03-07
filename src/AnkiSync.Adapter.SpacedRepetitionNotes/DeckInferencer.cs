@@ -39,35 +39,31 @@ public class DeckInferencer : IDeckInferencer
     /// <returns>The inferred decks</returns>
     public IEnumerable<ParsedDeck> InferDecks(IEnumerable<ParsedCardBase> cards)
     {
-        // First, group cards by their source file
-        var fileGroups = cards.GroupBy(card => card.SourceFilePath);
+        // We now treat each card independently.  Previous logic grouped by
+        // source file and only looked at the first card's tags, which meant
+        // that two cards in the same file with different tags ended up in the
+        // same deck.  The bug report pointed out exactly that scenario.
         
-        // Then, group by the tags in each file
         var tagGroups = new Dictionary<string, ParsedDeck>();
-        
-        foreach (var fileGroup in fileGroups)
+
+        foreach (var card in cards)
         {
-            // Get the first card to extract tags (all cards in the same file share the same tags)
-            var firstCard = fileGroup.First();
-            
-            // If the card has tags, use them; otherwise, fall back to file-based tags
-            var tag = firstCard.Tags?.NestedTags?.Count > 0 
-                ? firstCard.Tags 
-                : InferDeckTag(firstCard);
-                
-            // Create a key for the tag to group by
+            // prefer explicit tags on the card, fall back to path-derived tag
+            var tag = card.Tags?.NestedTags?.Count > 0
+                ? card.Tags
+                : InferDeckTag(card);
+
             var tagKey = string.Join("/", tag.NestedTags ?? new List<string>());
-            
+
             if (!tagGroups.TryGetValue(tagKey, out var deck))
             {
                 deck = new ParsedDeck { Tag = tag, Cards = new List<ParsedCardBase>() };
                 tagGroups[tagKey] = deck;
             }
-            
-            // Add all cards from this file to the deck
-            ((List<ParsedCardBase>)deck.Cards).AddRange(fileGroup);
+
+            ((List<ParsedCardBase>)deck.Cards).Add(card);
         }
-        
+
         return tagGroups.Values;
     }
 
@@ -86,7 +82,8 @@ public class DeckInferencer : IDeckInferencer
         var pathParts = new List<string>();
         var currentDir = directory;
 
-        while (currentDir != null && !string.IsNullOrEmpty(currentDir.Name))
+        // walk up the directory tree, but stop before the drive/root itself
+        while (currentDir != null && !string.IsNullOrEmpty(currentDir.Name) && currentDir.Parent != null)
         {
             pathParts.Insert(0, currentDir.Name);
             currentDir = currentDir.Parent;
