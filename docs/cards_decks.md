@@ -52,6 +52,7 @@ Results in tags: `["cloud", "aws", "compute"]`
 - **Format**: `Question::Answer`
 - **Creates**: 1 card (forward direction)
 - **Example**: `What is the capital of France?::Paris`
+- **Inline tags**: a question may start with a parenthesised tag, e.g. `(math) What is 2+2?::4`. The text inside the parentheses is removed from the question and appended to the document's tag path for that card only.
 
 ###### Single-line Bidirectional  
 - **Format**: `Question:::Answer`
@@ -62,6 +63,7 @@ Results in tags: `["cloud", "aws", "compute"]`
 ###### Multi-line answer via fenced block
 - **Format**: `Question?::::` followed by a Markdown code fence containing the answer.
 - **Details**: The question line must end with `?::::` (question mark plus four colons). The subsequent code block (```…```) supplies the multi-line answer. Blank or commented lines may appear between the question and the fence. The opening fence line may include a language identifier or any additional text (e.g. ```bash or ```   json); this information is ignored and **not** included in the answer.
+- **Inline tags**: a leading parenthesised value (e.g. `(topic)`) on the question line will be removed and appended to the document’s tag path for that card only.
 - **Creates**: 1 card with the full multi-line answer preserved exactly (line breaks included).
 - **Example**:
   ```markdown

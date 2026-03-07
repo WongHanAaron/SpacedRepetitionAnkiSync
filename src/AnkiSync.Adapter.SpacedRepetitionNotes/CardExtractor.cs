@@ -130,12 +130,15 @@ public class CardExtractor : ICardExtractor
                         _logger.LogTrace("Added missing question mark");
                     }
 
-                    var q = string.IsNullOrWhiteSpace(answer) ? trimmed : question;
+                    // apply inline tag processing now that question punctuation is correct
+                    
+                    var (cleanQuestion, cardTags) = ApplyInlineTag(question, document.Tags);
+                    var q = string.IsNullOrWhiteSpace(answer) ? trimmed : cleanQuestion;
                     var card = new ParsedQuestionAnswerCard
                     {
                         Question = q,
                         Answer = answer,
-                        Tags = document.Tags,
+                        Tags = cardTags,
                         SourceFilePath = document.FilePath
                     };
                     _logger.LogDebug("Yielding card: Q: {Question}, A: {Answer}", card.Question, card.Answer);
@@ -159,12 +162,15 @@ public class CardExtractor : ICardExtractor
                 // Only consider it a valid card if the question ends with a question mark
                 if (!string.IsNullOrWhiteSpace(question))
                 {
-                    var q = string.IsNullOrWhiteSpace(answer) ? trimmed : question;
+                    // apply inline tag handling; :: questions don't get an extra ? added
+                    
+                    var (cleanQuestion, cardTags) = ApplyInlineTag(question, document.Tags);
+                    var q = string.IsNullOrWhiteSpace(answer) ? trimmed : cleanQuestion;
                     var card = new ParsedQuestionAnswerCard
                     {
                         Question = q,
                         Answer = answer,
-                        Tags = document.Tags,
+                        Tags = cardTags,
                         SourceFilePath = document.FilePath
                     };
                     _logger.LogDebug("Yielding card: Q: {Question}, A: {Answer}", card.Question, card.Answer);
@@ -203,21 +209,23 @@ public class CardExtractor : ICardExtractor
 
                 if (!string.IsNullOrWhiteSpace(question) && !string.IsNullOrWhiteSpace(answer))
                 {
+                    var (cleanQuestion, cardTags) = ApplyInlineTag(question, document.Tags);
+
                     // Forward card: Question -> Answer
                     yield return new ParsedQuestionAnswerCard
                     {
-                        Question = question,
+                        Question = cleanQuestion,
                         Answer = answer,
-                        Tags = document.Tags,
+                        Tags = cardTags,
                         SourceFilePath = document.FilePath
                     };
 
-                    // Reversed card: Answer -> Question
+                    // Reversed card: Answer -> Question (same tags)
                     yield return new ParsedQuestionAnswerCard
                     {
                         Question = answer,
-                        Answer = question,
-                        Tags = document.Tags,
+                        Answer = cleanQuestion,
+                        Tags = cardTags,
                         SourceFilePath = document.FilePath
                     };
                 }
@@ -302,12 +310,14 @@ public class CardExtractor : ICardExtractor
         if (question.Contains("{{") || question.Contains("==") || question.Contains("**"))
             yield break;
 
+        var (cleanQuestion, cardTags) = ApplyInlineTag(question, document.Tags);
+
         // Forward card
         yield return new ParsedQuestionAnswerCard
         {
-            Question = question,
+            Question = cleanQuestion,
             Answer = answer,
-            Tags = document.Tags,
+            Tags = cardTags,
             SourceFilePath = document.FilePath
         };
 
@@ -317,8 +327,8 @@ public class CardExtractor : ICardExtractor
             yield return new ParsedQuestionAnswerCard
             {
                 Question = answer,
-                Answer = question,
-                Tags = document.Tags,
+                Answer = cleanQuestion,
+                Tags = cardTags,
                 SourceFilePath = document.FilePath
             };
         }
@@ -365,6 +375,9 @@ public class CardExtractor : ICardExtractor
                 questionText += "?";
                 _logger.LogTrace("Added missing question mark for multi-line question");
             }
+            // apply inline tag logic (will remove any leading '(tag)' and update tags)
+            
+            var (cleanQuestionText, questionTags) = ApplyInlineTag(questionText, document.Tags);
 
             // look ahead for answer code fence, skipping blank/comment lines
             int j = i + 1;
@@ -390,9 +403,9 @@ public class CardExtractor : ICardExtractor
             var answer = string.Join("\n", answerLines).TrimEnd('\r', '\n');
             var card = new ParsedQuestionAnswerCard
             {
-                Question = questionText,
+                Question = cleanQuestionText,
                 Answer = answer,
-                Tags = document.Tags,
+                Tags = questionTags,
                 SourceFilePath = document.FilePath
             };
             _logger.LogDebug("Yielding multi-line card: Q: {Question}, A-lines: {AnswerLineCount}", card.Question, answerLines.Count);
@@ -421,19 +434,47 @@ public class CardExtractor : ICardExtractor
         return true;
     }
 
+    /// <summary>
+    /// Processes a question line looking for a leading parenthesised tag.  If one is
+    /// found, the parentheses are removed from the returned question text and the tag
+    /// is appended to the provided baseTags to form a new Tag instance.  Otherwise the
+    /// original text and tags are returned unchanged.
+    /// </summary>
+    private static (string Question, Tag Tags) ApplyInlineTag(string rawQuestion, Tag baseTags)
+    {
+        // simple regex: start of string, '(', capture anything not ')', ')', optional
+        // whitespace, then the remainder of the question.
+        var trimmed = rawQuestion.Trim();
+        var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"^\(([^)]+)\)\s*(.*)");
+        if (!match.Success)
+            return (trimmed, baseTags);
+
+        var extra = match.Groups[1].Value.Trim();
+        var rest = match.Groups[2].Value.Trim();
+        if (string.IsNullOrWhiteSpace(extra))
+            return (rest, baseTags);
+
+        // append as nested tag list, preserving existing tags
+        
+        var newList = baseTags.NestedTags.Concat(new[] { extra }).ToList();
+        return (rest, new Tag { NestedTags = newList });
+    }
+
     private IEnumerable<ParsedCardBase> ExtractBasicCards(Document document)
     {
         var lines = document.Content.Replace("\r\n", "\n").Split('\n', StringSplitOptions.None);
         lines = ExcludeCodeFenceLines(lines).ToArray();
         var cards = new List<ParsedCardBase>();
         string? currentQuestion = null;
+        Tag? currentQuestionTags = null;
 
         foreach (var line in lines)
         {
             var trimmed = line.Trim();
             if (trimmed.StartsWith("Q:") || trimmed.StartsWith("Question:"))
             {
-                currentQuestion = trimmed.Substring(trimmed.IndexOf(':') + 1).Trim();
+                var q = trimmed.Substring(trimmed.IndexOf(':') + 1).Trim();
+                (currentQuestion, currentQuestionTags) = ApplyInlineTag(q, document.Tags);
             }
             else if ((trimmed.StartsWith("A:") || trimmed.StartsWith("Answer:")) && currentQuestion != null)
             {
@@ -442,10 +483,11 @@ public class CardExtractor : ICardExtractor
                 {
                     Question = currentQuestion,
                     Answer = answer,
-                    Tags = document.Tags,
+                    Tags = currentQuestionTags ?? document.Tags,
                     SourceFilePath = document.FilePath
                 });
                 currentQuestion = null;
+                currentQuestionTags = null;
             }
         }
 

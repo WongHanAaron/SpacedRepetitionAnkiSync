@@ -138,6 +138,36 @@ Largest planet:::Jupiter
     }
 
     [Fact]
+    public void ExtractCards_WithInlineTagOnReversedFlashcard_ShouldAppendToBothDirections()
+    {
+        // Arrange
+        var document = new Document
+        {
+            FilePath = "reversed-inline.md",
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["base"] },
+            Content = """
+(tagx) Q1:::A1
+"""
+        };
+
+        // Act
+        var cards = _cardExtractor.ExtractCards(document).ToList();
+
+        // Assert
+        cards.Should().HaveCount(2);
+        var forward = (ParsedQuestionAnswerCard)cards[0];
+        forward.Question.Should().Be("Q1");
+        forward.Answer.Should().Be("A1");
+        forward.Tags.NestedTags.Should().Equal(new[] { "base", "tagx" });
+
+        var reverse = (ParsedQuestionAnswerCard)cards[1];
+        reverse.Question.Should().Be("A1");
+        reverse.Answer.Should().Be("Q1");
+        reverse.Tags.NestedTags.Should().Equal(new[] { "base", "tagx" });
+    }
+
+    [Fact]
     public void ExtractCards_WithMultiLineFlashcards_ShouldExtractCorrectly()
     {
         // Arrange
@@ -287,6 +317,60 @@ b
         var card = (ParsedQuestionAnswerCard)cards[0];
         card.Question.Should().Be("Weird fence?");
         card.Answer.Should().Be("a\nb");
+    }
+
+    [Fact]
+    public void ExtractCards_WithInlineTagOnSingleLineCard_ShouldAppendTag()
+    {
+        // Arrange
+        var document = new Document
+        {
+            FilePath = "inline1.md",
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["tag1"] },
+            Content = """
+(tag2) Question 1?::Answer 1
+"""
+        };
+
+        // Act
+        var cards = _cardExtractor.ExtractCards(document).ToList();
+
+        // Assert
+        cards.Should().HaveCount(1);
+        var card = (ParsedQuestionAnswerCard)cards[0];
+        card.Question.Should().Be("Question 1?");
+        card.Answer.Should().Be("Answer 1");
+        card.Tags.NestedTags.Should().Equal(new[] { "tag1", "tag2" });
+    }
+
+    [Fact]
+    public void ExtractCards_WithInlineTagAndMultiLineCodeblock_ShouldAppendTag()
+    {
+        // Arrange - multi-line answer scenario using ?:::: syntax
+        var document = new Document
+        {
+            FilePath = "inline2.md",
+            LastModified = DateTimeOffset.Parse("2025-11-29T00:00:00Z"),
+            Tags = new Tag { NestedTags = ["tag1"] },
+            Content = """
+(tag2) Question 2?::::
+```
+Answer 2
+Another line
+```
+"""
+        };
+
+        // Act
+        var cards = _cardExtractor.ExtractCards(document).ToList();
+
+        // Assert
+        cards.Should().HaveCount(1);
+        var card = (ParsedQuestionAnswerCard)cards[0];
+        card.Question.Should().Be("Question 2?");
+        card.Answer.Should().Be("Answer 2\nAnother line");
+        card.Tags.NestedTags.Should().Equal(new[] { "tag1", "tag2" });
     }
 
     [Fact]

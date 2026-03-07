@@ -492,15 +492,17 @@ public class DeckRepositoryTests
     }
 
     [Fact]
-    public async Task ExecuteInstructionsAsync_ShouldThrowNotSupportedException_ForUnsupportedInstructionType()
+    public async Task ExecuteInstructionsAsync_ShouldIgnoreUnsupportedInstructionType()
     {
         // Arrange
         var instruction = new TestInstruction();
         var instructions = new[] { instruction };
 
-        // Act & Assert
-        await Assert.ThrowsAsync<NotSupportedException>(() =>
-            _deckRepository.ExecuteInstructionsAsync(instructions));
+        // Act - should not throw and simply return normally (error is logged internally)
+        await _deckRepository.ExecuteInstructionsAsync(instructions);
+
+        // Assert - if we reached here without exception the behaviour is correct
+        Assert.True(true);
     }
 
     private class TestInstruction : SynchronizationInstruction

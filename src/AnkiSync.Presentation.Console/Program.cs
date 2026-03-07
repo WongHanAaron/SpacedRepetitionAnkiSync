@@ -22,6 +22,10 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
+        // print version information immediately on startup
+        var version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown";
+        Console.WriteLine($"AnkiSync version {version}");
+
         // Set up dependency injection
         var services = new ServiceCollection();
         ConfigureServices(services);
