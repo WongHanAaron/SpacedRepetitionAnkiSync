@@ -24,9 +24,21 @@ public interface IAnkiService
     Task<DeckNamesResponse> GetDecksAsync(GetDecksRequestDto request, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all available decks from Anki along with their numeric IDs.  The
+    /// returned dictionary maps deck name to the underlying Anki deck ID; a
+    /// negative value indicates a filtered (dynamic) deck.
+    /// </summary>
+    Task<DeckNamesAndIdsResponse> GetDecksWithIdsAsync(GetDecksWithIdsRequestDto request, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Creates a deck in Anki if it doesn't exist
     /// </summary>
     Task<CreateDeckResponse> CreateDeckAsync(CreateDeckRequestDto request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates a filtered (dynamic) deck using the specified search and options.
+    /// </summary>
+    Task<CreateDeckResponse> CreateFilteredDeckAsync(CreateFilteredDeckRequestDto request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Adds a note to Anki
@@ -116,6 +128,14 @@ public class AnkiService : IAnkiService
     }
 
     /// <inheritdoc />
+    public async Task<DeckNamesAndIdsResponse> GetDecksWithIdsAsync(GetDecksWithIdsRequestDto request, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving deck names and ids from Anki");
+        var response = await SendRequestAsync<DeckNamesAndIdsResponse>(request.Action, request, cancellationToken);
+        return response;
+    }
+
+    /// <inheritdoc />
     public async Task<CreateDeckResponse> CreateDeckAsync(CreateDeckRequestDto request, CancellationToken cancellationToken = default)
     {
         if (request.Params == null)
@@ -124,6 +144,19 @@ public class AnkiService : IAnkiService
         }
         var paramsObj = (CreateDeckParams)request.Params;
         _logger.LogInformation("Creating deck {DeckName} in Anki", paramsObj.Deck);
+        var response = await SendRequestAsync<CreateDeckResponse>(request.Action, request, cancellationToken);
+        return response;
+    }
+
+    /// <inheritdoc />
+    public async Task<CreateDeckResponse> CreateFilteredDeckAsync(CreateFilteredDeckRequestDto request, CancellationToken cancellationToken = default)
+    {
+        if (request.Params == null)
+        {
+            throw new ArgumentException("Request parameters cannot be null", nameof(request));
+        }
+        var paramsObj = (CreateFilteredDeckParams)request.Params;
+        _logger.LogInformation("Creating filtered deck {DeckName} (search={Search}) in Anki", paramsObj.Name, paramsObj.Search);
         var response = await SendRequestAsync<CreateDeckResponse>(request.Action, request, cancellationToken);
         return response;
     }

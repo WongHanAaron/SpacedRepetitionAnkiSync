@@ -33,13 +33,14 @@ public class DeckRepository : IDeckRepository
 
         var ankiDeckName = deckId.ToAnkiDeckName();
         
-        // First check if the deck exists by getting all decks and checking if our deck is among them
-        var decksResponse = await _ankiService.GetDecksAsync(new GetDecksRequestDto(), cancellationToken);
-        if (decksResponse.Result == null || !decksResponse.Result.Contains(ankiDeckName))
+        // First check if the deck exists by getting all decks (name + id) and checking if our deck is among them
+        var decksResponse = await _ankiService.GetDecksWithIdsAsync(new GetDecksWithIdsRequestDto(), cancellationToken);
+        if (decksResponse.Result == null || !decksResponse.Result.TryGetValue(ankiDeckName, out var ankiDeckId))
         {
             _logger.LogDebug("Deck {DeckName} does not exist", ankiDeckName);
             return null;
         }
+        bool isFiltered = ankiDeckId < 0;
 
         // Find all notes in the specified deck
         var findNotesRequest = new FindNotesRequestDto($"deck:\"{ankiDeckName}\"");
@@ -70,6 +71,7 @@ public class DeckRepository : IDeckRepository
         return new Deck
         {
             DeckId = deckId,
+            IsFiltered = isFiltered,
             Cards = cards
         };
     }
@@ -80,7 +82,7 @@ public class DeckRepository : IDeckRepository
         _logger.LogInformation("Retrieving all decks from Anki");
 
         // Get all deck names from Anki
-        var decksResponse = await _ankiService.GetDecksAsync(new GetDecksRequestDto(), cancellationToken);
+        var decksResponse = await _ankiService.GetDecksWithIdsAsync(new GetDecksWithIdsRequestDto(), cancellationToken);
         if (decksResponse.Result == null || !decksResponse.Result.Any())
         {
             _logger.LogDebug("No decks found in Anki");
@@ -89,12 +91,16 @@ public class DeckRepository : IDeckRepository
 
         var decks = new List<Deck>();
 
-        foreach (var ankiDeckName in decksResponse.Result)
+        foreach (var kvp in decksResponse.Result)
         {
+            var ankiDeckName = kvp.Key;
             var deckId = DeckIdExtensions.FromAnkiDeckName(ankiDeckName);
             var deck = await GetDeck(deckId, cancellationToken);
             if (deck != null)
             {
+                // GetDeck will already set IsFiltered based on fresh lookup,
+                // but we know the value here as well. In the unlikely case
+                // that they diverge, prefer the fresh call.
                 decks.Add(deck);
             }
         }

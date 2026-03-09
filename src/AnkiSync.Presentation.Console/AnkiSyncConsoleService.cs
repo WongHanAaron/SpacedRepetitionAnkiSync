@@ -121,7 +121,7 @@ public class AnkiSyncConsoleService
 
     private async Task HandleSyncLoopCommandAsync(string[] args)
     {
-        // args = [@"D:\Google Drive\My Drive\Learning\Aaron's Notes\Learn"];
+        args = [@"D:\Google Drive\My Drive\Learning\Aaron's Notes\Learn"];
 
         if (args.Length < 1)
         {

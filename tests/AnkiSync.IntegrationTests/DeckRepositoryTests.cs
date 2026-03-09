@@ -190,4 +190,25 @@ public class DeckRepositoryTests : IAsyncLifetime
         card!.Question.Should().Be("Test Question?");
         card.Answer.Should().Be("Test Answer!");
     }
+
+    [Fact]
+    public async Task GetDeck_FilteredDeck_IsFilteredFlagIsTrue()
+    {
+        SkipIfAnkiNotAvailable();
+
+        // Arrange - create a filtered deck via direct HTTP request
+        var deckName = $"{TestDeckName}_Filtered_{Guid.NewGuid()}";
+        _createdDecks.Add(deckName);
+
+        // use the adapter directly so we can leverage the new DTO
+        var createFiltered = new CreateFilteredDeckRequestDto(deckName, search: "", order: 0);
+        await _ankiService.CreateFilteredDeckAsync(createFiltered);
+
+        // Act
+        var deck = await _deckRepository.GetDeck(DeckIdExtensions.FromAnkiDeckName(deckName));
+
+        // Assert
+        deck.Should().NotBeNull();
+        deck!.IsFiltered.Should().BeTrue("because the id for a filtered deck is negative");
+    }
 }

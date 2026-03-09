@@ -11,6 +11,12 @@ public class Deck
     public required DeckId DeckId { get; set; }
 
     /// <summary>
+    /// Whether the deck is a filtered (dynamic) deck in Anki.  Filtered decks have
+    /// negative ids when queried via AnkiConnect.
+    /// </summary>
+    public bool IsFiltered { get; set; } = false;
+
+    /// <summary>
     /// The name of the deck (derived from DeckId)
     /// </summary>
     public string Name => DeckId.Name;

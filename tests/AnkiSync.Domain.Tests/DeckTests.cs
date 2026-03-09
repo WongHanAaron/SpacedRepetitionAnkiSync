@@ -15,6 +15,7 @@ public class DeckTests
         // Assert
         deck.Name.Should().Be("TestDeck");
         deck.Cards.Should().BeEmpty();
+        deck.IsFiltered.Should().BeFalse("filtered status should default to false");
     }
 
     [Fact]
@@ -34,5 +35,10 @@ public class DeckTests
         deck.Cards.Should().HaveCount(2);
         deck.Cards.Should().Contain(qaCard);
         deck.Cards.Should().Contain(clozeCard);
+        deck.IsFiltered.Should().BeFalse();
+
+        // we can also set the flag explicitly
+        deck.IsFiltered = true;
+        deck.IsFiltered.Should().BeTrue();
     }
 }

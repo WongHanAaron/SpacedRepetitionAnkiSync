@@ -64,6 +64,32 @@ public class AnkiServiceTests
     }
 
     [Fact]
+    public async Task GetDecksWithIdsAsync_ShouldReturnDeckNamesAndIdsResponse()
+    {
+        // Arrange
+        var request = new GetDecksWithIdsRequestDto();
+        var expectedResponse = new DeckNamesAndIdsResponse
+        {
+            Result = new Dictionary<string, long>
+            {
+                ["Default"] = 1,
+                ["Filtered"] = -2
+            }
+        };
+        SetupHttpClientMock(expectedResponse);
+
+        // Act
+        var result = await _ankiService.GetDecksWithIdsAsync(request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Result.Should().NotBeNull();
+        result.Result["Default"].Should().Be(1);
+        result.Result["Filtered"].Should().Be(-2);
+        VerifyRequestSent("deckNamesAndIds");
+    }
+
+    [Fact]
     public async Task CreateDeckAsync_ShouldReturnCreateDeckResponse()
     {
         // Arrange
@@ -78,6 +104,23 @@ public class AnkiServiceTests
         result.Should().NotBeNull();
         result.Result.Should().Be(123456789L);
         VerifyRequestSent("createDeck", "{\"deck\":\"TestDeck\"}");
+    }
+
+    [Fact]
+    public async Task CreateFilteredDeckAsync_ShouldReturnCreateDeckResponse()
+    {
+        // Arrange
+        var request = new CreateFilteredDeckRequestDto("Filt", "deck:Default", 0);
+        var expectedResponse = new CreateDeckResponse { Result = -5L };
+        SetupHttpClientMock(expectedResponse);
+
+        // Act
+        var result = await _ankiService.CreateFilteredDeckAsync(request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Result.Should().Be(-5L);
+        VerifyRequestSent("createFilteredDeck", "{\"name\":\"Filt\",\"search\":\"deck:Default\",\"order\":0,\"fullSearch\":false}");
     }
 
     [Fact]

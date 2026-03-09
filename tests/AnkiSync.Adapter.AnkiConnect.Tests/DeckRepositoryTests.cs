@@ -38,8 +38,8 @@ public class DeckRepositoryTests
         var findNotesResponse = new FindNotesResponse { Result = new List<long>() };
 
         _ankiServiceMock
-            .Setup(x => x.GetDecksAsync(It.IsAny<GetDecksRequestDto>(), default))
-            .ReturnsAsync(new DeckNamesResponse { Result = new List<string> { "TestDeck" } });
+            .Setup(x => x.GetDecksWithIdsAsync(It.IsAny<GetDecksWithIdsRequestDto>(), default))
+            .ReturnsAsync(new DeckNamesAndIdsResponse { Result = new Dictionary<string, long> { ["TestDeck"] = 1 } });
 
         _ankiServiceMock
             .Setup(x => x.FindNotesAsync(It.IsAny<FindNotesRequestDto>(), default))
@@ -52,6 +52,7 @@ public class DeckRepositoryTests
         result.Should().NotBeNull();
         result!.DeckId.Name.Should().Be("TestDeck");
         result.Cards.Should().BeEmpty();
+        result.IsFiltered.Should().BeFalse();
     }
 
     [Fact]
@@ -67,14 +68,59 @@ public class DeckRepositoryTests
         };
         
         _ankiServiceMock
-            .Setup(x => x.GetDecksAsync(It.IsAny<GetDecksRequestDto>(), default))
-            .ReturnsAsync(deckNamesResponse);
+            .Setup(x => x.GetDecksWithIdsAsync(It.IsAny<GetDecksWithIdsRequestDto>(), default))
+            .ReturnsAsync(new DeckNamesAndIdsResponse { Result = deckNamesResponse.Result?.ToDictionary(n => n, _ => 1L) });
 
         // Act
         var result = await _deckRepository.GetDeck(deckId);
 
         // Assert
         result.Should().BeNull("because the deck does not exist");
+    }
+
+    [Fact]
+    public async Task GetDeck_ShouldMarkFilteredBasedOnNegativeId()
+    {
+        // Arrange
+        var deckId = DeckIdExtensions.FromAnkiDeckName("FilteredDeck");
+        _ankiServiceMock
+            .Setup(x => x.GetDecksWithIdsAsync(It.IsAny<GetDecksWithIdsRequestDto>(), default))
+            .ReturnsAsync(new DeckNamesAndIdsResponse { Result = new Dictionary<string, long> { ["FilteredDeck"] = -42 } });
+
+        // Act
+        var result = await _deckRepository.GetDeck(deckId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.DeckId.Name.Should().Be("FilteredDeck");
+        result.IsFiltered.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetAllDecksAsync_ShouldPropagateFilteredFlag()
+    {
+        // Arrange
+        var map = new Dictionary<string, long>
+        {
+            ["Normal"] = 2,
+            ["Filtered"] = -5
+        };
+        _ankiServiceMock
+            .Setup(x => x.GetDecksWithIdsAsync(It.IsAny<GetDecksWithIdsRequestDto>(), default))
+            .ReturnsAsync(new DeckNamesAndIdsResponse { Result = map });
+
+        // any further calls (GetDeck) will also need to return something reasonable
+        _ankiServiceMock
+            .Setup(x => x.FindNotesAsync(It.IsAny<FindNotesRequestDto>(), default))
+            .ReturnsAsync(new FindNotesResponse { Result = new List<long>() });
+
+        // Act
+        var results = (await _deckRepository.GetAllDecksAsync()).ToList();
+
+        // Assert
+        results.Should().HaveCount(2);
+        results.Should().ContainSingle(d => d.DeckId.Name == "Normal" && d.IsFiltered == false);
+        results.Should().ContainSingle(d => d.DeckId.Name == "Filtered" && d.IsFiltered == true);
     }
 
     [Fact]
@@ -113,8 +159,8 @@ public class DeckRepositoryTests
         var notesInfoResponse = new NotesInfoResponse { Result = notesInfo };
 
         _ankiServiceMock
-            .Setup(x => x.GetDecksAsync(It.IsAny<GetDecksRequestDto>(), default))
-            .ReturnsAsync(new DeckNamesResponse { Result = new List<string> { "TestDeck" } });
+            .Setup(x => x.GetDecksWithIdsAsync(It.IsAny<GetDecksWithIdsRequestDto>(), default))
+            .ReturnsAsync(new DeckNamesAndIdsResponse { Result = new Dictionary<string, long> { ["TestDeck"] = 1 } });
 
         _ankiServiceMock
             .Setup(x => x.FindNotesAsync(It.IsAny<FindNotesRequestDto>(), default))
@@ -162,8 +208,8 @@ public class DeckRepositoryTests
         var notesInfoResponse = new NotesInfoResponse { Result = notesInfo };
 
         _ankiServiceMock
-            .Setup(x => x.GetDecksAsync(It.IsAny<GetDecksRequestDto>(), default))
-            .ReturnsAsync(new DeckNamesResponse { Result = new List<string> { "TestDeck" } });
+            .Setup(x => x.GetDecksWithIdsAsync(It.IsAny<GetDecksWithIdsRequestDto>(), default))
+            .ReturnsAsync(new DeckNamesAndIdsResponse { Result = new Dictionary<string, long> { ["TestDeck"] = 1 } });
 
         _ankiServiceMock
             .Setup(x => x.FindNotesAsync(It.IsAny<FindNotesRequestDto>(), default))
@@ -223,8 +269,8 @@ public class DeckRepositoryTests
         var notesInfoResponse = new NotesInfoResponse { Result = notesInfo };
 
         _ankiServiceMock
-            .Setup(x => x.GetDecksAsync(It.IsAny<GetDecksRequestDto>(), default))
-            .ReturnsAsync(new DeckNamesResponse { Result = new List<string> { "TestDeck" } });
+            .Setup(x => x.GetDecksWithIdsAsync(It.IsAny<GetDecksWithIdsRequestDto>(), default))
+            .ReturnsAsync(new DeckNamesAndIdsResponse { Result = new Dictionary<string, long> { ["TestDeck"] = 1 } });
 
         _ankiServiceMock
             .Setup(x => x.FindNotesAsync(It.IsAny<FindNotesRequestDto>(), default))
