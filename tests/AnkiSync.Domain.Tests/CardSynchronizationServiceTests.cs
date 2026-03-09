@@ -127,6 +127,26 @@ public class CardSynchronizationServiceTests
         return CreateTestDeck(DeckId.FromPath(deckName), questionAnswerPairs);
     }
 
+    [Fact]
+    public async Task AccumulateSyncInstructionsAsync_ShouldNotDeleteFilteredDecks()
+    {
+        // Arrange
+        var sourceDecks = new[] { CreateTestDeck("Source") };
+        var existingDecks = new List<Deck>
+        {
+            CreateTestDeck("Unmatched"),
+            new Deck { DeckId = DeckId.FromPath("Filtered"), IsFiltered = true }
+        };
+
+        // Act
+        var instructions = await _synchronizationService.AccumulateSyncInstructionsAsync(sourceDecks, existingDecks);
+
+        // Assert
+        // Should contain delete for Unmatched only
+        instructions.Should().ContainSingle(i => i is DeleteDeckInstruction d && d.DeckId.Name == "Unmatched");
+        instructions.Should().NotContain(i => i is DeleteDeckInstruction d && d.DeckId.Name == "Filtered");
+    }
+
     private static Deck CreateTestDeck(DeckId deckId, params string[] questionAnswerPairs)
     {
         var dateModified = DateTimeOffset.UtcNow;

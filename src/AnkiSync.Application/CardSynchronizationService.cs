@@ -97,11 +97,12 @@ public class CardSynchronizationService
         var allExistingCards = existingDeckList.SelectMany(d => d.Cards.Select(c =>((DeckId DeckId, Card Card))(d.DeckId, c)) ?? new List<(DeckId DeckId, Card Card)>()).ToList();
 
         // Find decks to delete (exist in Anki but not in source)
-        // Exclude Default deck and decks with children
+        // Exclude Default deck, decks with children, and filtered decks (we don't automatically remove those)
         var decksToDelete = existingDeckList.Where(existingDeck =>
             !sourceDeckList.Any(sourceDeck => _deckIdEqualityChecker.AreEqual(sourceDeck.DeckId, existingDeck.DeckId)) &&
             !IsDefaultDeck(existingDeck.DeckId) &&
-            !HasChildDecks(existingDeck.DeckId, existingDeckList));
+            !HasChildDecks(existingDeck.DeckId, existingDeckList) &&
+            !existingDeck.IsFiltered);
 
         foreach (var deckToDelete in decksToDelete)
         {
