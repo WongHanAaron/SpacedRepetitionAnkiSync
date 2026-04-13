@@ -90,6 +90,52 @@ public class AnkiServiceTests
     }
 
     [Fact]
+    public async Task GetDeckConfigAsync_ShouldReturnDeckConfig()
+    {
+        // Arrange
+        var request = new GetDeckConfigRequestDto("MyDeck");
+        var expectedResponse = new DeckConfigResponse
+        {
+            Result = new DeckConfigResult
+            {
+                Id = 123,
+                Name = "MyDeck",
+                Dyn = true
+            }
+        };
+        SetupHttpClientMock(expectedResponse);
+
+        // Act
+        var result = await _ankiService.GetDeckConfigAsync(request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Result.Should().NotBeNull();
+        result.Result.Id.Should().Be(123);
+        result.Result.Name.Should().Be("MyDeck");
+        result.Result.Dyn.Should().BeTrue();
+        VerifyRequestSent("getDeckConfig", "{\"deck\":\"MyDeck\"}");
+    }
+
+    [Fact]
+    public async Task GetDeckConfigAsync_ShouldHandleNumericDynValue()
+    {
+        // Arrange
+        var request = new GetDeckConfigRequestDto("NumericDeck");
+        var rawJson = "{\"result\":{\"id\":1,\"name\":\"NumericDeck\",\"dyn\":1},\"error\":null}";
+        SetupHttpClientMockRaw<DeckConfigResponse>(rawJson);
+
+        // Act
+        var result = await _ankiService.GetDeckConfigAsync(request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Result.Should().NotBeNull();
+        result.Result.Dyn.Should().BeTrue();
+        VerifyRequestSent("getDeckConfig", "{\"deck\":\"NumericDeck\"}");
+    }
+
+    [Fact]
     public async Task CreateDeckAsync_ShouldReturnCreateDeckResponse()
     {
         // Arrange
@@ -427,6 +473,28 @@ public class AnkiServiceTests
         _httpClientMock
             .Setup(x => x.ReadFromJsonAsync<TResponse>(httpResponse.Content, null, default))
             .ReturnsAsync(response);
+    }
+
+    /// <summary>
+    /// Configure IHttpClient mock to return a raw JSON string when the response
+    /// body is deserialized.  Useful for testing edge-case formats like numeric
+    /// booleans.
+    /// </summary>
+    private void SetupHttpClientMockRaw<TResponse>(string json) where TResponse : class
+    {
+        var httpResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json")
+        };
+        _httpClientMock
+            .Setup(x => x.PostAsync("http://127.0.0.1:8765", It.IsAny<HttpContent>(), default))
+            .Callback<string, HttpContent, CancellationToken>((url, content, token) => _capturedContent = content as StringContent)
+            .ReturnsAsync(httpResponse);
+
+        var obj = JsonSerializer.Deserialize<TResponse>(json);
+        _httpClientMock
+            .Setup(x => x.ReadFromJsonAsync<TResponse>(httpResponse.Content, null, default))
+            .ReturnsAsync(obj);
     }
 
     private void VerifyRequestSent(string expectedAction, string? expectedParams = null)

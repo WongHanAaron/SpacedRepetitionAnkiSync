@@ -86,6 +86,12 @@ public interface IAnkiService
     Task<NotesInfoResponse> NotesInfoAsync(NotesInfoRequestDto request, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Retrieves the configuration object for a given deck name.  Useful for
+    /// detecting whether a deck is filtered (the result contains a "dyn" flag).
+    /// </summary>
+    Task<DeckConfigResponse> GetDeckConfigAsync(GetDeckConfigRequestDto request, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets detailed information about cards
     /// </summary>
     Task<CardsInfoResponse> CardsInfoAsync(CardsInfoRequestDto request, CancellationToken cancellationToken = default);
@@ -251,6 +257,19 @@ public class AnkiService : IAnkiService
         var paramsObj = (NotesInfoParams)request.Params;
         _logger.LogDebug("Getting info for {Count} notes", paramsObj.Notes?.Count() ?? 0);
         var response = await SendRequestAsync<NotesInfoResponse>(request.Action, request, cancellationToken);
+        return response;
+    }
+
+    /// <inheritdoc />
+    public async Task<DeckConfigResponse> GetDeckConfigAsync(GetDeckConfigRequestDto request, CancellationToken cancellationToken = default)
+    {
+        if (request.Params == null)
+        {
+            throw new ArgumentException("Request parameters cannot be null", nameof(request));
+        }
+        var paramsObj = (object)request.Params; // no need to access contents here
+        _logger.LogDebug("Retrieving configuration for deck {DeckName}", request);
+        var response = await SendRequestAsync<DeckConfigResponse>(request.Action, request, cancellationToken);
         return response;
     }
 
