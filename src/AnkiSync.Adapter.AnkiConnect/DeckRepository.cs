@@ -317,7 +317,7 @@ public class DeckRepository : IDeckRepository
             QuestionAnswerCard qaCard => new AnkiNote
             {
                 DeckName = deckName,
-                ModelName = "Basic",
+                ModelName = GetQuestionAnswerCardType(deckName, qaCard),
                 Fields = new Dictionary<string, string>
                 {
                     ["Front"] = qaCard.Question,
@@ -337,6 +337,18 @@ public class DeckRepository : IDeckRepository
             },
             _ => throw new ArgumentException($"Unsupported card type: {card.GetType()}", nameof(card))
         };
+    }
+
+    private string GetQuestionAnswerCardType(string deckName, QuestionAnswerCard card)
+    {
+        if (deckName.EndsWith("typed", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Basic (typed)";
+        }
+        else
+        {
+            return "Basic";
+        }
     }
 
     private string ConvertPlaceholdersToClozeFormat(ClozeCard clozeCard)
